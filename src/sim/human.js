@@ -4,6 +4,7 @@ import { tileIndex } from './world.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
 import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
+import { forgetOnDeath } from './techs.js';
 
 function uniqueName(state, data, sex) {
   const used = new Set(state.humans.map((h) => h.name));
@@ -55,6 +56,9 @@ export function createHuman(state, data, x, y, opts = {}) {
     health: 100,
     traits: opts.traits ?? rollTraits(state, data),
     skills: {},
+    knows: [],
+    tools: {},
+    counters: {},
     carrying: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
@@ -77,7 +81,7 @@ export function spawnInitialHumans(state, data) {
       center = i;
     }
   }
-  state.stockpile = { x: center % world.width, y: Math.floor(center / world.width), wood: 0, stone: 0 };
+  state.stockpile = { x: center % world.width, y: Math.floor(center / world.width), wood: 0, stone: 0, clay: 0, food: 0, pottery: 0, cooked_food: 0 };
 
   const spots = bfs(world, data, center, { maxDist: cfg.spawnRadius }).reached;
   for (let n = 0; n < cfg.startCount; n++) {
@@ -102,11 +106,12 @@ export function killHuman(state, data, h, cause) {
   state.humans = state.humans.filter((o) => o.id !== h.id);
   state.dead.push({
     id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, parents: h.parents, partnerId: h.partnerId,
-    traits: h.traits, skills: h.skills, deathTick: state.tick, cause,
+    traits: h.traits, skills: h.skills, knows: h.knows, deathTick: state.tick, cause,
   });
   const partner = state.humans.find((o) => o.id === h.partnerId);
   if (partner) partner.partnerId = null;
   let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age);
   if (partner) text += `, leaving behind ${partner.name}`;
   logEvent(state, text);
+  forgetOnDeath(state, data, h);
 }

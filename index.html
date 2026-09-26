@@ -25,9 +25,9 @@
         <button data-speed="4">4x</button>
       </div>
       <div class="group">
-        <button id="btn-save">Save</button>
-        <button id="btn-load">Load</button>
         <button id="btn-log">Log</button>
+        <button id="btn-tech">Tech</button>
+        <button id="btn-menu" aria-label="Menu">☰</button>
       </div>
     </div>
   </header>
@@ -41,6 +41,7 @@
       <button id="inspect-close" aria-label="Close">✕</button>
     </div>
     <div id="insp-traits" class="chips"></div>
+    <div id="insp-tools" class="sub"></div>
     <div id="insp-needs">
       <div class="need"><label>Health</label><div class="bar"><div id="bar-health"></div></div></div>
       <div class="need"><label>Food</label><div class="bar"><div id="bar-hunger"></div></div></div>
@@ -51,6 +52,8 @@
       <h3>Skills</h3>
       <div id="insp-skills"></div>
     </div>
+    <h3>Knows</h3>
+    <div id="insp-knows" class="chips"></div>
   </section>
 
   <section id="log" class="panel hidden">
@@ -59,6 +62,26 @@
       <button id="log-close" aria-label="Close">✕</button>
     </div>
     <ol id="log-list"></ol>
+  </section>
+
+  <section id="tech" class="panel hidden">
+    <div class="panel-head">
+      <div>
+        <h2>Knowledge</h2>
+        <div id="tech-buildings" class="sub"></div>
+      </div>
+      <button id="tech-close" aria-label="Close">✕</button>
+    </div>
+    <div id="tech-list"></div>
+  </section>
+
+  <section id="menu" class="panel hidden">
+    <div class="panel-head">
+      <h2>Game</h2>
+      <button id="menu-close" aria-label="Close">✕</button>
+    </div>
+    <button id="btn-save" class="wide">Save game</button>
+    <button id="btn-load" class="wide">Load saved game</button>
   </section>
 
   <div id="toast"></div>

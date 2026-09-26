@@ -25,6 +25,10 @@ export class ResourceView {
       const def = data.resourcesById[r.type];
       const cx = (r.x + 0.5) * TILE_SIZE;
       const cy = (r.y + 0.5) * TILE_SIZE;
+      if (r.burning) {
+        drawFire(g, cx, cy, sim.tick);
+        continue;
+      }
       g.lineStyle(1, 0x1b1b1b, 0.8);
       g.fillStyle(hexToInt(def.color));
       g.fillCircle(cx, cy, 5);
@@ -39,4 +43,15 @@ export class ResourceView {
   destroy() {
     this.g.destroy();
   }
+}
+
+// A burning tree: a flickering flame that changes shape every tick.
+function drawFire(g, cx, cy, tick) {
+  const flick = (tick % 3) - 1;
+  g.fillStyle(0x3d2b1f);
+  g.fillCircle(cx, cy + 3, 4);
+  g.fillStyle(0xe8492a);
+  g.fillTriangle(cx - 5, cy + 4, cx + 5, cy + 4, cx + flick, cy - 8);
+  g.fillStyle(0xffc23d);
+  g.fillTriangle(cx - 3, cy + 4, cx + 3, cy + 4, cx - flick, cy - 3);
 }

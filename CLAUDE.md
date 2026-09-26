@@ -24,6 +24,7 @@
 - All sim randomness goes through `src/sim/rng.js` (mulberry32). The RNG state lives in the sim state, so a save resumes the same sequence.
 - Sim state is plain JSON data: no class instances, functions, Maps/Sets, or circular refs. Entities reference each other by id. Bump `SAVE_VERSION` in `src/sim/save.js` on incompatible changes.
 - Every notable event goes to the history log via `logEvent(state, text)`.
+- Knowledge is per person (`h.knows`). Anything a tech unlocks (buildings, items, using a shelter) must check that the person knows it. Techs spread only through teaching, and are lost when the last holder dies.
 - Keep files small and focused. Comment only the non-obvious logic.
 
 ## Testing

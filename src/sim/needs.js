@@ -4,11 +4,12 @@ const clamp = (v) => Math.max(0, Math.min(100, v));
 
 // Needs are satisfaction levels: 100 = fully satisfied, 0 = desperate.
 // An empty stomach drains health; health slowly recovers when fed.
-// Cold winters burn through food faster; traits speed up or slow down decay.
-export function updateNeeds(h, data, season) {
+// Being out in the winter cold burns through food faster; traits speed up or
+// slow down decay.
+export function updateNeeds(h, data, cold) {
   const cfg = data.config.needs;
   const sleeping = h.action.type === 'sleep';
-  const seasonMult = season === 'Winter' ? cfg.hunger.winterMultiplier : 1;
+  const seasonMult = cold ? cfg.hunger.winterMultiplier : 1;
   const hungerDecay = cfg.hunger.decay * seasonMult * traitMod(h, data, 'hungerDecay');
   h.needs.hunger = clamp(h.needs.hunger - hungerDecay * (sleeping ? cfg.hunger.sleepFactor : 1));
   if (!sleeping) {

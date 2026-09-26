@@ -7,6 +7,10 @@ import { SAVE_VERSION } from './save.js';
 import { dateOf } from './time.js';
 import { updateProximity } from './bonds.js';
 import { updateLifeCycle } from './lifecycle.js';
+import { updateDiscovery } from './techs.js';
+import { isWarm } from './buildings.js';
+import { spoilFood } from './items.js';
+import { updateWeather } from './weather.js';
 
 // Entry point of the simulation. `state` is plain data (saved as-is);
 // `data` is the read-only JSON content from /data.
@@ -22,6 +26,10 @@ export function createSim(data, seed) {
     stockpile: null,
     humans: [],
     bonds: {},
+    buildings: [],
+    nextBuildingId: 1,
+    discoveries: {},
+    tribeCounters: {},
     dead: [],
     history: [],
   };
@@ -33,14 +41,18 @@ export function createSim(data, seed) {
 export function stepSim(state, data) {
   state.tick++;
   const season = dateOf(state.tick, data.config.time).season;
+  updateWeather(state, data, season);
   updateResources(state.world, data, season);
   const died = [];
+  const winter = season === 'Winter';
   for (const h of state.humans) {
-    updateNeeds(h, data, season);
+    updateNeeds(h, data, winter && !isWarm(state, data, h));
     if (h.health <= 0) died.push(h);
     else updateHuman(state, data, h);
   }
   for (const h of died) killHuman(state, data, h, 'starvation');
   updateProximity(state, data);
   updateLifeCycle(state, data);
+  updateDiscovery(state, data);
+  spoilFood(state, data);
 }

@@ -11,9 +11,23 @@ import { traitMod } from '../src/sim/traits.js';
 import { changeBond, relationType, teach } from '../src/sim/bonds.js';
 import { lifeStage, updateLifeCycle } from '../src/sim/lifecycle.js';
 import { daysPerYear, dayIndexOf } from '../src/sim/time.js';
+import { knows, learnTech, teachTech, updateDiscovery } from '../src/sim/techs.js';
+import { isWarm, placeSite, wantedBuilding, workOnSite } from '../src/sim/buildings.js';
+import { craftChoice, finishCraft, spoilFood, toolWorkFactor } from '../src/sim/items.js';
+import { killHuman } from '../src/sim/human.js';
+
+// A copy of the content with some settings overridden, for forcing rare events.
+function tweak(path, value) {
+  const copy = structuredClone({ ...data });
+  let o = copy;
+  const keys = path.split('.');
+  for (const k of keys.slice(0, -1)) o = o[k];
+  o[keys.at(-1)] = value;
+  return copy;
+}
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
-const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills'].map((n) => [n, load(n)])));
+const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items'].map((n) => [n, load(n)])));
 const run = (state, ticks) => { for (let i = 0; i < ticks; i++) stepSim(state, data); return state; };
 const DAY = data.config.time.ticksPerDay;
 
@@ -84,12 +98,12 @@ test('resource regrowth respects season and renewability', () => {
   assert.equal(world.resources[1].amount, 2, 'stone still never regrows');
 });
 
-test('winter makes humans hungrier faster', () => {
+test('winter cold makes humans hungrier faster', () => {
   const mk = () => ({ needs: { hunger: 100, energy: 100, social: 100 }, health: 100, traits: [], action: { type: 'wander' } });
   const summer = mk();
   const winter = mk();
-  updateNeeds(summer, data, 'Summer');
-  updateNeeds(winter, data, 'Winter');
+  updateNeeds(summer, data, false);
+  updateNeeds(winter, data, true);
   assert.ok(winter.needs.hunger < summer.needs.hunger);
 });
 
@@ -213,6 +227,122 @@ test('over the years people befriend, pair up, have children; children never hau
   }
   assert.ok(childActions.size > 0);
   for (const a of ['gather', 'harvest', 'deposit']) assert.ok(!childActions.has(a), a);
+});
+
+test('techs are discovered when conditions are met, never before prerequisites', () => {
+  const sure = tweak('techsById.stone_tools.discovery.baseChance', 1);
+  sure.techsById.cooking.discovery.baseChance = 1;
+  sure.techs = sure.techs.map((t) => sure.techsById[t.id]);
+  const s = createSim(sure, 'disc');
+  const h = s.humans[0];
+  h.knows = [];
+  h.skills = { mining: { level: 2, xp: 0 }, foraging: { level: 5, xp: 0 } };
+  h.counters = { 'gather:stone': 20 };
+  s.tick = 10 * sure.config.discovery.checkEveryTicks;
+  updateDiscovery(s, sure);
+  assert.ok(knows(h, 'stone_tools'));
+  assert.ok(!knows(h, 'cooking'), 'cooking needs fire first');
+  assert.ok(s.history.some((e) => e.text === `${h.name} discovered Stone Tools`));
+});
+
+test('knowledge dies with its last holder, and is kept while someone knows it', () => {
+  const s = createSim(data, 'lost');
+  const [a, b, c] = s.humans;
+  for (const h of s.humans) h.knows = [];
+  learnTech(s, data, a, 'fire');
+  learnTech(s, data, b, 'fire');
+  learnTech(s, data, c, 'basketry');
+  killHuman(s, data, a, 'starvation');
+  assert.ok(!s.discoveries.fire.lost);
+  killHuman(s, data, c, 'starvation');
+  assert.ok(s.discoveries.basketry.lost);
+  assert.ok(s.history.some((e) => e.text === `The knowledge of Basketry died with ${c.name}`));
+  learnTech(s, data, b, 'basketry');
+  assert.ok(s.history.some((e) => e.text === `${b.name} rediscovered Basketry`));
+});
+
+test('teaching passes on techs the student is ready for', () => {
+  const sure = tweak('config.discovery.teachTechChance', 1);
+  const s = createSim(sure, 'teachtech');
+  const [t, st] = s.humans;
+  t.knows = ['fire', 'cooking'];
+  st.knows = [];
+  teachTech(s, sure, t, st, 1);
+  assert.deepEqual(st.knows, ['fire']);
+  teachTech(s, sure, t, st, 1);
+  assert.deepEqual(st.knows, ['fire', 'cooking']);
+});
+
+test('people who know Fire build a campfire that keeps them warm', () => {
+  const s = createSim(data, 'build');
+  const h = s.humans[0];
+  h.knows = ['fire'];
+  s.stockpile.wood = 20;
+  const def = wantedBuilding(s, data, h);
+  assert.equal(def.id, 'campfire');
+  const site = placeSite(s, data, def);
+  assert.equal(s.stockpile.wood, 12);
+  while (!workOnSite(s, data, h, site));
+  assert.ok(site.built);
+  assert.ok(s.history.some((e) => e.text === `${h.name} finished building a Campfire`));
+  h.x = site.x;
+  h.y = site.y;
+  assert.ok(isWarm(s, data, h));
+  assert.equal(wantedBuilding(s, data, h), null, 'one campfire is enough for 10 people');
+});
+
+test('a farm plot becomes a field that grows food', () => {
+  const s = createSim(data, 'farm');
+  const h = s.humans[0];
+  h.knows = ['basketry', 'farming'];
+  s.stockpile.wood = 10;
+  const site = placeSite(s, data, data.buildingsById.farm_plot);
+  while (!workOnSite(s, data, h, site));
+  const crop = s.world.resources.find((r) => r.type === 'crop' && r.x === site.x && r.y === site.y);
+  assert.ok(crop);
+  run(s, 3 * DAY);
+  assert.ok(crop.amount > 0);
+});
+
+test('stone axes are crafted from the stockpile and speed up woodcutting', () => {
+  const s = createSim(data, 'craft');
+  const h = s.humans[0];
+  h.knows = ['stone_tools'];
+  h.skills = { woodcutting: { level: 1, xp: 0 } };
+  s.stockpile.stone = 2;
+  s.stockpile.wood = 1;
+  const def = craftChoice(s, data, h);
+  assert.equal(def.id, 'stone_axe');
+  assert.ok(finishCraft(s, data, h, def));
+  assert.equal(s.stockpile.stone, 0);
+  assert.equal(h.tools.stone_axe, def.durability);
+  assert.ok(toolWorkFactor(h, data, 'woodcutting') < 1);
+  assert.equal(craftChoice(s, data, h), null);
+});
+
+test('stored food spoils, and a storage pit slows it', () => {
+  const s = createSim(data, 'spoil');
+  s.tick = DAY;
+  s.stockpile.food = 1000;
+  spoilFood(s, data);
+  const plainLoss = 1000 - s.stockpile.food;
+  s.buildings.push({ id: 99, type: 'storage_pit', x: 0, y: 0, built: true, work: 0 });
+  s.stockpile.food = 1000;
+  spoilFood(s, data);
+  const pitLoss = 1000 - s.stockpile.food;
+  assert.ok(plainLoss > 0 && pitLoss < plainLoss, `${plainLoss} vs ${pitLoss}`);
+});
+
+test('over a few years a tribe discovers techs, builds, and stores food', () => {
+  const s = createSim(data, 'a');
+  let storedFood = false;
+  for (let d = 0; d < 4 * 60; d++) {
+    run(s, DAY);
+    if (s.stockpile.food + s.stockpile.cooked_food > 0) storedFood = true;
+  }
+  assert.ok(Object.keys(s.discoveries).length >= 5, Object.keys(s.discoveries).join());
+  assert.ok(s.buildings.some((b) => b.built));
+  assert.ok(storedFood);
 });
 
 test('sim code has no Phaser or unseeded randomness', () => {

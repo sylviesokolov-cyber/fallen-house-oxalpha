@@ -2,6 +2,7 @@ import { TILE_SIZE } from '../render/constants.js';
 import { drawMap } from '../render/mapRenderer.js';
 import { ResourceView } from '../render/resourceView.js';
 import { HumanView } from '../render/humanView.js';
+import { BuildingView } from '../render/buildingView.js';
 import { setupCameraControls } from '../render/cameraControls.js';
 import { createHud } from '../ui/hud.js';
 
@@ -29,10 +30,12 @@ export class WorldScene extends Phaser.Scene {
   buildViews() {
     this.mapImage?.destroy();
     this.resourceView?.destroy();
+    this.buildingView?.destroy();
     this.humanView?.destroy();
     const { sim, data } = this.ctx;
     this.mapImage = drawMap(this, sim.world, data);
     this.resourceView = new ResourceView(this);
+    this.buildingView = new BuildingView(this);
     this.humanView = new HumanView(this);
     this.focusOnTribe();
   }
@@ -56,6 +59,7 @@ export class WorldScene extends Phaser.Scene {
     const { runner, sim, data, selectedId } = this.ctx;
     runner.update(delta);
     this.resourceView.update(sim, data);
+    this.buildingView.update(sim, data);
     this.humanView.update(sim, data, runner.alpha, selectedId);
     this.hud.update(time);
   }

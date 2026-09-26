@@ -15,25 +15,49 @@ export function generateWorld(rng, data) {
     else tiles[i] = 'grass';
   }
 
+  // Damp grass beside water becomes fertile soil (good for farming).
+  const { fertileNearWater, fertileMoisture } = data.config.world;
+  const draft = { width, height, tiles };
+  for (let i = 0; i < tiles.length; i++) {
+    const x = i % width;
+    const y = Math.floor(i / width);
+    if (tiles[i] === 'grass' && moisture[i] > fertileMoisture && tileNear(draft, x, y, 'water', fertileNearWater)) {
+      tiles[i] = 'fertile';
+    }
+  }
+
   const world = { width, height, tiles, resources: [], nextResourceId: 1 };
   for (const def of data.resources) {
     for (let i = 0; i < tiles.length; i++) {
-      if (def.spawnOn.includes(tiles[i]) && next(rng) < def.density) {
-        world.resources.push({
-          id: world.nextResourceId++,
-          type: def.id,
-          x: i % width,
-          y: Math.floor(i / width),
-          amount: def.maxAmount,
-          regrow: 0,
-        });
-      }
+      if (!def.spawnOn.includes(tiles[i])) continue;
+      const near = def.spawnNear;
+      if (near && !tileNear(world, i % width, Math.floor(i / width), near.tile, near.radius)) continue;
+      if (next(rng) < def.density) addResource(world, def.id, i % width, Math.floor(i / width), def.maxAmount);
     }
   }
   return world;
 }
 
 export const tileIndex = (world, x, y) => y * world.width + x;
+
+// True if a tile of the given type is within `radius` tiles (square area).
+export function tileNear(world, x, y, tile, radius) {
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= world.width || ny >= world.height) continue;
+      if (world.tiles[ny * world.width + nx] === tile) return true;
+    }
+  }
+  return false;
+}
+
+export function addResource(world, type, x, y, amount) {
+  const r = { id: world.nextResourceId++, type, x, y, amount, regrow: 0 };
+  world.resources.push(r);
+  return r;
+}
 
 export function isWalkable(world, data, i) {
   return data.tilesById[world.tiles[i]].walkable;
@@ -45,7 +69,7 @@ export function isWalkable(world, data, i) {
 export function updateResources(world, data, season) {
   for (const r of world.resources) {
     const def = data.resourcesById[r.type];
-    if (!def.regrowTicks || r.amount >= def.maxAmount) continue;
+    if (!def.regrowTicks || r.amount >= def.maxAmount || r.burning) continue;
     const mult = def.seasonMultiplier?.[season] ?? 1;
     if (mult <= 0) continue;
     if (++r.regrow >= def.regrowTicks * mult) {

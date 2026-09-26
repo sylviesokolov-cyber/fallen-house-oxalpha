@@ -4,7 +4,9 @@
     "height": 64,
     "waterLevel": 0.32,
     "stoneLevel": 0.74,
-    "forestMoisture": 0.58
+    "forestMoisture": 0.58,
+    "fertileNearWater": 2,
+    "fertileMoisture": 0.4
   },
   "time": {
     "ticksPerSecond": 4,
@@ -74,8 +76,7 @@
       "6": "skilled",
       "10": "master"
     },
-    "gatherSkillPreference": 4,
-    "gatherScarcityBonus": 3
+    "gatherSkillPreference": 4
   },
   "social": {
     "chatTicks": 10,
@@ -117,5 +118,40 @@
     "oldAgeGrowth": 1.25,
     "elderWorkWeight": 0.5,
     "childWanderRadius": 4
+  },
+  "food": {
+    "rawValue": 35,
+    "spoilPerDay": 0.04,
+    "reservePerPerson": 20,
+    "storeScarcityBonus": 12
+  },
+  "discovery": {
+    "checkEveryTicks": 10,
+    "teachTechChance": 0.08
+  },
+  "weather": {
+    "lightningChancePerDay": {
+      "Spring": 0.04,
+      "Summer": 0.15,
+      "Autumn": 0.04,
+      "Winter": 0
+    },
+    "strikeRadius": 14,
+    "burnDays": 3,
+    "curiousWatchChance": 0.6,
+    "watchRadius": 14
+  },
+  "building": {
+    "buildTicksPerUnit": 1,
+    "workScore": 20
+  },
+  "gather": {
+    "targetPerPerson": {
+      "wood": 12,
+      "stone": 6,
+      "clay": 2
+    },
+    "shortageBonus": 8,
+    "surplusPenalty": 12
   }
 }

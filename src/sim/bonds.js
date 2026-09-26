@@ -2,6 +2,7 @@ import { chance, next } from './rng.js';
 import { traitMod } from './traits.js';
 import { gainXp, skillLevel } from './skills.js';
 import { logEvent } from './history.js';
+import { teachTech, techEffect } from './techs.js';
 
 // Relationships live in state.bonds, keyed "lowId-highId". Only pairs that
 // have interacted have an entry. `peak` is the highest friendship tier ever
@@ -77,18 +78,23 @@ export function resolveChat(state, data, a, b, canPartner) {
     teach(state, data, a, b);
     teach(state, data, b, a);
   }
+  a.counters.chats = (a.counters.chats ?? 0) + 1;
+  b.counters.chats = (b.counters.chats ?? 0) + 1;
   const restore = data.config.needs.social.chatRestore;
   a.needs.social = Math.min(100, a.needs.social + restore);
   b.needs.social = Math.min(100, b.needs.social + restore);
   maybePartner(state, data, a, b, canPartner);
 }
 
-// Passes on the teacher's biggest skill advantage. Stronger bonds and a better
-// Teaching skill make lessons count for more; family always teaches well.
+// Passes on the teacher's biggest skill advantage and maybe a tech the student
+// is ready for. Stronger bonds, a better Teaching skill and Storytelling make
+// lessons count for more; family always teaches well.
 export function teach(state, data, teacher, student) {
   const s = data.config.social;
   const bond = isFamily(teacher, student) ? Math.max(s.familyBond, bondValue(state, teacher, student)) : bondValue(state, teacher, student);
   if (bond < s.tiers.acquaintance) return;
+  const quality = (1 + skillLevel(teacher, 'teaching') * s.teachingBonusPerLevel) * (0.5 + bond / 100);
+  const taughtTech = teachTech(state, data, teacher, student, quality);
   let best = null;
   let bestGap = s.teachGap - 1;
   for (const [id, sk] of Object.entries(teacher.skills)) {
@@ -99,10 +105,8 @@ export function teach(state, data, teacher, student) {
       best = id;
     }
   }
-  if (!best) return;
-  const quality = (1 + skillLevel(teacher, 'teaching') * s.teachingBonusPerLevel) * (0.5 + bond / 100);
-  gainXp(state, data, student, best, s.teachXp * quality);
-  gainXp(state, data, teacher, 'teaching', data.skillsById.teaching.xpPerAction);
+  if (best) gainXp(state, data, student, best, s.teachXp * quality * techEffect(teacher, data, 'teachingMultiplier'));
+  if (best || taughtTech) gainXp(state, data, teacher, 'teaching', data.skillsById.teaching.xpPerAction);
 }
 
 function attractedTo(a, b) {

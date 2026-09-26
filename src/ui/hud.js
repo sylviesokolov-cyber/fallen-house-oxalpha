@@ -22,6 +22,9 @@ const ACTION_LABELS = {
   deposit: 'Hauling to stockpile',
   socialize: 'Looking for company',
   chat: 'Chatting',
+  goSleep: 'Heading to bed',
+  build: 'Building',
+  craft: 'Crafting',
 };
 
 const STAGE_LABELS = { child: 'child', adult: 'adult', elder: 'elder' };
@@ -36,6 +39,8 @@ export function createHud(ctx) {
   let toastTimer = null;
   let traitsShownFor = null;
   let bondsKey = null;
+  let knowsKey = null;
+  let techKey = null;
 
   function toast(msg) {
     const el = $('toast');
@@ -53,7 +58,7 @@ export function createHud(ctx) {
   }
 
   function showPanel(id) {
-    for (const p of ['inspect', 'log']) $(p).classList.toggle('hidden', p !== id);
+    for (const p of ['inspect', 'log', 'tech', 'menu']) $(p).classList.toggle('hidden', p !== id);
   }
 
   for (const b of document.querySelectorAll('[data-speed]')) {
@@ -63,6 +68,7 @@ export function createHud(ctx) {
   $('btn-save').addEventListener('click', () => {
     try {
       localStorage.setItem(SAVE_KEY, serialize(ctx.sim));
+      showPanel(null);
       toast(`Saved (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
     } catch (e) {
       toast(`Save failed: ${e.message}`);
@@ -79,6 +85,8 @@ export function createHud(ctx) {
       logKey = null;
       traitsShownFor = null;
       bondsKey = null;
+      knowsKey = null;
+      techKey = null;
       showPanel(null);
       ctx.events.emit('sim-replaced');
       toast(`Loaded (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
@@ -93,6 +101,14 @@ export function createHud(ctx) {
     logKey = null;
   });
   $('log-close').addEventListener('click', () => showPanel(null));
+  $('btn-tech').addEventListener('click', () => {
+    const open = !$('tech').classList.contains('hidden');
+    showPanel(open ? null : 'tech');
+    techKey = null;
+  });
+  $('tech-close').addEventListener('click', () => showPanel(null));
+  $('btn-menu').addEventListener('click', () => showPanel($('menu').classList.contains('hidden') ? 'menu' : null));
+  $('menu-close').addEventListener('click', () => showPanel(null));
   $('inspect-close').addEventListener('click', () => {
     ctx.selectedId = null;
     showPanel(null);
@@ -102,8 +118,12 @@ export function createHud(ctx) {
     const d = dateOf(ctx.sim.tick, ctx.data.config.time);
     $('date').textContent = `Day ${d.day} · ${d.season}, Year ${d.year}`;
     $('pop').textContent = `Pop ${ctx.sim.humans.length}`;
-    const { wood, stone } = ctx.sim.stockpile;
-    $('stock').textContent = `Wood ${wood} · Stone ${stone}`;
+    const s = ctx.sim.stockpile;
+    const parts = [`Wood ${s.wood}`, `Stone ${s.stone}`];
+    if (s.clay) parts.push(`Clay ${s.clay}`);
+    if (s.food + s.cooked_food) parts.push(`Food ${s.food + s.cooked_food}`);
+    if (s.pottery) parts.push(`Pots ${s.pottery}`);
+    $('stock').textContent = parts.join(' · ');
   }
 
   function setBar(id, value) {
@@ -121,6 +141,10 @@ export function createHud(ctx) {
     $('insp-name').textContent = `${who.name} ${who.sex === 'female' ? '♀' : '♂'}`;
     $('insp-needs').classList.toggle('hidden', !h);
     if (traitsShownFor !== who.id) renderTraits(who);
+    renderKnows(who);
+    $('insp-tools').textContent = h && Object.keys(h.tools).length
+      ? `Carries: ${Object.keys(h.tools).map((id) => data.itemsById[id].name.toLowerCase()).join(', ')}`
+      : '';
     if (dead) {
       $('insp-age').textContent = `Died on Day ${dateOf(dead.deathTick, data.config.time).day}`;
       $('insp-action').textContent = `Cause: ${dead.cause}`;
@@ -130,7 +154,7 @@ export function createHud(ctx) {
     $('insp-age').textContent = `Age ${humanAge(h, sim, data)}, ${STAGE_LABELS[lifeStage(h, sim, data)]}${expecting}`;
     const carrying = h.carrying ? ` (carrying ${h.carrying.amount} ${h.carrying.type})` : '';
     const chatWith = h.action.type === 'chat' ? sim.humans.find((o) => o.id === h.action.withId) : null;
-    const label = chatWith ? `Chatting with ${chatWith.name}` : ACTION_LABELS[h.action.type] ?? h.action.type;
+    const label = chatWith ? `Chatting with ${chatWith.name}` : actionLabel(h);
     $('insp-action').textContent = `${label}${carrying}`;
     setBar('bar-health', h.health);
     setBar('bar-hunger', h.needs.hunger);
@@ -138,6 +162,92 @@ export function createHud(ctx) {
     setBar('bar-social', h.needs.social);
     renderSkills(h);
     renderBonds(h);
+  }
+
+  function actionLabel(h) {
+    const a = h.action;
+    if (a.type === 'craft') return a.itemId === 'cooked_food' ? 'Cooking' : `Making ${ctx.data.itemsById[a.itemId].name.toLowerCase()}`;
+    if (a.type === 'build') {
+      const site = ctx.sim.buildings.find((b) => b.id === a.siteId);
+      return site ? `Building a ${ctx.data.buildingsById[site.type].name.toLowerCase()}` : 'Building';
+    }
+    if (a.type === 'sleep' && a.buildingId != null) return 'Sleeping in a shelter';
+    if (a.type === 'seekFood' && a.stock) return 'Going to the stockpile to eat';
+    return ACTION_LABELS[a.type] ?? a.type;
+  }
+
+  // Rebuilt only when what they know changes, so taps on the chips aren't lost.
+  function renderKnows(who) {
+    const key = `${who.id}:${who.knows.join()}`;
+    if (key === knowsKey) return;
+    knowsKey = key;
+    if (!who.knows.length) {
+      const p = document.createElement('div');
+      p.className = 'empty';
+      p.textContent = 'Nothing yet';
+      return $('insp-knows').replaceChildren(p);
+    }
+    $('insp-knows').replaceChildren(...who.knows.map((id) => techChip(ctx.data.techsById[id])));
+  }
+
+  function techChip(tech) {
+    const chip = document.createElement('button');
+    chip.className = 'chip tech';
+    chip.textContent = tech.name;
+    chip.addEventListener('click', () => toast(tech.description));
+    return chip;
+  }
+
+  // The tribe's knowledge: discovered techs with how many living people know
+  // them (or "Lost"), undiscovered ones as "???". Plus a buildings summary.
+  function renderTech() {
+    const { sim, data } = ctx;
+    const knowers = (id) => sim.humans.filter((h) => h.knows.includes(id)).length;
+    const counts = {};
+    for (const b of sim.buildings) {
+      const c = (counts[b.type] ??= { built: 0, site: 0 });
+      c[b.built ? 'built' : 'site']++;
+    }
+    const key = `${JSON.stringify(sim.discoveries)}|${data.techs.map((t) => knowers(t.id)).join()}|${JSON.stringify(counts)}`;
+    if (key === techKey) return;
+    techKey = key;
+
+    const summary = Object.entries(counts).map(([type, c]) => {
+      const name = data.buildingsById[type].name;
+      return `${name} ${c.built}${c.site ? ` (+${c.site} building)` : ''}`;
+    });
+    $('tech-buildings').textContent = summary.length ? summary.join(' · ') : 'No buildings yet';
+
+    const nodes = [];
+    let era = null;
+    for (const t of data.techs) {
+      if (t.era !== era) {
+        era = t.era;
+        const h3 = document.createElement('h3');
+        h3.textContent = era;
+        nodes.push(h3);
+      }
+      const record = sim.discoveries[t.id];
+      if (!record) {
+        const row = document.createElement('div');
+        row.className = 'tech-row unknown';
+        row.textContent = '???';
+        nodes.push(row);
+        continue;
+      }
+      const n = knowers(t.id);
+      const row = document.createElement('button');
+      row.className = `tech-row${n ? '' : ' lost'}`;
+      const name = document.createElement('span');
+      name.textContent = t.name;
+      const kind = document.createElement('span');
+      kind.className = 'kind';
+      kind.textContent = n ? `Known by ${n}` : 'Lost';
+      row.append(name, kind);
+      row.addEventListener('click', () => toast(`${t.description} First found by ${record.by}.`));
+      nodes.push(row);
+    }
+    $('tech-list').replaceChildren(...nodes);
   }
 
   function familyLabel(h, o) {
@@ -261,6 +371,7 @@ export function createHud(ctx) {
       renderTopBar();
       if (!$('inspect').classList.contains('hidden')) renderInspect();
       if (!$('log').classList.contains('hidden')) renderLog();
+      if (!$('tech').classList.contains('hidden')) renderTech();
     },
   };
 }

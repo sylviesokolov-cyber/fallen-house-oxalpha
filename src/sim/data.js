@@ -8,5 +8,8 @@ export function prepareData(raw) {
     resourcesById: byId(raw.resources),
     traitsById: byId(raw.traits),
     skillsById: byId(raw.skills),
+    techsById: byId(raw.techs),
+    buildingsById: byId(raw.buildings),
+    itemsById: byId(raw.items),
   };
 }

@@ -1,0 +1,7 @@
+[
+  {"id": "campfire", "name": "Campfire", "tech": "fire", "cost": {"wood": 8}, "work": 30, "want": {"perPop": 15}, "placement": {"tiles": ["grass", "fertile"], "radius": 6}, "effects": {"warmthRadius": 3, "station": true}, "color": "#e8792a"},
+  {"id": "lean_to", "name": "Lean-to", "tech": "shelter", "cost": {"wood": 15}, "work": 50, "want": {"sleepCapacity": true}, "placement": {"tiles": ["grass", "fertile", "forest"], "radius": 8}, "effects": {"sleepers": 2, "sleepRestore": 1.5, "warm": true}, "color": "#9a6b3f"},
+  {"id": "hut", "name": "Hut", "tech": "carpentry", "cost": {"wood": 30, "stone": 15}, "work": 120, "want": {"sleepCapacity": true}, "placement": {"tiles": ["grass", "fertile"], "radius": 9}, "effects": {"sleepers": 4, "sleepRestore": 2, "warm": true}, "color": "#b5824a"},
+  {"id": "storage_pit", "name": "Storage Pit", "tech": "food_storage", "cost": {"stone": 10, "wood": 5}, "work": 50, "want": {"count": 1}, "placement": {"tiles": ["grass", "fertile", "stone"], "radius": 6}, "effects": {"spoilage": 0.3}, "color": "#6d6a64"},
+  {"id": "farm_plot", "name": "Farm Plot", "tech": "farming", "cost": {"wood": 4}, "work": 30, "want": {"perPop": 2}, "placement": {"tiles": ["fertile", "grass"], "prefer": "fertile", "radius": 12}, "effects": {"createsResource": "crop"}, "color": "#7a5a36"}
+]
