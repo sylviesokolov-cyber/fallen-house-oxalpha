@@ -1,0 +1,58 @@
+import { TILE_SIZE } from '../render/constants.js';
+import { drawMap } from '../render/mapRenderer.js';
+import { ResourceView } from '../render/resourceView.js';
+import { HumanView } from '../render/humanView.js';
+import { setupCameraControls } from '../render/cameraControls.js';
+import { createHud } from '../ui/hud.js';
+
+// Drives the sim clock and draws the world. It only reads sim state.
+export class WorldScene extends Phaser.Scene {
+  constructor(ctx) {
+    super('World');
+    this.ctx = ctx;
+  }
+
+  create() {
+    const { world } = this.ctx.sim;
+    this.camControls = setupCameraControls(this, world.width * TILE_SIZE, world.height * TILE_SIZE, (x, y) => this.onTap(x, y),
+      () => document.getElementById('topbar').offsetHeight,
+    );
+    this.hud = createHud(this.ctx);
+    this.buildViews();
+    this.ctx.events.on('sim-replaced', () => this.buildViews());
+  }
+
+  buildViews() {
+    this.mapImage?.destroy();
+    this.resourceView?.destroy();
+    this.humanView?.destroy();
+    const { sim, data } = this.ctx;
+    this.mapImage = drawMap(this, sim.world, data);
+    this.resourceView = new ResourceView(this);
+    this.humanView = new HumanView(this);
+    this.focusOnTribe();
+  }
+
+  focusOnTribe() {
+    const { humans, world } = this.ctx.sim;
+    const n = humans.length || 1;
+    const cx = humans.length ? humans.reduce((s, h) => s + h.x, 0) / n : world.width / 2;
+    const cy = humans.length ? humans.reduce((s, h) => s + h.y, 0) / n : world.height / 2;
+    this.camControls.centerOn((cx + 0.5) * TILE_SIZE, (cy + 0.5) * TILE_SIZE, 2.5);
+  }
+
+  onTap(wx, wy) {
+    const radius = Math.max(10, 22 / this.cameras.main.zoom);
+    const id = this.humanView.humanAt(wx, wy, radius);
+    this.ctx.selectedId = id;
+    this.hud.showInspect(id);
+  }
+
+  update(time, delta) {
+    const { runner, sim, data, selectedId } = this.ctx;
+    runner.update(delta);
+    this.resourceView.update(sim, data);
+    this.humanView.update(sim, data, runner.alpha, selectedId);
+    this.hud.update(time);
+  }
+}

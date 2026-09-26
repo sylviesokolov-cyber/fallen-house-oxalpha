@@ -1,0 +1,30 @@
+{
+  "world": {
+    "width": 64,
+    "height": 64,
+    "waterLevel": 0.32,
+    "stoneLevel": 0.74,
+    "forestMoisture": 0.58
+  },
+  "time": {
+    "ticksPerSecond": 4,
+    "ticksPerDay": 120,
+    "daysPerSeason": 15,
+    "seasons": ["Spring", "Summer", "Autumn", "Winter"]
+  },
+  "humans": {
+    "startCount": 10,
+    "startAgeMin": 16,
+    "startAgeMax": 40,
+    "spawnRadius": 5,
+    "moveTicks": 2,
+    "wanderRadius": 6,
+    "eatTicks": 6,
+    "foodSearchCooldown": 20
+  },
+  "needs": {
+    "hunger": { "decay": 0.35, "sleepFactor": 0.5, "seekBelow": 45, "critical": 15 },
+    "energy": { "decay": 0.3, "sleepBelow": 25, "sleepRestore": 1.5, "wakeAt": 100 },
+    "health": { "starveDamage": 0.5, "regen": 0.1, "regenAboveHunger": 30 }
+  }
+}

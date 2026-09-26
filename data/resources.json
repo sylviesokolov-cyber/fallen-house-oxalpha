@@ -1,0 +1,13 @@
+[
+  {
+    "id": "berry_bush",
+    "name": "Berry bush",
+    "spawnOn": ["grass"],
+    "density": 0.05,
+    "maxAmount": 4,
+    "regrowTicks": 180,
+    "food": 35,
+    "color": "#2d5e22",
+    "fruitColor": "#d8394b"
+  }
+]

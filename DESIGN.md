@@ -1,8 +1,5 @@
 # Game Design Document
 
-> **Note:** The original design text was cut off partway through the GOD POWERS section.
-> The rest of that section and the phase plan still need to be added.
-
 ## Game Concept
 
 A 2D god-simulation / civilization sim for Android (portrait) and web.
@@ -135,9 +132,44 @@ Example tech JSON:
 
 ### God Powers (player's only way to act)
 
-- Powers cost **faith**. Faith is generated when humans worship (mainly at a Shrine, and after witnessing
-  *[TRUNCATED: rest of section missing]*
+- Powers cost **faith**. Faith is generated when humans worship (mainly at a Shrine, and after witnessing miracles).
+- Starting powers: **Rain** (grows plants, puts out fire), **Lightning** (can start fires; dangerous),
+  **Spawn Food** (berries/animals), **Bless** (temporary boost to one human's mood and learning),
+  **Inspire** (a dream that raises one human's discovery chance for a while).
+- Later: Drought, Flood, Plague, Heal, Fertility, Omen (changes the tribe's beliefs).
+- The player selects a power from a bottom toolbar and taps a tile or human.
 
-## Phases
+## UI (portrait, touch)
 
-*[MISSING: phase plan not yet provided]*
+- Main view: map with drag-to-pan and pinch-to-zoom.
+- Top bar: date, speed controls, Faith, population.
+- Bottom toolbar: god powers.
+- Tap a human -> inspect panel: name, age, traits, needs bars, skills, known techs, top relationships, current action.
+- History log panel (scrollable).
+- Tech panel showing what the tribe knows (discovered only; unknown techs hidden as "???").
+
+## Phase Roadmap
+
+1. **World + wandering humans + basic needs**
+2. Actions and resources (gather, eat, sleep, regrowth, death by starvation)
+3. Traits, skills learned by doing, inspect panel details
+4. Relationships, socializing, teaching, families, births
+5. Discovery system + first 10 techs + first buildings and items
+6. God powers + Faith + Shrine and worship
+7. Research, eras, villages, multiple tribes, trade/conflict
+8. Polish, art, sound, save slots, Capacitor APK
+
+### Phase 1 scope
+
+1. Project structure, `index.html` loading Phaser 3 from CDN, ES modules.
+2. Seeded RNG in `/src/sim/rng.js`.
+3. 64x64 tile world with grass, water, forest, and stone from simple noise; berry bushes on grass. Colored rectangles as placeholder art.
+4. Camera: drag to pan, pinch to zoom, clamped to world bounds. Works with touch and mouse.
+5. 10 humans with names, ages, and hunger and energy needs that slowly decrease.
+6. Behavior: wander randomly; when hungry, walk to the nearest berry bush and eat; when tired, sleep in place.
+7. Fixed-tick sim loop (4 ticks/sec) separate from rendering; humans move smoothly between tiles.
+8. Top bar with in-game day counter and pause / 1x / 2x / 4x buttons.
+9. Tap a human to open an inspect panel (name, age, needs, current action).
+10. History log: "Day X: [Name] was born into the world" at start, plus starvation deaths.
+11. Save and load to localStorage (top bar buttons).
+12. GitHub Pages deployment.

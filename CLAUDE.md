@@ -1,27 +1,33 @@
 # Project Rules
 
-2D god-sim / civilization sim. Full design lives in `DESIGN.md`. Implement one phase at a time.
+2D god-sim / civilization sim. Full design and phase roadmap live in `DESIGN.md`. Implement one phase at a time.
 
 ## Environment
 - The developer works **only from an Android phone** (Claude Code + GitHub). There's no desktop.
-- Everything must be testable in a phone browser via **GitHub Pages**. No build step or local tooling can be required to run the game.
+- Everything must be testable in a phone browser via **GitHub Pages**. Nothing may require a build step or local tooling to run the game.
 - Portrait orientation, touch-first controls (tap, drag, pinch). Must run smoothly on a mid-range Android browser.
 
 ## Stack (fixed)
-- Phaser 3 from CDN, vanilla JS ES modules, no bundler/build step.
+- Phaser 3 from CDN (`index.html`), vanilla JS ES modules, no bundler/build step.
 - localStorage for saves. Capacitor (APK) comes later, not now.
 - Use relative paths only (the Pages site is served from a subpath).
 
-## Architecture
-- `/src/sim/`: pure JS game logic. **No Phaser imports, no DOM, no `Math.random()`.**
-- `/src/render/`, `/src/scenes/`: Phaser code that reads sim state and draws it. Rendering never mutates sim state; the player acts only through god-power commands.
-- Fixed sim tick (default 4/sec), with speed controls: pause, 1x, 2x, 4x.
-- All sim randomness goes through the seeded RNG (`src/sim/rng.js`, mulberry32). The RNG state is part of the saved state.
-- Content (skills, techs, buildings, items, traits, resources) goes in `/data/*.json`. New content should mean editing JSON, not code.
-- Sim state must be plain JSON-serializable data: no class instances, functions, Maps/Sets, or circular refs. Reference entities by id.
-- Every notable event goes to the history log with the in-game date ("Year 3, Spring: ...").
+## Layout
+- `src/sim/`: pure game logic. **No Phaser, DOM, window, localStorage, or `Math.random()`** (a test enforces this).
+- `src/render/`: Phaser drawing and camera. Reads sim state, never mutates it.
+- `src/scenes/`: `BootScene` loads `/data` and creates the sim; `WorldScene` runs the clock and drives rendering.
+- `src/ui/`: HTML/CSS overlay UI (top bar, panels). Uses DOM because native text, scrolling, and buttons work better on phones.
+- `src/runner.js`: fixed-timestep loop (ticks/sec from `data/config.json`; speed 0/1/2/4).
+- `data/*.json`: content and tuning. New content or balance changes should mean editing JSON, not code.
 
-## Conventions
+## Sim rules
+- All sim randomness goes through `src/sim/rng.js` (mulberry32). The RNG state lives in the sim state, so a save resumes the same sequence.
+- Sim state is plain JSON data: no class instances, functions, Maps/Sets, or circular refs. Entities reference each other by id. Bump `SAVE_VERSION` in `src/sim/save.js` on incompatible changes.
+- Every notable event goes to the history log via `logEvent(state, text)`.
 - Keep files small and focused. Comment only the non-obvious logic.
-- camelCase for JS, lowercase ids in JSON (`"stone_tools"`).
-- Test by loading the GitHub Pages URL on the phone before calling a feature done.
+
+## Testing
+- `npm test` (Node's built-in test runner, no dependencies) checks determinism, save/load, survival, and sim purity. Run it before every push.
+- For UI changes, load the page in headless Chromium at a phone viewport and check it works. The Phaser CDN may be blocked in the cloud sandbox; if so, serve a copy of `phaser.min.js` from npm through a Playwright route.
+- `window.godSim` exposes the app context for debugging.
+- Add `?seed=abc` to the URL to replay a specific world.

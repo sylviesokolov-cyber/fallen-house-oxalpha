@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#141b26">
+  <title>God Sim</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+
+  <header id="topbar">
+    <div class="row">
+      <span id="date">Day 1</span>
+      <span id="pop">Pop 0</span>
+    </div>
+    <div class="row">
+      <div class="group">
+        <button data-speed="0" aria-label="Pause">II</button>
+        <button data-speed="1">1x</button>
+        <button data-speed="2">2x</button>
+        <button data-speed="4">4x</button>
+      </div>
+      <div class="group">
+        <button id="btn-save">Save</button>
+        <button id="btn-load">Load</button>
+        <button id="btn-log">Log</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="inspect" class="panel hidden">
+    <div class="panel-head">
+      <div>
+        <h2 id="insp-name"></h2>
+        <div class="sub"><span id="insp-age"></span> · <span id="insp-action"></span></div>
+      </div>
+      <button id="inspect-close" aria-label="Close">✕</button>
+    </div>
+    <div id="insp-needs">
+      <div class="need"><label>Health</label><div class="bar"><div id="bar-health"></div></div></div>
+      <div class="need"><label>Food</label><div class="bar"><div id="bar-hunger"></div></div></div>
+      <div class="need"><label>Energy</label><div class="bar"><div id="bar-energy"></div></div></div>
+    </div>
+  </section>
+
+  <section id="log" class="panel hidden">
+    <div class="panel-head">
+      <h2>History</h2>
+      <button id="log-close" aria-label="Close">✕</button>
+    </div>
+    <ol id="log-list"></ol>
+  </section>
+
+  <div id="toast"></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
