@@ -5,6 +5,8 @@ import { updateNeeds } from './needs.js';
 import { updateHuman } from './ai.js';
 import { SAVE_VERSION } from './save.js';
 import { dateOf } from './time.js';
+import { updateProximity } from './bonds.js';
+import { updateLifeCycle } from './lifecycle.js';
 
 // Entry point of the simulation. `state` is plain data (saved as-is);
 // `data` is the read-only JSON content from /data.
@@ -19,6 +21,7 @@ export function createSim(data, seed) {
     world: null,
     stockpile: null,
     humans: [],
+    bonds: {},
     dead: [],
     history: [],
   };
@@ -38,4 +41,6 @@ export function stepSim(state, data) {
     else updateHuman(state, data, h);
   }
   for (const h of died) killHuman(state, data, h, 'starvation');
+  updateProximity(state, data);
+  updateLifeCycle(state, data);
 }

@@ -8,6 +8,9 @@ import { updateResources } from '../src/sim/world.js';
 import { updateNeeds } from '../src/sim/needs.js';
 import { gainXp, workTimeFactor } from '../src/sim/skills.js';
 import { traitMod } from '../src/sim/traits.js';
+import { changeBond, relationType, teach } from '../src/sim/bonds.js';
+import { lifeStage, updateLifeCycle } from '../src/sim/lifecycle.js';
+import { daysPerYear, dayIndexOf } from '../src/sim/time.js';
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
 const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills'].map((n) => [n, load(n)])));
@@ -82,7 +85,7 @@ test('resource regrowth respects season and renewability', () => {
 });
 
 test('winter makes humans hungrier faster', () => {
-  const mk = () => ({ needs: { hunger: 100, energy: 100 }, health: 100, traits: [], action: { type: 'wander' } });
+  const mk = () => ({ needs: { hunger: 100, energy: 100, social: 100 }, health: 100, traits: [], action: { type: 'wander' } });
   const summer = mk();
   const winter = mk();
   updateNeeds(summer, data, 'Summer');
@@ -131,6 +134,85 @@ test('interrupted hauls are finished, so the stockpile keeps growing', () => {
     run(s, 60 * DAY);
     assert.ok(s.stockpile.wood + s.stockpile.stone > before, `seed ${seed} stalled at ${before}`);
   }
+});
+
+test('relationship types follow bond value, partners and family', () => {
+  const s = createSim(data, 'rel');
+  const [a, b, c] = s.humans;
+  assert.equal(relationType(s, data, a, b), 'stranger');
+  changeBond(s, data, a, b, 35);
+  assert.equal(relationType(s, data, a, b), 'friend');
+  assert.ok(s.history.some((e) => e.text === `${a.name} and ${b.name} became friends`));
+  changeBond(s, data, a, c, -40);
+  assert.equal(relationType(s, data, a, c), 'rival');
+  a.partnerId = b.id;
+  b.partnerId = a.id;
+  assert.equal(relationType(s, data, a, b), 'partner');
+  c.parents = [a.id];
+  assert.equal(relationType(s, data, a, c), 'family');
+});
+
+test('friends teach their best skills; strangers do not', () => {
+  const s = createSim(data, 'teach');
+  const [t, friend, stranger] = s.humans;
+  for (const h of [t, friend, stranger]) h.skills = {};
+  t.skills.woodcutting = { level: 5, xp: 0 };
+  teach(s, data, t, stranger);
+  assert.equal(stranger.skills.woodcutting, undefined);
+  changeBond(s, data, t, friend, 50);
+  teach(s, data, t, friend);
+  assert.ok(friend.skills.woodcutting.xp > 0 || friend.skills.woodcutting.level > 0);
+  assert.ok(t.skills.teaching.xp > 0);
+});
+
+test('a fed couple has a child who inherits family ties and valid traits', () => {
+  const fast = { ...data, config: { ...data.config, lifecycle: { ...data.config.lifecycle, birthChancePerDay: 1, gestationDays: 2 } } };
+  const s = createSim(fast, 'baby');
+  const mother = s.humans.find((h) => h.sex === 'female');
+  const father = s.humans.find((h) => h.sex === 'male');
+  mother.partnerId = father.id;
+  father.partnerId = mother.id;
+  const before = s.humans.length;
+  run(s, 1);
+  for (let d = 0; d < 4; d++) {
+    s.tick += data.config.time.ticksPerDay - (s.tick % data.config.time.ticksPerDay);
+    mother.needs.hunger = father.needs.hunger = 100;
+    updateLifeCycle(s, fast);
+  }
+  assert.equal(s.humans.length, before + 1);
+  const child = s.humans.at(-1);
+  assert.deepEqual(child.parents, [mother.id, father.id]);
+  assert.equal(lifeStage(child, s, fast), 'child');
+  assert.ok(child.traits.length >= 1 && child.traits.length <= 3);
+  for (const t of child.traits) assert.ok(!child.traits.includes(data.traitsById[t].opposite));
+  assert.equal(relationType(s, fast, mother, child), 'family');
+  assert.ok(s.history.some((e) => e.text.startsWith(`${mother.name} and ${father.name} had a`)));
+});
+
+test('the very old die of old age and leave their partner widowed', () => {
+  const s = createSim(data, 'old');
+  const [elder, partner] = s.humans;
+  elder.birthDay = dayIndexOf(s.tick, data.config.time) - 95 * daysPerYear(data.config.time);
+  elder.partnerId = partner.id;
+  partner.partnerId = elder.id;
+  run(s, 90 * DAY);
+  assert.ok(s.dead.some((d) => d.id === elder.id && d.cause === 'old age'));
+  assert.equal(partner.partnerId, null);
+  assert.ok(s.history.some((e) => e.text.startsWith(`${elder.name} died of old age`)));
+});
+
+test('over the years people befriend, pair up, have children; children never haul', () => {
+  const s = createSim(data, 'a');
+  const childActions = new Set();
+  for (let i = 0; i < 4 * 60 * DAY; i++) {
+    stepSim(s, data);
+    if (i % 20 === 0) for (const h of s.humans) if (lifeStage(h, s, data) === 'child') childActions.add(h.action.type);
+  }
+  for (const text of ['became friends', 'became partners', ' had a ']) {
+    assert.ok(s.history.some((e) => e.text.includes(text)), text);
+  }
+  assert.ok(childActions.size > 0);
+  for (const a of ['gather', 'harvest', 'deposit']) assert.ok(!childActions.has(a), a);
 });
 
 test('sim code has no Phaser or unseeded randomness', () => {

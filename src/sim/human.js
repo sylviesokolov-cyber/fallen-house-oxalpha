@@ -1,4 +1,4 @@
-import { chance, pick, randInt } from './rng.js';
+import { chance, next, pick, randInt } from './rng.js';
 import { bfs } from './pathfinding.js';
 import { tileIndex } from './world.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
@@ -14,17 +14,35 @@ function uniqueName(state, data, sex) {
   return pick(state.rng, data.names[sex]);
 }
 
-export function createHuman(state, data, x, y) {
+// Who someone can fall for: 'opposite', 'same' or 'both', weighted by config.
+function rollAttraction(rng, weights) {
+  let r = next(rng);
+  for (const [kind, w] of Object.entries(weights)) {
+    if ((r -= w) < 0) return kind;
+  }
+  return 'opposite';
+}
+
+// opts.ageYears: 0 for a newborn (born today); omitted for a random starting adult.
+export function createHuman(state, data, x, y, opts = {}) {
   const { rng } = state;
   const cfg = data.config.humans;
   const sex = chance(rng, 0.5) ? 'female' : 'male';
-  const age = randInt(rng, cfg.startAgeMin, cfg.startAgeMax);
   const yearLen = daysPerYear(data.config.time);
+  const today = dayIndexOf(state.tick, data.config.time);
+  const birthDay = opts.ageYears === 0
+    ? today
+    : today - randInt(rng, cfg.startAgeMin, cfg.startAgeMax) * yearLen - randInt(rng, 0, yearLen - 1);
   return {
     id: state.nextId++,
     name: uniqueName(state, data, sex),
     sex,
-    birthDay: dayIndexOf(state.tick, data.config.time) - age * yearLen - randInt(rng, 0, yearLen - 1),
+    birthDay,
+    attraction: rollAttraction(rng, cfg.attraction),
+    parents: opts.parents ?? [],
+    partnerId: null,
+    pregnantUntil: null,
+    lastBirthDay: null,
     x,
     y,
     prevX: x,
@@ -33,9 +51,9 @@ export function createHuman(state, data, x, y) {
     nextMoveTick: 0,
     nextFoodSearch: 0,
     nextResourceSearch: 0,
-    needs: { hunger: randInt(rng, 55, 100), energy: randInt(rng, 50, 100) },
+    needs: { hunger: randInt(rng, 55, 100), energy: randInt(rng, 50, 100), social: randInt(rng, 50, 100) },
     health: 100,
-    traits: rollTraits(state, data),
+    traits: opts.traits ?? rollTraits(state, data),
     skills: {},
     carrying: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
@@ -74,12 +92,21 @@ export function humanAge(h, state, data) {
   return ageInYears(h.birthDay, state.tick, data.config.time);
 }
 
+const DEATH_TEXT = {
+  starvation: (name, age) => `${name} starved to death, aged ${age}`,
+  'old age': (name, age) => `${name} died of old age, aged ${age}`,
+};
+
 export function killHuman(state, data, h, cause) {
   const age = humanAge(h, state, data);
   state.humans = state.humans.filter((o) => o.id !== h.id);
   state.dead.push({
-    id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, traits: h.traits, skills: h.skills, deathTick: state.tick, cause,
+    id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, parents: h.parents, partnerId: h.partnerId,
+    traits: h.traits, skills: h.skills, deathTick: state.tick, cause,
   });
-  const text = cause === 'starvation' ? `${h.name} starved to death, aged ${age}` : `${h.name} died (${cause}), aged ${age}`;
+  const partner = state.humans.find((o) => o.id === h.partnerId);
+  if (partner) partner.partnerId = null;
+  let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age);
+  if (partner) text += `, leaving behind ${partner.name}`;
   logEvent(state, text);
 }

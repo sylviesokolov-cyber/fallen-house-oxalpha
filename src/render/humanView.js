@@ -1,4 +1,5 @@
 import { TILE_SIZE, hexToInt } from './constants.js';
+import { lifeStage } from '../sim/lifecycle.js';
 
 const COLORS = { female: 0xf4a6c4, male: 0x86b8ff };
 const CARRY_COLORS = { wood: hexToInt('#7a5230'), stone: hexToInt('#c9c9c2') };
@@ -18,9 +19,15 @@ export class HumanView {
       .setResolution(3)
       .setVisible(false);
     const carry = this.scene.add.rectangle(0, -12, 5, 5, 0xffffff).setStrokeStyle(1, 0x1b1b1b).setVisible(false);
-    const c = this.scene.add.container(0, 0, [body, zzz, carry]).setDepth(3);
+    const talk = this.scene.add.text(-5, -19, '…', { fontSize: '11px', fontStyle: 'bold', color: '#ffffff' })
+      .setResolution(3)
+      .setVisible(false);
+    const c = this.scene.add.container(0, 0, [body, zzz, carry, talk]).setDepth(3);
+    c.body = body;
     c.zzz = zzz;
     c.carry = carry;
+    c.talk = talk;
+    c.stage = null;
     this.sprites.set(h.id, c);
     return c;
   }
@@ -31,9 +38,16 @@ export class HumanView {
     for (const h of sim.humans) {
       alive.add(h.id);
       const s = this.sprites.get(h.id) ?? this.create(h);
-      const t = Math.min(1, Math.max(0, (sim.tick - h.stepTick + alpha) / moveTicks));
+      const t = Math.min(1, Math.max(0, (sim.tick - h.stepTick + alpha) / (h.stepTicks ?? moveTicks)));
       s.setPosition((h.prevX + (h.x - h.prevX) * t + 0.5) * TILE_SIZE, (h.prevY + (h.y - h.prevY) * t + 0.5) * TILE_SIZE);
       s.zzz.setVisible(h.action.type === 'sleep');
+      s.talk.setVisible(h.action.type === 'chat');
+      const stage = lifeStage(h, sim, data);
+      if (stage !== s.stage) {
+        s.stage = stage;
+        s.body.setScale(stage === 'child' ? 0.65 : 1);
+        s.body.setStrokeStyle(1.5, stage === 'elder' ? 0xdddddd : 0x1b1b1b);
+      }
       s.carry.setVisible(!!h.carrying);
       if (h.carrying) s.carry.setFillStyle(CARRY_COLORS[h.carrying.type]);
     }

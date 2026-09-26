@@ -3,6 +3,8 @@ import { formatEntry } from '../sim/history.js';
 import { humanAge } from '../sim/human.js';
 import { serialize, deserialize } from '../sim/save.js';
 import { xpToNext } from '../sim/skills.js';
+import { bondValue, relationType } from '../sim/bonds.js';
+import { lifeStage } from '../sim/lifecycle.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser.
@@ -18,7 +20,13 @@ const ACTION_LABELS = {
   gather: 'Heading out to gather',
   harvest: 'Gathering',
   deposit: 'Hauling to stockpile',
+  socialize: 'Looking for company',
+  chat: 'Chatting',
 };
+
+const STAGE_LABELS = { child: 'child', adult: 'adult', elder: 'elder' };
+const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintance: 'Acquaintance', rival: 'Rival' };
+const MAX_BONDS_SHOWN = 7;
 
 const $ = (id) => document.getElementById(id);
 
@@ -27,6 +35,7 @@ export function createHud(ctx) {
   let logKey = null;
   let toastTimer = null;
   let traitsShownFor = null;
+  let bondsKey = null;
 
   function toast(msg) {
     const el = $('toast');
@@ -69,6 +78,7 @@ export function createHud(ctx) {
       ctx.runner.reset();
       logKey = null;
       traitsShownFor = null;
+      bondsKey = null;
       showPanel(null);
       ctx.events.emit('sim-replaced');
       toast(`Loaded (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
@@ -116,13 +126,68 @@ export function createHud(ctx) {
       $('insp-action').textContent = `Cause: ${dead.cause}`;
       return;
     }
-    $('insp-age').textContent = `Age ${humanAge(h, sim, data)}`;
+    const expecting = h.pregnantUntil != null ? ', expecting a child' : '';
+    $('insp-age').textContent = `Age ${humanAge(h, sim, data)}, ${STAGE_LABELS[lifeStage(h, sim, data)]}${expecting}`;
     const carrying = h.carrying ? ` (carrying ${h.carrying.amount} ${h.carrying.type})` : '';
-    $('insp-action').textContent = `${ACTION_LABELS[h.action.type] ?? h.action.type}${carrying}`;
+    const chatWith = h.action.type === 'chat' ? sim.humans.find((o) => o.id === h.action.withId) : null;
+    const label = chatWith ? `Chatting with ${chatWith.name}` : ACTION_LABELS[h.action.type] ?? h.action.type;
+    $('insp-action').textContent = `${label}${carrying}`;
     setBar('bar-health', h.health);
     setBar('bar-hunger', h.needs.hunger);
     setBar('bar-energy', h.needs.energy);
+    setBar('bar-social', h.needs.social);
     renderSkills(h);
+    renderBonds(h);
+  }
+
+  function familyLabel(h, o) {
+    if (h.parents.includes(o.id)) return o.sex === 'female' ? 'Mother' : 'Father';
+    if (o.parents.includes(h.id)) return o.sex === 'female' ? 'Daughter' : 'Son';
+    return o.sex === 'female' ? 'Sister' : 'Brother';
+  }
+
+  // Partner first, then family, then the strongest friendships and rivalries.
+  // The list is only rebuilt when it actually changes, so taps aren't lost.
+  function renderBonds(h) {
+    const { sim, data } = ctx;
+    const rows = [];
+    for (const o of sim.humans) {
+      if (o === h) continue;
+      const type = relationType(sim, data, h, o);
+      if (type === 'stranger' || type === 'acquaintance') continue;
+      const label = type === 'partner' ? 'Partner' : type === 'family' ? familyLabel(h, o) : TIER_LABELS[type];
+      const rank = type === 'partner' ? 3 : type === 'family' ? 2 : type === 'rival' ? 0 : 1;
+      rows.push({ o, type, label, rank, value: Math.abs(bondValue(sim, h, o)) });
+    }
+    rows.sort((a, b) => b.rank - a.rank || b.value - a.value);
+    const shown = rows.slice(0, MAX_BONDS_SHOWN);
+    const key = `${h.id}:${shown.map((r) => `${r.o.id}${r.label}`).join(',')}`;
+    if (key === bondsKey) return;
+    bondsKey = key;
+    if (!shown.length) {
+      const p = document.createElement('div');
+      p.className = 'empty';
+      p.textContent = 'No close ties yet';
+      return $('insp-bonds').replaceChildren(p);
+    }
+    $('insp-bonds').replaceChildren(
+      ...shown.map((r) => {
+        const row = document.createElement('button');
+        row.className = `bond ${r.type}`;
+        const name = document.createElement('span');
+        name.textContent = r.o.name;
+        const kind = document.createElement('span');
+        kind.className = 'kind';
+        kind.textContent = r.label;
+        row.append(name, kind);
+        row.addEventListener('click', () => {
+          ctx.selectedId = r.o.id;
+          ctx.events.emit('focus-human', r.o.id);
+          renderInspect();
+        });
+        return row;
+      }),
+    );
   }
 
   // Traits never change, so the chips are only rebuilt when the selection

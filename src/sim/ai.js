@@ -3,11 +3,13 @@ import { bfs, buildPath } from './pathfinding.js';
 import { tileIndex } from './world.js';
 import { traitMod } from './traits.js';
 import { gainXp, skillLevel, workTimeFactor, yieldFactor } from './skills.js';
+import { bondValue, isFamily, resolveChat } from './bonds.js';
+import { lifeStage } from './lifecycle.js';
 
 // Each human always has one action. An action runs over several ticks and sets
 // `done` when finished; the human then scores its options and starts a new one.
 
-const INTERRUPTIBLE = new Set(['wander', 'idle']);
+const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat']);
 // Work in progress: only a critical hunger cuts it short, so a trip already
 // underway (gathering, hauling, depositing, sleeping) isn't abandoned lightly.
 const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep']);
@@ -50,11 +52,16 @@ function chooseAction(state, data, h) {
   if (h.needs.energy < n.energy.sleepBelow) {
     options.push({ type: 'sleep', score: 100 - h.needs.energy });
   }
+  if (h.needs.social < n.social.seekBelow) {
+    options.push({ type: 'socialize', score: (100 - h.needs.social) * 0.8 });
+  }
+  const stage = lifeStage(h, state, data);
   if (h.carrying) {
     // Finish a haul that was interrupted (e.g. to eat) before anything else optional.
     options.push({ type: 'deposit', score: 40 });
-  } else if (canSearchResource(state, h)) {
-    options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * traitMod(h, data, 'workWeight') });
+  } else if (stage !== 'child' && canSearchResource(state, h)) {
+    const ageFactor = stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1;
+    options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * traitMod(h, data, 'workWeight') * ageFactor });
   }
   options.push({ type: 'wander', score: (10 + next(state.rng) * 10) * traitMod(h, data, 'wanderWeight') });
   options.sort((a, b) => b.score - a.score);
@@ -87,7 +94,8 @@ const START = {
   wander(state, data, h) {
     const { world } = state;
     const start = tileIndex(world, h.x, h.y);
-    const radius = Math.round(data.config.humans.wanderRadius * traitMod(h, data, 'wanderRadius'));
+    const base = lifeStage(h, state, data) === 'child' ? data.config.lifecycle.childWanderRadius : data.config.humans.wanderRadius;
+    const radius = Math.round(base * traitMod(h, data, 'wanderRadius'));
     const { reached, prev } = bfs(world, data, start, { maxDist: radius });
     const goal = reached[randInt(state.rng, 0, reached.length - 1)];
     const path = buildPath(prev, start, goal);
@@ -127,6 +135,30 @@ const START = {
       return false;
     }
     h.action = { type: 'gather', targetId: materials.get(best).id, path: buildPath(prev, start, best) };
+    return true;
+  },
+
+  // Seeks out someone to talk to, preferring a partner, family and friends
+  // over strangers, and nearby people over distant ones.
+  socialize(state, data, h) {
+    const { world } = state;
+    const start = tileIndex(world, h.x, h.y);
+    const { dist, prev } = bfs(world, data, start);
+    let best = null;
+    let bestScore = -Infinity;
+    for (const o of state.humans) {
+      if (o === h || o.action.type === 'sleep' || o.action.type === 'chat') continue;
+      const i = tileIndex(world, o.x, o.y);
+      if (prev[i] === -1) continue;
+      const score = bondValue(state, h, o) * 0.3 + (h.partnerId === o.id ? 30 : 0) + (isFamily(h, o) ? 15 : 0) - dist[i];
+      if (score > bestScore) {
+        bestScore = score;
+        best = o;
+      }
+    }
+    if (!best) return false;
+    const goal = tileIndex(world, best.x, best.y);
+    h.action = { type: 'socialize', targetId: best.id, retries: data.config.social.socializeRetries, path: buildPath(prev, start, goal) };
     return true;
   },
 
@@ -237,7 +269,62 @@ const RUN = {
   idle(state, data, h) {
     if (--h.action.ticks <= 0) h.action.done = true;
   },
+
+  // Walks toward the chosen person. People move, so on arrival the target may
+  // have wandered off: re-path a couple of times before giving up.
+  socialize(state, data, h) {
+    const a = h.action;
+    const target = state.humans.find((o) => o.id === a.targetId);
+    if (!target || target.action.type === 'sleep') {
+      a.done = true;
+      return;
+    }
+    const range = data.config.social.chatRange;
+    if (inRange(h, target, range)) {
+      startChat(state, data, h, target);
+      return;
+    }
+    if (a.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    if (a.retries-- <= 0) {
+      a.done = true;
+      return;
+    }
+    const { world } = state;
+    const start = tileIndex(world, h.x, h.y);
+    const goal = tileIndex(world, target.x, target.y);
+    const { prev, goal: found } = bfs(world, data, start, { isGoal: (i) => i === goal });
+    if (found < 0) a.done = true;
+    else a.path = buildPath(prev, start, goal);
+  },
+
+  // Only the person who started the conversation resolves it, so each chat
+  // counts once even though both people are in a 'chat' action.
+  chat(state, data, h) {
+    if (--h.action.ticks > 0) return;
+    const other = state.humans.find((o) => o.id === h.action.withId);
+    if (h.action.initiator && other && inRange(h, other, data.config.social.chatRange + 1)) {
+      resolveChat(state, data, h, other, (p) => lifeStage(p, state, data) !== 'child');
+    }
+    h.action.done = true;
+  },
 };
+
+function inRange(a, b, range) {
+  return Math.abs(a.x - b.x) <= range && Math.abs(a.y - b.y) <= range;
+}
+
+// The other person stops to talk if they were only idling or wandering;
+// if they're busy, they talk while they work.
+function startChat(state, data, h, target) {
+  const ticks = data.config.social.chatTicks;
+  h.action = { type: 'chat', withId: target.id, ticks, initiator: true };
+  if (target.action.type === 'idle' || target.action.type === 'wander') {
+    target.action = { type: 'chat', withId: h.id, ticks, initiator: false };
+  }
+}
 
 // Moves one tile every `moveTicks` ticks. prevX/prevY and stepTick let the
 // renderer slide the sprite smoothly between the two tiles.
@@ -249,5 +336,7 @@ function stepAlongPath(state, data, h) {
   h.x = i % state.world.width;
   h.y = Math.floor(i / state.world.width);
   h.stepTick = state.tick;
-  h.nextMoveTick = state.tick + data.config.humans.moveTicks;
+  const child = lifeStage(h, state, data) === 'child';
+  h.stepTicks = child ? data.config.lifecycle.childMoveTicks : data.config.humans.moveTicks;
+  h.nextMoveTick = state.tick + h.stepTicks;
 }

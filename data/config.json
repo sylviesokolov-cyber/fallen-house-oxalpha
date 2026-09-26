@@ -30,7 +30,13 @@
     "carryCapacity": 3,
     "resourceSearchCooldown": 40,
     "traitsMin": 1,
-    "traitsMax": 3
+    "traitsMax": 3,
+    "maxPopulation": 60,
+    "attraction": {
+      "opposite": 0.85,
+      "same": 0.05,
+      "both": 0.1
+    }
   },
   "needs": {
     "hunger": {
@@ -50,6 +56,12 @@
       "starveDamage": 0.5,
       "regen": 0.1,
       "regenAboveHunger": 30
+    },
+    "social": {
+      "decay": 0.12,
+      "seekBelow": 50,
+      "chatRestore": 35,
+      "nearbyRestore": 0.4
     }
   },
   "skills": {
@@ -64,5 +76,46 @@
     },
     "gatherSkillPreference": 4,
     "gatherScarcityBonus": 3
+  },
+  "social": {
+    "chatTicks": 10,
+    "chatRange": 2,
+    "socializeRetries": 2,
+    "proximityEveryTicks": 10,
+    "proximityRange": 2,
+    "proximityGain": 0.3,
+    "chatGain": 6,
+    "sharedTraitBonus": 2,
+    "oppositeTraitPenalty": 4,
+    "conflictChance": 0.08,
+    "conflictLoss": 15,
+    "tiers": {
+      "acquaintance": 10,
+      "friend": 30,
+      "closeFriend": 60,
+      "rival": -30
+    },
+    "partnerAt": 70,
+    "partnerChancePerChat": 0.3,
+    "teachGap": 2,
+    "teachXp": 6,
+    "teachingBonusPerLevel": 0.1,
+    "familyBond": 60,
+    "proximityCompatibilityFactor": 0.15
+  },
+  "lifecycle": {
+    "adultAge": 14,
+    "elderAge": 55,
+    "childMoveTicks": 3,
+    "birthChancePerDay": 0.05,
+    "gestationDays": 15,
+    "birthCooldownDays": 60,
+    "fertileMaxAge": 45,
+    "fedAbove": 25,
+    "oldAgeStart": 60,
+    "oldAgeBaseYearly": 0.02,
+    "oldAgeGrowth": 1.25,
+    "elderWorkWeight": 0.5,
+    "childWanderRadius": 4
   }
 }

@@ -11,7 +11,10 @@ export function updateNeeds(h, data, season) {
   const seasonMult = season === 'Winter' ? cfg.hunger.winterMultiplier : 1;
   const hungerDecay = cfg.hunger.decay * seasonMult * traitMod(h, data, 'hungerDecay');
   h.needs.hunger = clamp(h.needs.hunger - hungerDecay * (sleeping ? cfg.hunger.sleepFactor : 1));
-  if (!sleeping) h.needs.energy = clamp(h.needs.energy - cfg.energy.decay * traitMod(h, data, 'energyDecay'));
+  if (!sleeping) {
+    h.needs.energy = clamp(h.needs.energy - cfg.energy.decay * traitMod(h, data, 'energyDecay'));
+    h.needs.social = clamp(h.needs.social - cfg.social.decay * traitMod(h, data, 'socialDecay'));
+  }
 
   if (h.needs.hunger <= 0) h.health = clamp(h.health - cfg.health.starveDamage);
   else if (h.needs.hunger > cfg.health.regenAboveHunger) h.health = clamp(h.health + cfg.health.regen);
