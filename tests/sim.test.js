@@ -6,9 +6,11 @@ import { createSim, stepSim } from '../src/sim/sim.js';
 import { serialize, deserialize } from '../src/sim/save.js';
 import { updateResources } from '../src/sim/world.js';
 import { updateNeeds } from '../src/sim/needs.js';
+import { gainXp, workTimeFactor } from '../src/sim/skills.js';
+import { traitMod } from '../src/sim/traits.js';
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
-const data = prepareData({ config: load('config'), tiles: load('tiles'), resources: load('resources'), names: load('names') });
+const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills'].map((n) => [n, load(n)])));
 const run = (state, ticks) => { for (let i = 0; i < ticks; i++) stepSim(state, data); return state; };
 const DAY = data.config.time.ticksPerDay;
 
@@ -80,12 +82,55 @@ test('resource regrowth respects season and renewability', () => {
 });
 
 test('winter makes humans hungrier faster', () => {
-  const mk = () => ({ needs: { hunger: 100, energy: 100 }, health: 100, action: { type: 'wander' } });
+  const mk = () => ({ needs: { hunger: 100, energy: 100 }, health: 100, traits: [], action: { type: 'wander' } });
   const summer = mk();
   const winter = mk();
-  updateNeeds(summer, data.config.needs, 'Summer');
-  updateNeeds(winter, data.config.needs, 'Winter');
+  updateNeeds(summer, data, 'Summer');
+  updateNeeds(winter, data, 'Winter');
   assert.ok(winter.needs.hunger < summer.needs.hunger);
+});
+
+test('every human gets 1-3 non-contradictory traits', () => {
+  const s = createSim(data, 'traits');
+  for (const h of s.humans) {
+    assert.ok(h.traits.length >= 1 && h.traits.length <= 3, h.name);
+    assert.equal(new Set(h.traits).size, h.traits.length);
+    for (const t of h.traits) assert.ok(!h.traits.includes(data.traitsById[t].opposite), `${h.name}: ${h.traits}`);
+  }
+});
+
+test('nobody starts skilled; skills are learned by doing', () => {
+  const s = createSim(data, 'skills');
+  for (const h of s.humans) assert.deepEqual(h.skills, {});
+  run(s, 20 * DAY);
+  const learned = s.humans.filter((h) => Object.values(h.skills).some((k) => k.level >= 1));
+  assert.ok(learned.length >= 5, `only ${learned.length} learned anything`);
+});
+
+test('traits change learning speed, and levelling up logs milestones', () => {
+  const s = createSim(data, 'xp');
+  const [a, b] = s.humans;
+  a.traits = ['clever'];
+  b.traits = [];
+  a.skills = {};
+  b.skills = {};
+  for (let i = 0; i < 20; i++) {
+    gainXp(s, data, a, 'woodcutting', 4);
+    gainXp(s, data, b, 'woodcutting', 4);
+  }
+  assert.ok(a.skills.woodcutting.level > b.skills.woodcutting.level);
+  assert.ok(s.history.some((e) => e.text === `${a.name} became a capable woodcutter`));
+  assert.ok(workTimeFactor(a, data, 'woodcutting') < workTimeFactor(b, data, 'woodcutting'));
+  assert.equal(traitMod(b, data, 'learnRate'), 1);
+});
+
+test('interrupted hauls are finished, so the stockpile keeps growing', () => {
+  for (const seed of ['a', 'c']) {
+    const s = run(createSim(data, seed), 60 * DAY);
+    const before = s.stockpile.wood + s.stockpile.stone;
+    run(s, 60 * DAY);
+    assert.ok(s.stockpile.wood + s.stockpile.stone > before, `seed ${seed} stalled at ${before}`);
+  }
 });
 
 test('sim code has no Phaser or unseeded randomness', () => {

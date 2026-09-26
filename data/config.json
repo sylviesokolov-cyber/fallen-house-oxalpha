@@ -10,7 +10,12 @@
     "ticksPerSecond": 4,
     "ticksPerDay": 120,
     "daysPerSeason": 15,
-    "seasons": ["Spring", "Summer", "Autumn", "Winter"]
+    "seasons": [
+      "Spring",
+      "Summer",
+      "Autumn",
+      "Winter"
+    ]
   },
   "humans": {
     "startCount": 10,
@@ -23,11 +28,41 @@
     "foodSearchCooldown": 20,
     "gatherTicks": 8,
     "carryCapacity": 3,
-    "resourceSearchCooldown": 40
+    "resourceSearchCooldown": 40,
+    "traitsMin": 1,
+    "traitsMax": 3
   },
   "needs": {
-    "hunger": { "decay": 0.35, "sleepFactor": 0.5, "seekBelow": 45, "critical": 15, "winterMultiplier": 1.4 },
-    "energy": { "decay": 0.3, "sleepBelow": 25, "sleepRestore": 1.5, "wakeAt": 100 },
-    "health": { "starveDamage": 0.5, "regen": 0.1, "regenAboveHunger": 30 }
+    "hunger": {
+      "decay": 0.35,
+      "sleepFactor": 0.5,
+      "seekBelow": 45,
+      "critical": 15,
+      "winterMultiplier": 1.4
+    },
+    "energy": {
+      "decay": 0.3,
+      "sleepBelow": 25,
+      "sleepRestore": 1.5,
+      "wakeAt": 100
+    },
+    "health": {
+      "starveDamage": 0.5,
+      "regen": 0.1,
+      "regenAboveHunger": 30
+    }
+  },
+  "skills": {
+    "maxLevel": 10,
+    "xpBase": 25,
+    "xpGrowth": 1.4,
+    "minWorkTime": 0.4,
+    "titles": {
+      "3": "capable",
+      "6": "skilled",
+      "10": "master"
+    },
+    "gatherSkillPreference": 4,
+    "gatherScarcityBonus": 3
   }
 }

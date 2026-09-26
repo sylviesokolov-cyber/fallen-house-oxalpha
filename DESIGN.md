@@ -152,7 +152,7 @@ Example tech JSON:
 
 1. **World + wandering humans + basic needs** — done
 2. **Actions and resources (gather, eat, sleep, regrowth, death by starvation)** — done
-3. Traits, skills learned by doing, inspect panel details
+3. **Traits, skills learned by doing, inspect panel details** — done
 4. Relationships, socializing, teaching, families, births
 5. Discovery system + first 10 techs + first buildings and items
 6. God powers + Faith + Shrine and worship

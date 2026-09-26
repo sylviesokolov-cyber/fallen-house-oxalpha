@@ -1,6 +1,8 @@
 import { next, randInt } from './rng.js';
 import { bfs, buildPath } from './pathfinding.js';
 import { tileIndex } from './world.js';
+import { traitMod } from './traits.js';
+import { gainXp, skillLevel, workTimeFactor, yieldFactor } from './skills.js';
 
 // Each human always has one action. An action runs over several ticks and sets
 // `done` when finished; the human then scores its options and starts a new one.
@@ -35,8 +37,9 @@ function shouldRethink(state, data, h) {
 }
 
 // Utility scoring: the more urgent a need, the higher its action scores.
-// Wandering is the low-scoring fallback. If the best option can't start
-// (e.g. no reachable food), the next one is tried.
+// Traits scale how much someone wants to work or roam. Wandering is the
+// low-scoring fallback. If the best option can't start (e.g. no reachable
+// food), the next one is tried.
 function chooseAction(state, data, h) {
   const n = data.config.needs;
   const options = [];
@@ -47,10 +50,13 @@ function chooseAction(state, data, h) {
   if (h.needs.energy < n.energy.sleepBelow) {
     options.push({ type: 'sleep', score: 100 - h.needs.energy });
   }
-  if (!h.carrying && canSearchResource(state, h)) {
-    options.push({ type: 'gather', score: 15 + next(state.rng) * 10 });
+  if (h.carrying) {
+    // Finish a haul that was interrupted (e.g. to eat) before anything else optional.
+    options.push({ type: 'deposit', score: 40 });
+  } else if (canSearchResource(state, h)) {
+    options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * traitMod(h, data, 'workWeight') });
   }
-  options.push({ type: 'wander', score: 10 + next(state.rng) * 10 });
+  options.push({ type: 'wander', score: (10 + next(state.rng) * 10) * traitMod(h, data, 'wanderWeight') });
   options.sort((a, b) => b.score - a.score);
   for (const o of options) if (START[o.type](state, data, h)) return;
 }
@@ -81,43 +87,83 @@ const START = {
   wander(state, data, h) {
     const { world } = state;
     const start = tileIndex(world, h.x, h.y);
-    const { reached, prev } = bfs(world, data, start, { maxDist: data.config.humans.wanderRadius });
+    const radius = Math.round(data.config.humans.wanderRadius * traitMod(h, data, 'wanderRadius'));
+    const { reached, prev } = bfs(world, data, start, { maxDist: radius });
     const goal = reached[randInt(state.rng, 0, reached.length - 1)];
     const path = buildPath(prev, start, goal);
     h.action = path.length ? { type: 'wander', path } : idleAction(state);
     return true;
   },
 
+  // Picks the best reachable material, not just the nearest: people lean toward
+  // work they're already good at (so specialists emerge) and toward whatever
+  // the stockpile is shortest on.
   gather(state, data, h) {
-    const { world } = state;
+    const { world, stockpile } = state;
+    const cfg = data.config.skills;
     const materials = new Map();
     for (const r of world.resources) {
       if (r.amount > 0 && data.resourcesById[r.type].material) materials.set(tileIndex(world, r.x, r.y), r);
     }
     const start = tileIndex(world, h.x, h.y);
-    const { goal, prev } = bfs(world, data, start, { isGoal: (i) => materials.has(i) });
-    if (goal < 0) {
-      // Nothing reachable: don't search again every tick.
+    const { reached, prev, dist } = bfs(world, data, start);
+    const scarcest = scarcestMaterial(stockpile, data);
+    let best = -1;
+    let bestScore = -Infinity;
+    for (const i of reached) {
+      const r = materials.get(i);
+      if (!r) continue;
+      const def = data.resourcesById[r.type];
+      const score = skillLevel(h, def.skill) * cfg.gatherSkillPreference
+        + (def.material === scarcest ? cfg.gatherScarcityBonus : 0)
+        - dist[i];
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    if (best < 0) {
       h.nextResourceSearch = state.tick + data.config.humans.resourceSearchCooldown;
       return false;
     }
-    h.action = { type: 'gather', targetId: materials.get(goal).id, path: buildPath(prev, start, goal) };
+    h.action = { type: 'gather', targetId: materials.get(best).id, path: buildPath(prev, start, best) };
+    return true;
+  },
+
+  deposit(state, data, h) {
+    const { world, stockpile } = state;
+    const start = tileIndex(world, h.x, h.y);
+    const goal = tileIndex(world, stockpile.x, stockpile.y);
+    const { prev, goal: found } = bfs(world, data, start, { isGoal: (i) => i === goal });
+    if (found < 0) return false;
+    h.action = { type: 'deposit', path: buildPath(prev, start, goal) };
     return true;
   },
 };
 
-function pathTo(state, data, fromIdx, toIdx) {
-  const { prev } = bfs(state.world, data, fromIdx, { isGoal: (i) => i === toIdx });
-  return buildPath(prev, fromIdx, toIdx);
+function scarcestMaterial(stockpile, data) {
+  let best = null;
+  for (const def of data.resources) {
+    if (def.material && (best === null || stockpile[def.material] < stockpile[best])) best = def.material;
+  }
+  return best;
 }
 
 function idleAction(state) {
   return { type: 'idle', ticks: randInt(state.rng, 4, 16) };
 }
 
+function findResource(state, id) {
+  return state.world.resources.find((r) => r.id === id);
+}
+
+function harvestTicks(h, data, def) {
+  return Math.max(1, Math.round(data.config.humans.gatherTicks * workTimeFactor(h, data, def.skill)));
+}
+
 const RUN = {
   seekFood(state, data, h) {
-    const target = state.world.resources.find((r) => r.id === h.action.targetId);
+    const target = findResource(state, h.action.targetId);
     if (!target || target.amount <= 0) {
       h.action.done = true;
       return;
@@ -128,10 +174,12 @@ const RUN = {
 
   eat(state, data, h) {
     if (--h.action.ticks > 0) return;
-    const target = state.world.resources.find((r) => r.id === h.action.targetId);
+    const target = findResource(state, h.action.targetId);
     if (target && target.amount > 0) {
+      const def = data.resourcesById[target.type];
       target.amount--;
-      h.needs.hunger = Math.min(100, h.needs.hunger + data.resourcesById[target.type].food);
+      h.needs.hunger = Math.min(100, h.needs.hunger + def.food * yieldFactor(h, data, def.skill));
+      gainXp(state, data, h, def.skill, data.skillsById[def.skill].xpPerAction);
     }
     h.action.done = true;
   },
@@ -148,37 +196,30 @@ const RUN = {
   },
 
   gather(state, data, h) {
-    const target = state.world.resources.find((r) => r.id === h.action.targetId);
+    const target = findResource(state, h.action.targetId);
     if (!target || target.amount <= 0) {
       h.action.done = true;
       return;
     }
     if (h.action.path.length) stepAlongPath(state, data, h);
-    else h.action = { type: 'harvest', targetId: target.id, ticks: data.config.humans.gatherTicks };
+    else h.action = { type: 'harvest', targetId: target.id, ticks: harvestTicks(h, data, data.resourcesById[target.type]) };
   },
 
   harvest(state, data, h) {
     if (--h.action.ticks > 0) return;
-    const target = state.world.resources.find((r) => r.id === h.action.targetId);
-    const cap = data.config.humans.carryCapacity;
+    const target = findResource(state, h.action.targetId);
     if (target && target.amount > 0) {
-      const material = data.resourcesById[target.type].material;
+      const def = data.resourcesById[target.type];
       target.amount--;
-      h.carrying = h.carrying ?? { type: material, amount: 0 };
+      h.carrying ??= { type: def.material, amount: 0 };
       h.carrying.amount++;
+      gainXp(state, data, h, def.skill, data.skillsById[def.skill].xpPerAction);
+      if (target.amount > 0 && h.carrying.amount < data.config.humans.carryCapacity) {
+        h.action.ticks = harvestTicks(h, data, def);
+        return;
+      }
     }
-    if (target && target.amount > 0 && h.carrying.amount < cap) {
-      h.action.ticks = data.config.humans.gatherTicks;
-      return;
-    }
-    if (!h.carrying) {
-      h.action.done = true;
-      return;
-    }
-    const { world, stockpile } = state;
-    const start = tileIndex(world, h.x, h.y);
-    const goal = tileIndex(world, stockpile.x, stockpile.y);
-    h.action = { type: 'deposit', path: goal === start ? [] : pathTo(state, data, start, goal) };
+    if (!h.carrying || !START.deposit(state, data, h)) h.action.done = true;
   },
 
   deposit(state, data, h) {

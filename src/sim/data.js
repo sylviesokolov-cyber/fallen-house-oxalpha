@@ -6,5 +6,7 @@ export function prepareData(raw) {
     ...raw,
     tilesById: byId(raw.tiles),
     resourcesById: byId(raw.resources),
+    traitsById: byId(raw.traits),
+    skillsById: byId(raw.skills),
   };
 }

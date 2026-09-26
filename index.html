@@ -14,9 +14,9 @@
   <header id="topbar">
     <div class="row">
       <span id="date">Day 1</span>
-      <span id="stock">Wood 0 · Stone 0</span>
       <span id="pop">Pop 0</span>
     </div>
+    <div id="stock">Wood 0 · Stone 0</div>
     <div class="row">
       <div class="group">
         <button data-speed="0" aria-label="Pause">II</button>
@@ -40,10 +40,13 @@
       </div>
       <button id="inspect-close" aria-label="Close">✕</button>
     </div>
+    <div id="insp-traits" class="chips"></div>
     <div id="insp-needs">
       <div class="need"><label>Health</label><div class="bar"><div id="bar-health"></div></div></div>
       <div class="need"><label>Food</label><div class="bar"><div id="bar-hunger"></div></div></div>
       <div class="need"><label>Energy</label><div class="bar"><div id="bar-energy"></div></div></div>
+      <h3>Skills</h3>
+      <div id="insp-skills"></div>
     </div>
   </section>
 

@@ -3,6 +3,7 @@ import { bfs } from './pathfinding.js';
 import { tileIndex } from './world.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
 import { logEvent } from './history.js';
+import { rollTraits } from './traits.js';
 
 function uniqueName(state, data, sex) {
   const used = new Set(state.humans.map((h) => h.name));
@@ -34,6 +35,8 @@ export function createHuman(state, data, x, y) {
     nextResourceSearch: 0,
     needs: { hunger: randInt(rng, 55, 100), energy: randInt(rng, 50, 100) },
     health: 100,
+    traits: rollTraits(state, data),
+    skills: {},
     carrying: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
@@ -74,7 +77,9 @@ export function humanAge(h, state, data) {
 export function killHuman(state, data, h, cause) {
   const age = humanAge(h, state, data);
   state.humans = state.humans.filter((o) => o.id !== h.id);
-  state.dead.push({ id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, deathTick: state.tick, cause });
+  state.dead.push({
+    id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, traits: h.traits, skills: h.skills, deathTick: state.tick, cause,
+  });
   const text = cause === 'starvation' ? `${h.name} starved to death, aged ${age}` : `${h.name} died (${cause}), aged ${age}`;
   logEvent(state, text);
 }

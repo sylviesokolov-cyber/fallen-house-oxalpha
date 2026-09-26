@@ -2,6 +2,7 @@ import { dateOf } from '../sim/time.js';
 import { formatEntry } from '../sim/history.js';
 import { humanAge } from '../sim/human.js';
 import { serialize, deserialize } from '../sim/save.js';
+import { xpToNext } from '../sim/skills.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser.
@@ -25,6 +26,7 @@ export function createHud(ctx) {
   let lastRefresh = 0;
   let logKey = null;
   let toastTimer = null;
+  let traitsShownFor = null;
 
   function toast(msg) {
     const el = $('toast');
@@ -66,6 +68,7 @@ export function createHud(ctx) {
       ctx.selectedId = null;
       ctx.runner.reset();
       logKey = null;
+      traitsShownFor = null;
       showPanel(null);
       ctx.events.emit('sim-replaced');
       toast(`Loaded (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
@@ -107,6 +110,7 @@ export function createHud(ctx) {
     const who = h ?? dead;
     $('insp-name').textContent = `${who.name} ${who.sex === 'female' ? '♀' : '♂'}`;
     $('insp-needs').classList.toggle('hidden', !h);
+    if (traitsShownFor !== who.id) renderTraits(who);
     if (dead) {
       $('insp-age').textContent = `Died on Day ${dateOf(dead.deathTick, data.config.time).day}`;
       $('insp-action').textContent = `Cause: ${dead.cause}`;
@@ -118,6 +122,50 @@ export function createHud(ctx) {
     setBar('bar-health', h.health);
     setBar('bar-hunger', h.needs.hunger);
     setBar('bar-energy', h.needs.energy);
+    renderSkills(h);
+  }
+
+  // Traits never change, so the chips are only rebuilt when the selection
+  // changes (rebuilding every refresh would swallow taps on them).
+  function renderTraits(who) {
+    traitsShownFor = who.id;
+    $('insp-traits').replaceChildren(
+      ...who.traits.map((id) => {
+        const t = ctx.data.traitsById[id];
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = t.name;
+        chip.addEventListener('click', () => toast(t.description));
+        return chip;
+      }),
+    );
+  }
+
+  function renderSkills(h) {
+    const cfg = ctx.data.config.skills;
+    const learned = Object.entries(h.skills).sort((a, b) => b[1].level - a[1].level || b[1].xp - a[1].xp);
+    if (!learned.length) {
+      const p = document.createElement('div');
+      p.className = 'empty';
+      p.textContent = 'Nothing learned yet';
+      return $('insp-skills').replaceChildren(p);
+    }
+    $('insp-skills').replaceChildren(
+      ...learned.map(([id, s]) => {
+        const row = document.createElement('div');
+        row.className = 'need skill';
+        const label = document.createElement('label');
+        label.textContent = `${ctx.data.skillsById[id].name} ${s.level}`;
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        const fill = document.createElement('div');
+        const progress = s.level >= cfg.maxLevel ? 1 : s.xp / xpToNext(s.level, cfg);
+        fill.style.width = `${Math.round(progress * 100)}%`;
+        bar.append(fill);
+        row.append(label, bar);
+        return row;
+      }),
+    );
   }
 
   function renderLog() {

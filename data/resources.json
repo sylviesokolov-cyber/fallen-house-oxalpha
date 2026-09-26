@@ -2,34 +2,48 @@
   {
     "id": "berry_bush",
     "name": "Berry bush",
-    "spawnOn": ["grass"],
+    "spawnOn": [
+      "grass"
+    ],
     "density": 0.05,
     "maxAmount": 4,
     "regrowTicks": 180,
-    "seasonMultiplier": { "Spring": 0.6, "Summer": 0.6, "Autumn": 1, "Winter": 0 },
+    "seasonMultiplier": {
+      "Spring": 0.6,
+      "Summer": 0.6,
+      "Autumn": 1,
+      "Winter": 0
+    },
     "food": 35,
     "color": "#2d5e22",
-    "fruitColor": "#d8394b"
+    "fruitColor": "#d8394b",
+    "skill": "foraging"
   },
   {
     "id": "tree",
     "name": "Tree",
-    "spawnOn": ["forest"],
+    "spawnOn": [
+      "forest"
+    ],
     "density": 0.06,
     "maxAmount": 5,
     "regrowTicks": 260,
     "material": "wood",
     "color": "#7a5230",
-    "fruitColor": "#d8b781"
+    "fruitColor": "#d8b781",
+    "skill": "woodcutting"
   },
   {
     "id": "stone_deposit",
     "name": "Stone deposit",
-    "spawnOn": ["stone"],
+    "spawnOn": [
+      "stone"
+    ],
     "density": 0.03,
-    "maxAmount": 5,
+    "maxAmount": 30,
     "material": "stone",
     "color": "#5a5a56",
-    "fruitColor": "#c9c9c2"
+    "fruitColor": "#c9c9c2",
+    "skill": "mining"
   }
 ]

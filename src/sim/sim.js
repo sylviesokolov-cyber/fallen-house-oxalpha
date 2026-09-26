@@ -33,7 +33,7 @@ export function stepSim(state, data) {
   updateResources(state.world, data, season);
   const died = [];
   for (const h of state.humans) {
-    updateNeeds(h, data.config.needs, season);
+    updateNeeds(h, data, season);
     if (h.health <= 0) died.push(h);
     else updateHuman(state, data, h);
   }

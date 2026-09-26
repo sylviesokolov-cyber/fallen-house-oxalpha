@@ -2,8 +2,9 @@ import { isWalkable } from './world.js';
 
 // Breadth-first search over walkable tiles (4 directions). On a 64x64 grid this
 // is cheap, and it finds the nearest goal by walking distance, not straight line.
-// Returns { goal, prev, reached }: goal is the first tile matching isGoal (or -1),
-// prev links each visited tile to where it came from, reached lists visited tiles.
+// Returns { goal, prev, dist, reached }: goal is the first tile matching isGoal
+// (or -1), prev links each visited tile to where it came from, dist is the step
+// count to each visited tile, reached lists visited tiles nearest-first.
 export function bfs(world, data, startIdx, { maxDist = Infinity, isGoal = null } = {}) {
   const W = world.width;
   const n = W * world.height;
@@ -18,7 +19,7 @@ export function bfs(world, data, startIdx, { maxDist = Infinity, isGoal = null }
 
   while (head < tail) {
     const cur = queue[head++];
-    if (isGoal && isGoal(cur)) return { goal: cur, prev, reached };
+    if (isGoal && isGoal(cur)) return { goal: cur, prev, dist, reached };
     reached.push(cur);
     if (dist[cur] >= maxDist) continue;
     const x = cur % W;
@@ -35,7 +36,7 @@ export function bfs(world, data, startIdx, { maxDist = Infinity, isGoal = null }
       queue[tail++] = nb;
     }
   }
-  return { goal: -1, prev, reached };
+  return { goal: -1, prev, dist, reached };
 }
 
 // Tile indices from the step after start up to and including goal.
