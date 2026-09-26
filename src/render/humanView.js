@@ -1,6 +1,7 @@
-import { TILE_SIZE } from './constants.js';
+import { TILE_SIZE, hexToInt } from './constants.js';
 
 const COLORS = { female: 0xf4a6c4, male: 0x86b8ff };
+const CARRY_COLORS = { wood: hexToInt('#7a5230'), stone: hexToInt('#c9c9c2') };
 
 // One small container per human. Positions are interpolated between the
 // previous and current tile so movement looks smooth at any tick rate.
@@ -16,8 +17,10 @@ export class HumanView {
     const zzz = this.scene.add.text(3, -15, 'z', { fontSize: '10px', fontStyle: 'bold', color: '#ffffff' })
       .setResolution(3)
       .setVisible(false);
-    const c = this.scene.add.container(0, 0, [body, zzz]).setDepth(3);
+    const carry = this.scene.add.rectangle(0, -12, 5, 5, 0xffffff).setStrokeStyle(1, 0x1b1b1b).setVisible(false);
+    const c = this.scene.add.container(0, 0, [body, zzz, carry]).setDepth(3);
     c.zzz = zzz;
+    c.carry = carry;
     this.sprites.set(h.id, c);
     return c;
   }
@@ -31,6 +34,8 @@ export class HumanView {
       const t = Math.min(1, Math.max(0, (sim.tick - h.stepTick + alpha) / moveTicks));
       s.setPosition((h.prevX + (h.x - h.prevX) * t + 0.5) * TILE_SIZE, (h.prevY + (h.y - h.prevY) * t + 0.5) * TILE_SIZE);
       s.zzz.setVisible(h.action.type === 'sleep');
+      s.carry.setVisible(!!h.carrying);
+      if (h.carrying) s.carry.setFillStyle(CARRY_COLORS[h.carrying.type]);
     }
     for (const [id, s] of this.sprites) {
       if (!alive.has(id)) {

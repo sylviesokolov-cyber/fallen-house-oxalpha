@@ -20,10 +20,13 @@
     "moveTicks": 2,
     "wanderRadius": 6,
     "eatTicks": 6,
-    "foodSearchCooldown": 20
+    "foodSearchCooldown": 20,
+    "gatherTicks": 8,
+    "carryCapacity": 3,
+    "resourceSearchCooldown": 40
   },
   "needs": {
-    "hunger": { "decay": 0.35, "sleepFactor": 0.5, "seekBelow": 45, "critical": 15 },
+    "hunger": { "decay": 0.35, "sleepFactor": 0.5, "seekBelow": 45, "critical": 15, "winterMultiplier": 1.4 },
     "energy": { "decay": 0.3, "sleepBelow": 25, "sleepRestore": 1.5, "wakeAt": 100 },
     "health": { "starveDamage": 0.5, "regen": 0.1, "regenAboveHunger": 30 }
   }

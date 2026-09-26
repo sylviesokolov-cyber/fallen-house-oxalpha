@@ -39,11 +39,16 @@ export function isWalkable(world, data, i) {
   return data.tilesById[world.tiles[i]].walkable;
 }
 
-// Each depleted resource regains one unit every `regrowTicks` ticks.
-export function updateResources(world, data) {
+// Each depleted resource regains one unit every `regrowTicks` ticks, scaled by
+// the current season (a multiplier of 0 means it doesn't regrow that season).
+// Resources with no `regrowTicks` (e.g. stone) never regrow at all.
+export function updateResources(world, data, season) {
   for (const r of world.resources) {
     const def = data.resourcesById[r.type];
-    if (r.amount < def.maxAmount && ++r.regrow >= def.regrowTicks) {
+    if (!def.regrowTicks || r.amount >= def.maxAmount) continue;
+    const mult = def.seasonMultiplier?.[season] ?? 1;
+    if (mult <= 0) continue;
+    if (++r.regrow >= def.regrowTicks * mult) {
       r.amount++;
       r.regrow = 0;
     }

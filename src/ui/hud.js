@@ -14,6 +14,9 @@ const ACTION_LABELS = {
   seekFood: 'Looking for food',
   eat: 'Eating berries',
   sleep: 'Sleeping',
+  gather: 'Heading out to gather',
+  harvest: 'Gathering',
+  deposit: 'Hauling to stockpile',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -86,6 +89,8 @@ export function createHud(ctx) {
     const d = dateOf(ctx.sim.tick, ctx.data.config.time);
     $('date').textContent = `Day ${d.day} · ${d.season}, Year ${d.year}`;
     $('pop').textContent = `Pop ${ctx.sim.humans.length}`;
+    const { wood, stone } = ctx.sim.stockpile;
+    $('stock').textContent = `Wood ${wood} · Stone ${stone}`;
   }
 
   function setBar(id, value) {
@@ -108,7 +113,8 @@ export function createHud(ctx) {
       return;
     }
     $('insp-age').textContent = `Age ${humanAge(h, sim, data)}`;
-    $('insp-action').textContent = ACTION_LABELS[h.action.type] ?? h.action.type;
+    const carrying = h.carrying ? ` (carrying ${h.carrying.amount} ${h.carrying.type})` : '';
+    $('insp-action').textContent = `${ACTION_LABELS[h.action.type] ?? h.action.type}${carrying}`;
     setBar('bar-health', h.health);
     setBar('bar-hunger', h.needs.hunger);
     setBar('bar-energy', h.needs.energy);

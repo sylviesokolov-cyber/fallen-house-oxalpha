@@ -6,8 +6,30 @@
     "density": 0.05,
     "maxAmount": 4,
     "regrowTicks": 180,
+    "seasonMultiplier": { "Spring": 0.6, "Summer": 0.6, "Autumn": 1, "Winter": 0 },
     "food": 35,
     "color": "#2d5e22",
     "fruitColor": "#d8394b"
+  },
+  {
+    "id": "tree",
+    "name": "Tree",
+    "spawnOn": ["forest"],
+    "density": 0.06,
+    "maxAmount": 5,
+    "regrowTicks": 260,
+    "material": "wood",
+    "color": "#7a5230",
+    "fruitColor": "#d8b781"
+  },
+  {
+    "id": "stone_deposit",
+    "name": "Stone deposit",
+    "spawnOn": ["stone"],
+    "density": 0.03,
+    "maxAmount": 5,
+    "material": "stone",
+    "color": "#5a5a56",
+    "fruitColor": "#c9c9c2"
   }
 ]

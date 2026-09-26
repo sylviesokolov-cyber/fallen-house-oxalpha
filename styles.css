@@ -51,7 +51,7 @@ html, body {
 }
 
 #date { font-weight: 600; }
-#pop { color: var(--muted); }
+#stock, #pop { color: var(--muted); font-size: 13px; }
 
 .group { display: flex; gap: 4px; }
 

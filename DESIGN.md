@@ -150,8 +150,8 @@ Example tech JSON:
 
 ## Phase Roadmap
 
-1. **World + wandering humans + basic needs**
-2. Actions and resources (gather, eat, sleep, regrowth, death by starvation)
+1. **World + wandering humans + basic needs** — done
+2. **Actions and resources (gather, eat, sleep, regrowth, death by starvation)** — done
 3. Traits, skills learned by doing, inspect panel details
 4. Relationships, socializing, teaching, families, births
 5. Discovery system + first 10 techs + first buildings and items

@@ -31,14 +31,16 @@ export function createHuman(state, data, x, y) {
     stepTick: 0,
     nextMoveTick: 0,
     nextFoodSearch: 0,
+    nextResourceSearch: 0,
     needs: { hunger: randInt(rng, 55, 100), energy: randInt(rng, 50, 100) },
     health: 100,
+    carrying: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
 }
 
-// Finds the grass tile closest to the map center, then places humans on
-// random walkable tiles within a few steps of it.
+// Finds the grass tile closest to the map center, places the tribe's shared
+// stockpile there, then places humans on random walkable tiles nearby.
 export function spawnInitialHumans(state, data) {
   const { world } = state;
   const cfg = data.config.humans;
@@ -54,6 +56,7 @@ export function spawnInitialHumans(state, data) {
       center = i;
     }
   }
+  state.stockpile = { x: center % world.width, y: Math.floor(center / world.width), wood: 0, stone: 0 };
 
   const spots = bfs(world, data, center, { maxDist: cfg.spawnRadius }).reached;
   for (let n = 0; n < cfg.startCount; n++) {

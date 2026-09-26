@@ -6,6 +6,9 @@ import { tileIndex } from './world.js';
 // `done` when finished; the human then scores its options and starts a new one.
 
 const INTERRUPTIBLE = new Set(['wander', 'idle']);
+// Work in progress: only a critical hunger cuts it short, so a trip already
+// underway (gathering, hauling, depositing, sleeping) isn't abandoned lightly.
+const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep']);
 
 export function updateHuman(state, data, h) {
   if (shouldRethink(state, data, h)) chooseAction(state, data, h);
@@ -16,6 +19,10 @@ function canSearchFood(state, h) {
   return state.tick >= h.nextFoodSearch;
 }
 
+function canSearchResource(state, h) {
+  return state.tick >= h.nextResourceSearch;
+}
+
 function shouldRethink(state, data, h) {
   const n = data.config.needs;
   const a = h.action;
@@ -23,7 +30,7 @@ function shouldRethink(state, data, h) {
   const hungry = h.needs.hunger < n.hunger.seekBelow && canSearchFood(state, h);
   const tired = h.needs.energy < n.energy.sleepBelow;
   if (INTERRUPTIBLE.has(a.type)) return hungry || tired;
-  if (a.type === 'sleep') return h.needs.hunger < n.hunger.critical && canSearchFood(state, h);
+  if (WORK.has(a.type)) return h.needs.hunger < n.hunger.critical && canSearchFood(state, h);
   return false;
 }
 
@@ -40,7 +47,10 @@ function chooseAction(state, data, h) {
   if (h.needs.energy < n.energy.sleepBelow) {
     options.push({ type: 'sleep', score: 100 - h.needs.energy });
   }
-  options.push({ type: 'wander', score: 20 + next(state.rng) * 10 });
+  if (!h.carrying && canSearchResource(state, h)) {
+    options.push({ type: 'gather', score: 15 + next(state.rng) * 10 });
+  }
+  options.push({ type: 'wander', score: 10 + next(state.rng) * 10 });
   options.sort((a, b) => b.score - a.score);
   for (const o of options) if (START[o.type](state, data, h)) return;
 }
@@ -77,7 +87,29 @@ const START = {
     h.action = path.length ? { type: 'wander', path } : idleAction(state);
     return true;
   },
+
+  gather(state, data, h) {
+    const { world } = state;
+    const materials = new Map();
+    for (const r of world.resources) {
+      if (r.amount > 0 && data.resourcesById[r.type].material) materials.set(tileIndex(world, r.x, r.y), r);
+    }
+    const start = tileIndex(world, h.x, h.y);
+    const { goal, prev } = bfs(world, data, start, { isGoal: (i) => materials.has(i) });
+    if (goal < 0) {
+      // Nothing reachable: don't search again every tick.
+      h.nextResourceSearch = state.tick + data.config.humans.resourceSearchCooldown;
+      return false;
+    }
+    h.action = { type: 'gather', targetId: materials.get(goal).id, path: buildPath(prev, start, goal) };
+    return true;
+  },
 };
+
+function pathTo(state, data, fromIdx, toIdx) {
+  const { prev } = bfs(state.world, data, fromIdx, { isGoal: (i) => i === toIdx });
+  return buildPath(prev, fromIdx, toIdx);
+}
 
 function idleAction(state) {
   return { type: 'idle', ticks: randInt(state.rng, 4, 16) };
@@ -113,6 +145,52 @@ const RUN = {
   wander(state, data, h) {
     if (h.action.path.length) stepAlongPath(state, data, h);
     else h.action = idleAction(state);
+  },
+
+  gather(state, data, h) {
+    const target = state.world.resources.find((r) => r.id === h.action.targetId);
+    if (!target || target.amount <= 0) {
+      h.action.done = true;
+      return;
+    }
+    if (h.action.path.length) stepAlongPath(state, data, h);
+    else h.action = { type: 'harvest', targetId: target.id, ticks: data.config.humans.gatherTicks };
+  },
+
+  harvest(state, data, h) {
+    if (--h.action.ticks > 0) return;
+    const target = state.world.resources.find((r) => r.id === h.action.targetId);
+    const cap = data.config.humans.carryCapacity;
+    if (target && target.amount > 0) {
+      const material = data.resourcesById[target.type].material;
+      target.amount--;
+      h.carrying = h.carrying ?? { type: material, amount: 0 };
+      h.carrying.amount++;
+    }
+    if (target && target.amount > 0 && h.carrying.amount < cap) {
+      h.action.ticks = data.config.humans.gatherTicks;
+      return;
+    }
+    if (!h.carrying) {
+      h.action.done = true;
+      return;
+    }
+    const { world, stockpile } = state;
+    const start = tileIndex(world, h.x, h.y);
+    const goal = tileIndex(world, stockpile.x, stockpile.y);
+    h.action = { type: 'deposit', path: goal === start ? [] : pathTo(state, data, start, goal) };
+  },
+
+  deposit(state, data, h) {
+    if (h.action.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    if (h.carrying) {
+      state.stockpile[h.carrying.type] += h.carrying.amount;
+      h.carrying = null;
+    }
+    h.action.done = true;
   },
 
   idle(state, data, h) {

@@ -4,6 +4,7 @@ import { spawnInitialHumans, killHuman } from './human.js';
 import { updateNeeds } from './needs.js';
 import { updateHuman } from './ai.js';
 import { SAVE_VERSION } from './save.js';
+import { dateOf } from './time.js';
 
 // Entry point of the simulation. `state` is plain data (saved as-is);
 // `data` is the read-only JSON content from /data.
@@ -16,6 +17,7 @@ export function createSim(data, seed) {
     tick: 0,
     nextId: 1,
     world: null,
+    stockpile: null,
     humans: [],
     dead: [],
     history: [],
@@ -27,10 +29,11 @@ export function createSim(data, seed) {
 
 export function stepSim(state, data) {
   state.tick++;
-  updateResources(state.world, data);
+  const season = dateOf(state.tick, data.config.time).season;
+  updateResources(state.world, data, season);
   const died = [];
   for (const h of state.humans) {
-    updateNeeds(h, data.config.needs);
+    updateNeeds(h, data.config.needs, season);
     if (h.health <= 0) died.push(h);
     else updateHuman(state, data, h);
   }
