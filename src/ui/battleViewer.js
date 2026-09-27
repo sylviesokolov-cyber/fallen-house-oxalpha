@@ -40,7 +40,7 @@ export function createBattleViewer(ctx, sound) {
     const h = sim.humans.find((o) => o.id === c.id) ?? sim.dead.find((o) => o.id === c.id);
     const art = el('div', 'h-art');
     try {
-      art.append(portrait(appearance(h), h, 'adult', true, data));
+      art.append(portrait(appearance(h, false, data), h, 'adult', true, data));
     } catch {
       art.append(icon('people'));
     }

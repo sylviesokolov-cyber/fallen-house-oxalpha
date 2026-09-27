@@ -1,7 +1,6 @@
 import { usePower } from '../sim/godPowers.js';
 import { $, el, button, renderKeyed } from './dom.js';
 import { icon } from './icons.js';
-import { haptic } from './sheets.js';
 
 // The god's hand on one person, from their character sheet: Bless, Inspire,
 // Gift (a talent or knowledge, chosen from a list), Eternal youth, and, for
@@ -16,8 +15,7 @@ export function createDivineActions(ctx, { toast }) {
     const { sim, data } = ctx;
     const result = usePower(sim, data, powerId, target);
     if (!result.ok) return toast(result.error);
-    haptic([15, 30, 15]);
-    ctx.events.emit('power-used', { powerId: powerId === 'bless' || powerId === 'inspire' ? powerId : 'bless', x: result.x, y: result.y });
+    ctx.events.emit('power-used', { powerId, x: result.x, y: result.y });
     toast(`${data.powersById[powerId].name}: done`);
     giftFor = null;
   }

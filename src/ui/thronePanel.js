@@ -10,8 +10,7 @@ import { appearance } from '../render/appearance.js';
 import { looksLabel } from '../sim/appeal.js';
 import { $, el, button, renderKeyed } from './dom.js';
 import { icon } from './icons.js';
-import { portrait } from './portrait.js';
-import { haptic } from './sheets.js';
+import { portrait, royalMarks } from './portrait.js';
 
 // The Throne: the ruling house, the ruler and their spouses, the heir and
 // line of succession, and the chronicle of past reigns. Once the ruler is
@@ -27,7 +26,7 @@ export function createThronePanel(ctx, { toast, select }) {
     const { sim, data } = ctx;
     const stage = lifeStage(h, sim, data);
     const b = button('person with-face', '', onTap ?? (() => select(h.id)));
-    const face = portrait(appearance(h, stage === 'elder'), h, stage, true, data);
+    const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h));
     face.classList.add('mini');
     const info = el('div', 'person-info');
     const top = el('div', 'person-top');
@@ -40,7 +39,8 @@ export function createThronePanel(ctx, { toast, select }) {
   function decree(target, done) {
     const result = usePower(ctx.sim, ctx.data, 'decree', target);
     if (!result.ok) return toast(result.error);
-    haptic([15, 30, 15]);
+    const ruler = leaderOf(ctx.sim);
+    if (ruler) ctx.events.emit('power-used', { powerId: 'decree', x: ruler.x, y: ruler.y });
     toast(done);
     flow = null;
     render(true);
@@ -141,7 +141,7 @@ export function createThronePanel(ctx, { toast, select }) {
       const b = button('wide puppet-btn', '', () => {
         const result = usePower(sim, data, 'puppet', { humanId: ruler.id });
         if (!result.ok) return toast(result.error);
-        haptic([20, 40, 20]);
+        ctx.events.emit('power-used', { powerId: 'puppet', x: result.x, y: result.y });
         toast(`${ruler.name} now hears your voice`);
         render(true);
       });

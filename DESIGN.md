@@ -211,6 +211,12 @@ H. **Goals, events and the deep floors** — done.
   - **Strangers:** a newcomer of a fresh house steps out of the portal when there's room.
 - **Floors 5–8:** the Sunken Library, the Crystal Hollows, the Ashen Throne and the Fallen Court. The deep floors yield **mithril**, which Mithril Smithing turns into the best swords and armour. Slaying the Fallen King conquers the dungeon.
 
+I. **Visual depth** — done.
+- People look like individuals: hair styles, beards, slim or broad builds by strength, a sash in their house colour, and the weapon they carry. They swing while working and breathe while standing. The ageless wear a halo and the sick turn pale.
+- Portraits are drawn faces that match the sprite, with a crown for the ruler and a tiara for the ruler's spouses and heir.
+- Buildings have roofs when seen from afar; zooming in lifts them away to show the rooms, and the roof over the selected person stays see-through.
+- Gift, Eternal youth, Puppet and Decrees each have their own effect and sound.
+
 ## Open Questions
 
 Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.

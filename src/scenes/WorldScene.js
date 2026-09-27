@@ -3,6 +3,7 @@ import { drawMap } from '../render/mapRenderer.js';
 import { ResourceView } from '../render/resourceView.js';
 import { HumanView } from '../render/humanView.js';
 import { BuildingView } from '../render/buildingView.js';
+import { RoofView } from '../render/roofView.js';
 import { AmbientView } from '../render/ambientView.js';
 import { makeTextures } from '../render/textures.js';
 import { FxView } from '../render/fxView.js';
@@ -48,6 +49,7 @@ export class WorldScene extends Phaser.Scene {
     this.winterMap?.destroy();
     this.resourceView?.destroy();
     this.buildingView?.destroy();
+    this.roofView?.destroy();
     this.humanView?.destroy();
     this.ambientView?.destroy();
     this.fxView?.destroy();
@@ -58,6 +60,7 @@ export class WorldScene extends Phaser.Scene {
     this.winterMap = drawMap(this, sim.world, data, 'winter').setAlpha(0);
     this.resourceView = new ResourceView(this);
     this.buildingView = new BuildingView(this, sim, data);
+    this.roofView = new RoofView(this);
     this.humanView = new HumanView(this);
     this.ambientView = new AmbientView(this, sim, data);
     this.fxView = new FxView(this, sim, data);
@@ -137,6 +140,7 @@ export class WorldScene extends Phaser.Scene {
     this.buildingView.update(sim, data);
 
     this.humanView.update(sim, data, runner.alpha, selectedId);
+    this.roofView.update(sim, data, sim.humans.find((h) => h.id === selectedId));
     this.follow();
     this.ambientView.update(sim, data, runner.alpha, time, this.winterMap);
     this.fxView.update(sim, data, time, this.ambientView.dark, this.humanView.sprites);

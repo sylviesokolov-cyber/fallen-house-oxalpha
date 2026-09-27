@@ -3,7 +3,7 @@ import { TILE_SIZE } from './constants.js';
 // Short-lived visuals for god powers. Purely cosmetic, so plain Math.random is
 // fine here (it never touches the sim).
 
-const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400, omen: 2000 };
+const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400, omen: 2000, gift: 1500, eternity: 2200, puppet: 1800, decree: 1600 };
 
 const DRAW = {
   rain(g, cx, cy, t, e) {
@@ -36,6 +36,45 @@ const DRAW = {
     for (let k = 0; k < 8; k++) {
       const a = (k * Math.PI) / 4 + t;
       g.lineBetween(cx + Math.cos(a) * 14, cy - 60 + Math.sin(a) * 14, cx + Math.cos(a) * (30 + t * 60), cy - 60 + Math.sin(a) * (30 + t * 60));
+    }
+  },
+  // Sparkles spiralling up around the person.
+  gift(g, cx, cy, t, e) {
+    e.drops.slice(0, 16).forEach((d, k) => {
+      const a = t * 8 + k * 0.8;
+      const r = 12 * (1 - t) + 3;
+      const y = cy - 4 - t * 26 * (0.6 + d.y * 0.6);
+      g.fillStyle(k % 2 ? 0x8ff0ff : 0xffe27a, 1 - t);
+      g.fillCircle(cx + Math.cos(a) * r, y + Math.sin(a) * r * 0.35, 1.4 + (k % 3) * 0.4);
+    });
+  },
+  // A pillar of light, then a golden ring rising into a halo.
+  eternity(g, cx, cy, t) {
+    const beam = Math.sin(Math.min(1, t * 1.6) * Math.PI);
+    g.fillStyle(0xfff1b0, 0.35 * beam);
+    g.fillRect(cx - 7, cy - 260, 14, 262);
+    g.fillStyle(0xffffff, 0.5 * beam);
+    g.fillRect(cx - 2.5, cy - 260, 5, 262);
+    g.lineStyle(2, 0xffe27a, 1 - t);
+    g.strokeEllipse(cx, cy + 4 - t * 16, 22 * (1 - t) + 8, (22 * (1 - t) + 8) * 0.35);
+  },
+  // Golden threads come down from the sky and take hold.
+  puppet(g, cx, cy, t) {
+    const reach = Math.min(1, t * 2);
+    g.lineStyle(1, 0xffd35c, 1 - Math.max(0, t - 0.5) * 2);
+    for (const dx of [-5, 0, 5]) g.lineBetween(cx + dx * 3, cy - 200, cx + dx, cy - 200 + (200 - 6) * reach);
+    g.fillStyle(0xffd35c, 0.6 * (1 - t));
+    g.fillCircle(cx, cy - 6, 4 + t * 10);
+  },
+  // Rays and a ring spreading from the ruler as the decree is proclaimed.
+  decree(g, cx, cy, t) {
+    g.lineStyle(3, 0xffd35c, 1 - t);
+    g.strokeCircle(cx, cy, 8 + t * 90);
+    g.lineStyle(1.5, 0xfff1b0, (1 - t) * 0.8);
+    g.strokeCircle(cx, cy, 4 + t * 60);
+    for (let k = 0; k < 12; k++) {
+      const a = (k * Math.PI) / 6;
+      g.lineBetween(cx + Math.cos(a) * (10 + t * 30), cy + Math.sin(a) * (10 + t * 30), cx + Math.cos(a) * (18 + t * 70), cy + Math.sin(a) * (18 + t * 70));
     }
   },
   inspire(g, cx, cy, t) {

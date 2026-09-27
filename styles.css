@@ -364,11 +364,8 @@ button.power.poor { opacity: 0.45; filter: saturate(0.4); }
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 .portrait-frame.dead { filter: grayscale(0.9) brightness(0.75); }
-.portrait-frame.child > div { transform: scale(0.8); transform-origin: 50% 100%; }
-.p-body { position: absolute; left: 13px; right: 13px; bottom: -9px; height: 30px; border-radius: 16px 16px 4px 4px; box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.15); }
-.p-hair-back { position: absolute; left: 17px; right: 17px; top: 19px; height: 26px; border-radius: 9px; }
-.p-head { position: absolute; left: 19px; top: 13px; width: 26px; height: 26px; border-radius: 50%; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.12); }
-.p-hair { position: absolute; left: 18px; top: 11px; width: 28px; height: 13px; border-radius: 14px 14px 4px 4px; }
+.portrait-frame svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.portrait-frame.child svg { transform: scale(0.8); transform-origin: 50% 100%; }
 
 .story { list-style: none; margin: 0; padding: 0 0 0 6px; font-size: 13.5px; border-left: 2px solid rgba(255, 211, 92, 0.35); }
 .story li { position: relative; display: flex; gap: 10px; padding: 7px 0 7px 12px; }

@@ -13,7 +13,7 @@ import { looksLabel } from '../sim/appeal.js';
 import { createDivineActions } from './divineActions.js';
 import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
-import { portrait } from './portrait.js';
+import { portrait, royalMarks } from './portrait.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
 // emotion, stats, needs, thoughts, relationships, skills and knowledge.
@@ -106,8 +106,9 @@ export function createCharacterSheet(ctx, { toast, select }) {
       ? `House ${who.house} · ${looksLabel(who)}${drawn}${who.eternal ? ' · ageless' : ''}`
       : '';
     const stage = alive ? lifeStage(who, sim, data) : 'adult';
-    const look = appearance(who, stage === 'elder');
-    renderKeyed($('insp-portrait'), `${who.id}|${look.tunic}|${look.hair}|${stage}|${alive}`, () => [portrait(look, who, stage, alive, data)]);
+    const look = appearance(who, stage === 'elder', data);
+    const marks = alive ? royalMarks(sim, who) : {};
+    renderKeyed($('insp-portrait'), `${who.id}|${JSON.stringify(look)}|${stage}|${alive}|${JSON.stringify(marks)}|${who.eternal}`, () => [portrait(look, who, stage, alive, data, marks)]);
   }
 
   // The newest chapters first, each with the age they were then.

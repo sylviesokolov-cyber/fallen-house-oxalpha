@@ -102,6 +102,13 @@ export function createSound() {
     },
     victory: () => arp([60, 64, 67, 72, 76, 79], 0.1, { dur: 0.5, vol: 0.08, type: 'triangle' }),
     love: () => arp([76, 81], 0.18, { dur: 0.8, vol: 0.09, type: 'sine' }),
+    gift: () => arp([84, 91, 88, 96], 0.07, { dur: 0.5, vol: 0.08, type: 'sine' }),
+    eternity: () => {
+      arp([60, 67, 72, 76, 79, 84], 0.12, { dur: 1.2, vol: 0.07, type: 'sine' });
+      tone(NOTE(48), { dur: 2, vol: 0.06, type: 'triangle' });
+    },
+    puppet: () => arp([55, 58, 62, 67], 0.14, { dur: 0.7, vol: 0.08, type: 'triangle' }),
+    decree: () => arp([67, 67, 72, 79], 0.11, { dur: 0.4, vol: 0.09, type: 'square' }),
     hit: () => noise({ dur: 0.07, freq: 900, q: 1.5, vol: 0.25 }),
     crit: () => {
       noise({ dur: 0.12, freq: 1400, q: 1, vol: 0.35 });

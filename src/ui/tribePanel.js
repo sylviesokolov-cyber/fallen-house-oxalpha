@@ -4,7 +4,7 @@ import { gradeOf, heroClass } from '../sim/stats.js';
 import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, bar, stars, renderKeyed } from './dom.js';
-import { portrait } from './portrait.js';
+import { portrait, royalMarks } from './portrait.js';
 import { appearance } from '../render/appearance.js';
 import { lifeStage } from '../sim/lifecycle.js';
 import { currentChapter, goalProgress } from '../sim/goals.js';
@@ -118,7 +118,7 @@ export function createTribePanel(ctx, { toast, select }) {
     return sorted.map((h) => {
       const b = button('person with-face', '', () => select(h.id));
       const stage = lifeStage(h, sim, data);
-      const face = portrait(appearance(h, stage === 'elder'), h, stage, true, data);
+      const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h));
       face.classList.add('mini');
       const info = el('div', 'person-info');
       const top = el('div', 'person-top');

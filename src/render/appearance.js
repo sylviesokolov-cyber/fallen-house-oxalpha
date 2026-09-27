@@ -24,12 +24,42 @@ export function bestSkill(h) {
   return best;
 }
 
-export function appearance(h, elder = false) {
+// House colours: every family name maps to one, so kin share a sash.
+const HOUSE = ['#c0392b', '#2e86c1', '#27ae60', '#8e44ad', '#d4ac0d', '#16a085', '#d35400', '#7f8c8d', '#e84393', '#1f3a93'];
+const HAIR_STYLES = { female: ['long', 'long', 'bun', 'braid', 'short'], male: ['short', 'short', 'spiky', 'long', 'shaggy'] };
+const GEAR_SLOTS = ['staff', 'sword', 'bow'];
+
+export function houseColor(house) {
+  let n = 0;
+  for (const ch of house ?? '') n = (n * 31 + ch.charCodeAt(0)) >>> 0;
+  return HOUSE[n % HOUSE.length];
+}
+
+// The weapon they carry: their best fighting gear, if any.
+function gearOf(h, data) {
+  if (!data || !h.tools) return null;
+  const slots = new Set(Object.keys(h.tools).map((id) => data.itemsById[id]?.slot).filter(Boolean));
+  return GEAR_SLOTS.find((s) => slots.has(s)) ?? null;
+}
+
+export function appearance(h, elder = false, data = null) {
   const k = hash(h.id);
+  const male = h.sex !== 'female';
+  const styles = HAIR_STYLES[male ? 'male' : 'female'];
+  let hairStyle = styles[(k >>> 8) % styles.length];
+  if (male && elder && (k >>> 20) % 2 === 0) hairStyle = 'bald';
+  const str = h.stats?.str ?? 8;
   return {
     skin: SKIN[k % SKIN.length],
     hair: elder ? HAIR[7] : HAIR[(k >>> 4) % 7],
     tunic: TUNIC[bestSkill(h)] ?? NOVICE,
-    longHair: h.sex === 'female' ? (k >>> 8) % 4 !== 0 : (k >>> 8) % 5 === 0,
+    longHair: ['long', 'braid'].includes(hairStyle),
+    hairStyle,
+    beard: male && ((k >>> 12) % 3 === 0 || (elder && (k >>> 12) % 3 !== 2)),
+    build: str >= 14 ? 'broad' : str <= 7 ? 'slim' : 'normal',
+    sash: h.house ? houseColor(h.house) : null,
+    gear: gearOf(h, data),
+    eyes: ['#3b2a1a', '#2d5a8a', '#3a6a3a', '#5a4a2a'][(k >>> 16) % 4],
+    beauty: h.looks ?? 5,
   };
 }
