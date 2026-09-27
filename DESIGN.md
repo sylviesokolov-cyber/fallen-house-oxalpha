@@ -128,7 +128,7 @@ Replaced: the open noise-generated world, berry bushes, stone and clay deposits,
 
 ## Roadmap
 
-A. **The Sanctuary.** The walled map with zones and plots, the four starting buildings, potatoes and trees, eating in the Dining Hall, sleeping in the Great Hall, training at the Training Ground, auto-healing inside the walls, starting knowledge. Old world systems removed.
+A. **The Sanctuary** — done. The walled map with zones and plots, the four starting buildings, potatoes and trees, eating in the Dining Hall, sleeping in the Great Hall, training at the Training Ground, auto-healing inside the walls, starting knowledge. Old world systems removed.
 B. **Building and upgrading.** Plots, building levels, the people deciding what to build; a new discovery tree for the sanctuary (carpentry, writing, recipes…); recipes from potatoes.
 C. **The Portal.** Parties, dungeon floors, monsters, combat and battle reports, loot, injuries and death, bosses.
 D. **Depth from the dungeon.** Smithing and gear, recipes with dungeon ingredients, herbalism, magic and the Mage Tower, family houses.

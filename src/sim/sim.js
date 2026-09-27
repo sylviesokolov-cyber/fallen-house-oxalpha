@@ -8,9 +8,8 @@ import { dateOf } from './time.js';
 import { updateProximity } from './bonds.js';
 import { updateLifeCycle } from './lifecycle.js';
 import { updateDiscovery } from './techs.js';
-import { isWarm } from './buildings.js';
+import { createStartingBuildings, isWarm } from './buildings.js';
 import { spoilFood } from './items.js';
-import { updateWeather } from './weather.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -40,6 +39,7 @@ export function createSim(data, seed) {
   };
   state.world = generateWorld(state.rng, data);
   state.settlement = createSettlement(state, data);
+  createStartingBuildings(state, data);
   spawnInitialHumans(state, data);
   return state;
 }
@@ -47,7 +47,6 @@ export function createSim(data, seed) {
 export function stepSim(state, data) {
   state.tick++;
   const season = dateOf(state.tick, data.config.time).season;
-  updateWeather(state, data, season);
   updateResources(state.world, data, season);
   const died = [];
   const winter = season === 'Winter';

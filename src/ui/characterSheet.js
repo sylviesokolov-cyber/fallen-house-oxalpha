@@ -27,7 +27,8 @@ const ACTION_LABELS = {
   goSleep: 'Heading to bed',
   build: 'Building',
   craft: 'Crafting',
-  pray: 'Praying',
+  pray: 'Praying in the Great Hall',
+  train: 'Training',
 };
 const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintance: 'Acquaintance', rival: 'Rival' };
 const MAX_BONDS_SHOWN = 7;
@@ -51,8 +52,12 @@ export function createCharacterSheet(ctx, { toast, select }) {
       const site = sim.buildings.find((b) => b.id === a.siteId);
       return site ? `Building a ${data.buildingsById[site.type].name.toLowerCase()}` : 'Building';
     }
-    if (a.type === 'sleep' && a.buildingId != null) return 'Sleeping in a shelter';
-    if (a.type === 'seekFood' && a.stock) return 'Going to the stockpile to eat';
+    if (a.type === 'seekFood' && a.dine) return 'Going to the Dining Hall';
+    if (a.type === 'seekFood' && a.stock) return 'Going to the store for potatoes';
+    if (a.type === 'eat' && a.dine) return 'Having a meal in the Dining Hall';
+    if (a.type === 'eat' && !a.stock && !a.fromCarry) return 'Eating raw potatoes in the field';
+    if (a.type === 'train' && lifeStage(h, sim, data) === 'child') return 'Playing at the Training Ground';
+    if (a.type === 'sleep' && a.buildingId != null) return `Sleeping in the ${data.buildingsById[sim.buildings.find((b) => b.id === a.buildingId)?.type]?.name ?? 'hall'}`;
     return ACTION_LABELS[a.type] ?? a.type;
   }
 

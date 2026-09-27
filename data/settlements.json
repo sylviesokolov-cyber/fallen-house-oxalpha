@@ -1,7 +1,0 @@
-[
-  {"id": "camp", "name": "Camp", "leaderTitle": {"female": "Chief", "male": "Chief"}, "populationCap": 20, "requirements": {}},
-  {"id": "village", "name": "Village", "leaderTitle": {"female": "Elder", "male": "Elder"}, "populationCap": 30, "requirements": {"population": 14, "techs": 4, "buildings": 6}},
-  {"id": "town", "name": "Town", "leaderTitle": {"female": "Lady", "male": "Lord"}, "populationCap": 42, "requirements": {"population": 24, "techs": 8, "buildings": 14, "hasBuildings": ["shrine", "hut"]}},
-  {"id": "city", "name": "City", "leaderTitle": {"female": "High Lady", "male": "High Lord"}, "populationCap": 52, "requirements": {"population": 34, "techs": 10, "buildings": 22, "heroes": {"count": 3, "level": 15}}},
-  {"id": "kingdom", "name": "Kingdom", "leaderTitle": {"female": "Queen", "male": "King"}, "populationCap": 60, "requirements": {"population": 44, "techs": 11, "buildings": 30, "heroes": {"count": 6, "level": 20}}}
-]

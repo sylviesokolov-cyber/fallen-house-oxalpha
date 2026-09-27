@@ -1,14 +1,14 @@
 [
   {"id": "curious", "name": "Curious", "description": "Loves to roam and learns a little faster.", "modifiers": {"wanderWeight": 1.8, "wanderRadius": 1.5, "learnRate": 1.1}},
-  {"id": "brave", "name": "Brave", "description": "Ventures farther from home.", "modifiers": {"wanderRadius": 1.4}},
-  {"id": "lazy", "name": "Lazy", "description": "Avoids work and tires quickly.", "opposite": "hardworking", "modifiers": {"workWeight": 0.5, "energyDecay": 1.2, "learnRate": 0.9}},
-  {"id": "hardworking", "name": "Hardworking", "description": "Always looking for something useful to do.", "opposite": "lazy", "modifiers": {"workWeight": 1.6, "energyDecay": 1.1}},
+  {"id": "brave", "name": "Brave", "description": "Loves to train and fears little.", "modifiers": {"wanderRadius": 1.4, "trainWeight": 1.6}},
+  {"id": "lazy", "name": "Lazy", "description": "Avoids work and tires quickly.", "opposite": "hardworking", "modifiers": {"workWeight": 0.5, "energyDecay": 1.2, "learnRate": 0.9, "trainWeight": 0.6}},
+  {"id": "hardworking", "name": "Hardworking", "description": "Always looking for something useful to do.", "opposite": "lazy", "modifiers": {"workWeight": 1.6, "energyDecay": 1.1, "trainWeight": 1.2}},
   {"id": "clever", "name": "Clever", "description": "Picks up new skills much faster.", "modifiers": {"learnRate": 1.5}},
   {"id": "patient", "name": "Patient", "description": "Steady hands: works a bit faster and learns steadily.", "modifiers": {"workSpeed": 1.15, "learnRate": 1.1}},
   {"id": "glutton", "name": "Glutton", "description": "Gets hungry faster than others.", "opposite": "hardy", "modifiers": {"hungerDecay": 1.25}},
   {"id": "hardy", "name": "Hardy", "description": "Needs less food and rest.", "opposite": "glutton", "modifiers": {"hungerDecay": 0.85, "energyDecay": 0.9}},
   {"id": "kind", "name": "Kind", "description": "Warm with everyone: makes friends easily and rarely argues.", "opposite": "aggressive", "modifiers": {"friendliness": 1.5, "conflict": 0.3}},
-  {"id": "aggressive", "name": "Aggressive", "description": "Quick to anger: argues often and makes rivals.", "opposite": "kind", "modifiers": {"friendliness": 0.7, "conflict": 3}},
+  {"id": "aggressive", "name": "Aggressive", "description": "Quick to anger: argues often and makes rivals.", "opposite": "kind", "modifiers": {"friendliness": 0.7, "conflict": 3, "trainWeight": 1.3}},
   {"id": "sociable", "name": "Sociable", "description": "Craves company and bonds quickly.", "opposite": "shy", "modifiers": {"socialDecay": 1.4, "friendliness": 1.2}},
   {"id": "shy", "name": "Shy", "description": "Needs little company and warms up slowly.", "opposite": "sociable", "modifiers": {"socialDecay": 0.6, "friendliness": 0.8}}
 ]

@@ -1,13 +1,4 @@
 {
-  "world": {
-    "width": 64,
-    "height": 64,
-    "waterLevel": 0.32,
-    "stoneLevel": 0.74,
-    "forestMoisture": 0.58,
-    "fertileNearWater": 2,
-    "fertileMoisture": 0.4
-  },
   "time": {
     "ticksPerSecond": 4,
     "ticksPerDay": 120,
@@ -20,16 +11,15 @@
     ]
   },
   "humans": {
-    "startCount": 10,
+    "startCount": 8,
     "startAgeMin": 16,
     "startAgeMax": 40,
     "spawnRadius": 5,
     "moveTicks": 2,
     "wanderRadius": 6,
     "eatTicks": 6,
-    "foodSearchCooldown": 20,
-    "gatherTicks": 8,
-    "carryCapacity": 3,
+    "gatherTicks": 6,
+    "carryCapacity": 5,
     "resourceSearchCooldown": 40,
     "traitsMin": 1,
     "traitsMax": 3,
@@ -37,26 +27,28 @@
       "opposite": 0.85,
       "same": 0.05,
       "both": 0.1
-    }
+    },
+    "foodSearchCooldown": 20,
+    "eatUntil": 90
   },
   "needs": {
     "hunger": {
-      "decay": 0.35,
+      "decay": 0.25,
       "sleepFactor": 0.5,
       "seekBelow": 45,
       "critical": 15,
       "winterMultiplier": 1.4
     },
     "energy": {
-      "decay": 0.3,
+      "decay": 0.25,
       "sleepBelow": 25,
       "sleepRestore": 1.5,
       "wakeAt": 100
     },
     "health": {
       "starveDamage": 0.5,
-      "regen": 0.1,
-      "regenAboveHunger": 30
+      "regen": 0.3,
+      "regenAboveHunger": 15
     },
     "social": {
       "decay": 0.12,
@@ -119,8 +111,8 @@
     "childWanderRadius": 4
   },
   "food": {
-    "rawValue": 35,
-    "spoilPerDay": 0.04,
+    "rawValue": 25,
+    "spoilPerDay": 0.02,
     "reservePerPerson": 20,
     "storeScarcityBonus": 12
   },
@@ -128,27 +120,9 @@
     "checkEveryTicks": 10,
     "teachTechChance": 0.08
   },
-  "weather": {
-    "lightningChancePerDay": {
-      "Spring": 0.04,
-      "Summer": 0.15,
-      "Autumn": 0.04,
-      "Winter": 0
-    },
-    "strikeRadius": 14,
-    "burnDays": 3,
-    "curiousWatchChance": 0.6,
-    "watchRadius": 14
-  },
-  "building": {
-    "buildTicksPerUnit": 1,
-    "workScore": 20
-  },
   "gather": {
     "targetPerPerson": {
-      "wood": 12,
-      "stone": 6,
-      "clay": 2
+      "wood": 15
     },
     "shortageBonus": 8,
     "surplusPenalty": 12
@@ -168,7 +142,6 @@
   "prayer": {
     "intervalDays": 2,
     "ticks": 15,
-    "shrineFaith": 1.2,
     "fieldFaith": 0.4,
     "scoreBase": 10,
     "scorePerDevotion": 0.3
@@ -238,11 +211,33 @@
     "newRival": [
       -8,
       3
+    ],
+    "dinedTogether": [
+      6,
+      1
+    ],
+    "goodTraining": [
+      4,
+      1
     ]
   },
   "leader": {
     "chaWeight": 3,
     "levelWeight": 1,
-    "workBonusPerCha": 0.02
+    "workBonusPerCha": 0.02,
+    "title": {
+      "female": "Warden",
+      "male": "Warden"
+    }
+  },
+  "training": {
+    "ticks": 30,
+    "scoreBase": 12,
+    "childFactor": 0.5,
+    "stats": [
+      "swordsmanship",
+      "archery",
+      "defense"
+    ]
   }
 }

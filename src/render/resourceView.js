@@ -18,17 +18,18 @@ export class ResourceView {
     const { stockpile } = sim;
     const scx = (stockpile.x + 0.5) * TILE_SIZE;
     const scy = (stockpile.y + 0.5) * TILE_SIZE;
-    g.fillStyle(0xffd35c);
-    g.fillTriangle(scx, scy - 8, scx - 7, scy + 5, scx + 7, scy + 5);
+    // The store: a few crates.
+    g.lineStyle(1, 0x3d2b1f);
+    g.fillStyle(0xb5824a);
+    for (const [dx, dy] of [[-6, -1], [1, -1], [-3, -7]]) {
+      g.fillRect(scx + dx, scy + dy, 6, 6);
+      g.strokeRect(scx + dx, scy + dy, 6, 6);
+    }
 
     for (const r of sim.world.resources) {
       const def = data.resourcesById[r.type];
       const cx = (r.x + 0.5) * TILE_SIZE;
       const cy = (r.y + 0.5) * TILE_SIZE;
-      if (r.burning) {
-        drawFire(g, cx, cy, sim.tick);
-        continue;
-      }
       g.lineStyle(1, 0x1b1b1b, 0.8);
       g.fillStyle(hexToInt(def.color));
       g.fillCircle(cx, cy, 5);
@@ -45,13 +46,3 @@ export class ResourceView {
   }
 }
 
-// A burning tree: a flickering flame that changes shape every tick.
-function drawFire(g, cx, cy, tick) {
-  const flick = (tick % 3) - 1;
-  g.fillStyle(0x3d2b1f);
-  g.fillCircle(cx, cy + 3, 4);
-  g.fillStyle(0xe8492a);
-  g.fillTriangle(cx - 5, cy + 4, cx + 5, cy + 4, cx + flick, cy - 8);
-  g.fillStyle(0xffc23d);
-  g.fillTriangle(cx - 3, cy + 4, cx + 3, cy + 4, cx - flick, cy - 3);
-}

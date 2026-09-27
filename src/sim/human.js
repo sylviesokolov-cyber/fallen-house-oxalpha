@@ -1,6 +1,4 @@
 import { chance, next, pick, randInt } from './rng.js';
-import { bfs } from './pathfinding.js';
-import { tileIndex } from './world.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
 import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
@@ -71,31 +69,21 @@ export function createHuman(state, data, x, y, opts = {}) {
   };
 }
 
-// Finds the grass tile closest to the map center, places the tribe's shared
-// stockpile there, then places humans on random walkable tiles nearby.
+// The first people have always lived in the sanctuary: they wake in the Great
+// Hall knowing the basics (the techs marked `starting`).
 export function spawnInitialHumans(state, data) {
-  const { world } = state;
   const cfg = data.config.humans;
-  const cx = Math.floor(world.width / 2);
-  const cy = Math.floor(world.height / 2);
-  let center = tileIndex(world, cx, cy);
-  let best = Infinity;
-  for (let i = 0; i < world.tiles.length; i++) {
-    if (world.tiles[i] !== 'grass') continue;
-    const d = Math.abs((i % world.width) - cx) + Math.abs(Math.floor(i / world.width) - cy);
-    if (d < best) {
-      best = d;
-      center = i;
-    }
-  }
-  state.stockpile = { x: center % world.width, y: Math.floor(center / world.width), wood: 0, stone: 0, clay: 0, food: 0, pottery: 0, cooked_food: 0 };
-
-  const spots = bfs(world, data, center, { maxDist: cfg.spawnRadius }).reached;
+  const L = data.sanctuary;
+  state.stockpile = { x: L.stockpile.x, y: L.stockpile.y, wood: 0, food: 0, cooked_food: 0 };
+  const hall = state.buildings.find((b) => data.buildingsById[b.type].effects.sleepers);
+  const basics = data.techs.filter((t) => t.starting).map((t) => t.id);
   for (let n = 0; n < cfg.startCount; n++) {
-    const i = spots.length > 1 ? spots.splice(randInt(state.rng, 0, spots.length - 1), 1)[0] : center;
-    const h = createHuman(state, data, i % world.width, Math.floor(i / world.width));
+    const x = randInt(state.rng, hall.rx, hall.rx + hall.w - 1);
+    const y = randInt(state.rng, hall.ry, hall.ry + hall.h - 1);
+    const h = createHuman(state, data, x, y);
+    h.knows = [...basics];
     state.humans.push(h);
-    logEvent(state, `${h.name} was born into the world`);
+    logEvent(state, `${h.name} awoke in ${state.settlement.name}`);
   }
 }
 

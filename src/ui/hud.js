@@ -2,6 +2,7 @@ import { dateOf } from '../sim/time.js';
 import { formatEntry } from '../sim/history.js';
 import { serialize, deserialize } from '../sim/save.js';
 import { usePower } from '../sim/godPowers.js';
+import { populationCap } from '../sim/settlement.js';
 import { $, el, button } from './dom.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
@@ -144,14 +145,10 @@ export function createHud(ctx) {
     const { sim, data } = ctx;
     const d = dateOf(sim.tick, data.config.time);
     $('date').textContent = `Day ${d.day} · ${d.season}, Year ${d.year}`;
-    $('pop').textContent = `Faith ${Math.floor(sim.faith)} · Pop ${sim.humans.length}`;
+    $('pop').textContent = `Faith ${Math.floor(sim.faith)} · Pop ${sim.humans.length}/${populationCap(sim, data)}`;
     for (const b of $('power-buttons').children) b.classList.toggle('poor', sim.faith < data.powersById[b.dataset.power].cost);
     const s = sim.stockpile;
-    const parts = [`Wood ${s.wood}`, `Stone ${s.stone}`];
-    if (s.clay) parts.push(`Clay ${s.clay}`);
-    if (s.food + s.cooked_food) parts.push(`Food ${s.food + s.cooked_food}`);
-    if (s.pottery) parts.push(`Pots ${s.pottery}`);
-    $('stock').textContent = parts.join(' · ');
+    $('stock').textContent = `Wood ${s.wood} · Potatoes ${s.food} · Meals ${s.cooked_food}`;
   }
 
   function renderLog() {

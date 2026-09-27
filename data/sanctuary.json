@@ -1,0 +1,104 @@
+{
+ "width": 40,
+ "height": 40,
+ "portal": {
+  "x": 19,
+  "y": 0,
+  "w": 2,
+  "h": 1
+ },
+ "stockpile": {
+  "x": 19,
+  "y": 25
+ },
+ "zones": [
+  {
+   "name": "Tree grove",
+   "tile": "grove",
+   "x": 2,
+   "y": 3,
+   "w": 9,
+   "h": 17,
+   "resource": "tree",
+   "density": 0.35
+  },
+  {
+   "name": "Potato field",
+   "tile": "field",
+   "x": 29,
+   "y": 24,
+   "w": 8,
+   "h": 8,
+   "resource": "potato",
+   "density": 1
+  }
+ ],
+ "buildings": [
+  {
+   "type": "great_hall",
+   "x": 14,
+   "y": 15,
+   "w": 12,
+   "h": 6
+  },
+  {
+   "type": "kitchen",
+   "x": 14,
+   "y": 23,
+   "w": 5,
+   "h": 4
+  },
+  {
+   "type": "dining_hall",
+   "x": 20,
+   "y": 23,
+   "w": 6,
+   "h": 4
+  },
+  {
+   "type": "training_ground",
+   "x": 15,
+   "y": 4,
+   "w": 10,
+   "h": 7
+  }
+ ],
+ "plots": [
+  {
+   "x": 29,
+   "y": 4,
+   "w": 6,
+   "h": 5
+  },
+  {
+   "x": 29,
+   "y": 12,
+   "w": 6,
+   "h": 5
+  },
+  {
+   "x": 3,
+   "y": 24,
+   "w": 6,
+   "h": 5
+  },
+  {
+   "x": 3,
+   "y": 31,
+   "w": 6,
+   "h": 5
+  },
+  {
+   "x": 13,
+   "y": 31,
+   "w": 6,
+   "h": 5
+  },
+  {
+   "x": 21,
+   "y": 31,
+   "w": 6,
+   "h": 5
+  }
+ ]
+}

@@ -42,17 +42,18 @@ export class WorldScene extends Phaser.Scene {
     const { sim, data } = this.ctx;
     this.mapImage = drawMap(this, sim.world, data);
     this.resourceView = new ResourceView(this);
-    this.buildingView = new BuildingView(this);
+    this.buildingView = new BuildingView(this, sim, data);
     this.humanView = new HumanView(this);
     this.focusOnTribe();
   }
 
+  // Start looking at the heart of the sanctuary: the Great Hall.
   focusOnTribe() {
-    const { humans, world } = this.ctx.sim;
-    const n = humans.length || 1;
-    const cx = humans.length ? humans.reduce((s, h) => s + h.x, 0) / n : world.width / 2;
-    const cy = humans.length ? humans.reduce((s, h) => s + h.y, 0) / n : world.height / 2;
-    this.camControls.centerOn((cx + 0.5) * TILE_SIZE, (cy + 0.5) * TILE_SIZE, 2.5);
+    const hall = this.ctx.sim.buildings.find((b) => this.ctx.data.buildingsById[b.type].effects.sleepers);
+    const { world } = this.ctx.sim;
+    const x = hall ? hall.x : world.width / 2;
+    const y = hall ? hall.y : world.height / 2;
+    this.camControls.centerOn((x + 0.5) * TILE_SIZE, (y + 2) * TILE_SIZE, 1.6);
   }
 
   onTap(wx, wy) {
@@ -91,7 +92,7 @@ export class WorldScene extends Phaser.Scene {
     const { runner, sim, data, selectedId } = this.ctx;
     runner.update(delta);
     this.resourceView.update(sim, data);
-    this.buildingView.update(sim, data);
+
     this.humanView.update(sim, data, runner.alpha, selectedId);
     this.effects.update(time);
     this.hud.update(time);

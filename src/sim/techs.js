@@ -74,8 +74,8 @@ export function updateDiscovery(state, data) {
     const inspired = isInspired(h, state);
     const f = inspired ? inspire.thresholdFactor : 1;
     for (const tech of data.techs) {
-      if (!canLearn(h, data, tech.id)) continue;
       const d = tech.discovery;
+      if (!d || !canLearn(h, data, tech.id)) continue;
       if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data, f))) continue;
       let p = d.baseChance * (inspired ? inspire.chanceMultiplier : 1) * statFactor(h, data, 'int') * focusValue(state, data, 'discovery');
       for (const t of h.traits) p *= d.traitBonus?.[t] ?? 1;

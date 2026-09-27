@@ -31,8 +31,10 @@ export function carryCapacity(h, data) {
   return Math.max(1, cap);
 }
 
+// Farmers bring potatoes in to the stockpile (and so can anyone with a tool
+// that lets them carry food).
 export function canStoreFood(h, data) {
-  return Object.keys(h.tools).some((id) => data.itemsById[id].effects.storesFood);
+  return h.knows.includes('farming') || Object.keys(h.tools).some((id) => data.itemsById[id].effects?.storesFood);
 }
 
 export function foodReserveWanted(state, data) {
@@ -80,7 +82,7 @@ export function eatFromStock(state, data, h) {
   if (s.cooked_food > 0) {
     s.cooked_food--;
     h.needs.hunger = Math.min(100, h.needs.hunger + data.itemsById.cooked_food.food);
-    feel(state, data, h, 'cookedMeal', 'Ate a hot cooked meal');
+    feel(state, data, h, 'cookedMeal', `Ate ${data.itemsById.cooked_food.name.toLowerCase()}`);
     return true;
   }
   if (s.food > 0) {
@@ -91,13 +93,12 @@ export function eatFromStock(state, data, h) {
   return false;
 }
 
-// Once a day, stored food rots a little. A storage pit and enough pots slow it.
+// Once a day, stored food rots a little. Buildings with a `spoilage` effect
+// (a storehouse, later) slow it.
 export function spoilFood(state, data) {
   if (state.tick % data.config.time.ticksPerDay !== 0) return;
   let rate = data.config.food.spoilPerDay;
   for (const b of data.buildings) if (b.effects.spoilage && hasBuilt(state, b.id)) rate *= b.effects.spoilage;
-  const pots = data.itemsById.pottery;
-  if ((state.stockpile.pottery ?? 0) >= pots.effects.needed) rate *= pots.effects.spoilage;
   for (const key of ['food', 'cooked_food']) {
     const exact = state.stockpile[key] * rate;
     const lost = Math.floor(exact) + (chance(state.rng, exact % 1) ? 1 : 0);

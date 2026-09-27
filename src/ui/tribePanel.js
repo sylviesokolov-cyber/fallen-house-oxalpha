@@ -1,15 +1,13 @@
 import { mood } from '../sim/mood.js';
 import { emotionOf } from '../sim/emotions.js';
 import { gradeOf, heroClass } from '../sim/stats.js';
-import { currentTier, leaderOf, leaderTitle, nextTierProgress, populationCap } from '../sim/settlement.js';
-import { $, el, bar, button, stars, renderKeyed } from './dom.js';
+import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
+import { $, el, button, stars, renderKeyed } from './dom.js';
 
 // The Tribe tab: an overview of the settlement's progress, a roster of every
 // person, the tribe's inventory, and its knowledge.
 
-const ITEM_ROWS = [
-  ['wood', 'Wood'], ['stone', 'Stone'], ['clay', 'Clay'], ['food', 'Raw food'], ['cooked_food', 'Cooked food'], ['pottery', 'Pottery'],
-];
+const ITEM_ROWS = [['wood', 'Wood'], ['food', 'Potatoes'], ['cooked_food', 'Meals']];
 
 export function createTribePanel(ctx, { toast, select }) {
   let tab = 'overview';
@@ -52,17 +50,15 @@ export function createTribePanel(ctx, { toast, select }) {
       nodes.push(el('div', 'empty', 'No omen. Send one from the Omen power to guide the tribe.'));
     }
 
-    const progress = nextTierProgress(sim, data);
-    if (progress) {
-      nodes.push(section(`Growing into a ${progress.tier.name}`));
-      for (const r of progress.rows) {
-        const line = el('div', `need req${r.met ? ' met' : ''}`);
-        line.append(el('label', null, `${r.met ? '✓ ' : ''}${r.label} ${Math.min(r.have, r.need)}/${r.need}`), bar(r.have / r.need));
-        nodes.push(line);
-      }
-    } else {
-      nodes.push(section('A great kingdom'), el('div', 'empty', 'The highest tier has been reached.'));
+    nodes.push(section('The sanctuary'));
+    for (const b of sim.buildings) {
+      const def = data.buildingsById[b.type];
+      const r = button('bond', '', () => toast(def.description));
+      r.append(el('span', null, def.name), el('span', 'kind', `Lv ${b.level}`));
+      nodes.push(r);
     }
+    const empty = data.sanctuary.plots.length;
+    nodes.push(row('Empty building plots', `${empty}`));
 
     const people = sim.humans;
     const avgLevel = people.length ? people.reduce((s, h) => s + h.level, 0) / people.length : 0;
@@ -74,7 +70,7 @@ export function createTribePanel(ctx, { toast, select }) {
     }
     nodes.push(
       section('The people'),
-      row('Population', `${people.length} of ${populationCap(sim, data)}`),
+      row('Population', `${people.length} (beds for ${populationCap(sim, data)})`),
       row('Average level', avgLevel.toFixed(1)),
       row('Average mood', `${Math.round(avgMood)}`),
       row('Feeling', Object.entries(emotions).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ') || '-'),
@@ -153,9 +149,8 @@ export function createTribePanel(ctx, { toast, select }) {
   // changed, so taps on rows aren't lost.
   function render() {
     const { sim, data } = ctx;
-    const tier = currentTier(sim, data);
     $('tribe-title').textContent = sim.settlement.name;
-    $('tribe-sub').textContent = `${tier.name} · ${sim.humans.length} people`;
+    $('tribe-sub').textContent = `Sanctuary · ${sim.humans.length} people`;
     for (const b of document.querySelectorAll('#tribe .tabs button')) b.classList.toggle('active', b.dataset.tab === tab);
     const nodes = TABS[tab]();
     const key = `${tab}|${nodes.map((n) => n.textContent + (n.querySelector?.('.bar div')?.style.width ?? '')).join('|')}`;

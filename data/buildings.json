@@ -1,8 +1,6 @@
 [
-  {"id": "campfire", "name": "Campfire", "tech": "fire", "cost": {"wood": 8}, "work": 30, "want": {"perPop": 15}, "placement": {"tiles": ["grass", "fertile"], "radius": 6}, "effects": {"warmthRadius": 3, "station": true}, "color": "#e8792a"},
-  {"id": "lean_to", "name": "Lean-to", "tech": "shelter", "cost": {"wood": 15}, "work": 50, "want": {"sleepCapacity": true}, "placement": {"tiles": ["grass", "fertile", "forest"], "radius": 8}, "effects": {"sleepers": 2, "sleepRestore": 1.5, "warm": true}, "color": "#9a6b3f"},
-  {"id": "hut", "name": "Hut", "tech": "carpentry", "cost": {"wood": 30, "stone": 15}, "work": 120, "want": {"sleepCapacity": true}, "placement": {"tiles": ["grass", "fertile"], "radius": 9}, "effects": {"sleepers": 4, "sleepRestore": 2, "warm": true}, "color": "#b5824a"},
-  {"id": "storage_pit", "name": "Storage Pit", "tech": "food_storage", "cost": {"stone": 10, "wood": 5}, "work": 50, "want": {"count": 1}, "placement": {"tiles": ["grass", "fertile", "stone"], "radius": 6}, "effects": {"spoilage": 0.3}, "color": "#6d6a64"},
-  {"id": "farm_plot", "name": "Farm Plot", "tech": "farming", "cost": {"wood": 4}, "work": 30, "want": {"perPop": 2}, "placement": {"tiles": ["fertile", "grass"], "prefer": "fertile", "radius": 12}, "effects": {"createsResource": "crop"}, "color": "#7a5a36"},
-  {"id": "shrine", "name": "Shrine", "tech": "worship", "cost": {"stone": 12, "wood": 8}, "work": 80, "want": {"count": 1}, "placement": {"tiles": ["grass", "fertile", "stone"], "radius": 6}, "effects": {"worship": true}, "color": "#d9c27a"}
+  {"id": "great_hall", "name": "Great Hall", "description": "One large room where everyone sleeps, and where the faithful pray.", "effects": {"sleepers": 12, "sleepRestore": 1.5, "warm": true, "prayer": true}, "color": "#8a6a45"},
+  {"id": "kitchen", "name": "Kitchen", "description": "Where potatoes become hot meals.", "effects": {"station": true, "warm": true}, "color": "#9a5a3a"},
+  {"id": "dining_hall", "name": "Dining Hall", "description": "Where everyone eats together. Eating in company lifts the spirits.", "effects": {"dining": true, "warm": true}, "color": "#7a5a3a"},
+  {"id": "training_ground", "name": "Training Ground", "description": "Where adults train to fight and children play.", "effects": {"training": true}, "color": "#b89a5a"}
 ]

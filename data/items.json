@@ -1,6 +1,3 @@
 [
-  {"id": "stone_axe", "name": "Stone axe", "tech": "stone_tools", "kind": "tool", "cost": {"stone": 2, "wood": 1}, "craftTicks": 20, "skill": "crafting", "durability": 60, "effects": {"workSpeed": {"woodcutting": 0.7}}},
-  {"id": "basket", "name": "Basket", "tech": "basketry", "kind": "tool", "cost": {"wood": 2}, "craftTicks": 15, "skill": "crafting", "durability": 40, "effects": {"carryBonus": 2, "storesFood": true}},
-  {"id": "pottery", "name": "Pottery", "tech": "pottery", "kind": "good", "cost": {"clay": 2}, "craftTicks": 20, "skill": "crafting", "station": "campfire", "want": {"count": 4}, "effects": {"spoilage": 0.5, "needed": 3}},
-  {"id": "cooked_food", "name": "Cooked food", "tech": "cooking", "kind": "good", "cost": {"food": 1}, "craftTicks": 10, "skill": "cooking", "station": "campfire", "want": {"perPerson": 2}, "food": 60}
+  {"id": "cooked_food", "name": "Boiled potatoes", "tech": "cooking", "kind": "good", "cost": {"food": 1}, "craftTicks": 10, "skill": "cooking", "station": "kitchen", "want": {"perPerson": 3}, "food": 50}
 ]

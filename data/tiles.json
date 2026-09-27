@@ -1,7 +1,9 @@
 [
   {"id": "grass", "name": "Grass", "color": "#5f9e4a", "walkable": true},
-  {"id": "fertile", "name": "Fertile soil", "color": "#4e8a3c", "walkable": true},
-  {"id": "forest", "name": "Forest", "color": "#2f6a34", "walkable": true},
-  {"id": "water", "name": "Water", "color": "#3a6ea5", "walkable": false},
-  {"id": "stone", "name": "Stone", "color": "#8b8b86", "walkable": true}
+  {"id": "wall", "name": "Wall", "color": "#6b6258", "walkable": false},
+  {"id": "portal", "name": "Portal", "color": "#6d4bd1", "walkable": false},
+  {"id": "grove", "name": "Tree grove", "color": "#2f6a34", "walkable": true},
+  {"id": "field", "name": "Potato field", "color": "#7a5a36", "walkable": true},
+  {"id": "floor", "name": "Floor", "color": "#a58a66", "walkable": true},
+  {"id": "yard", "name": "Training yard", "color": "#c8b27a", "walkable": true}
 ]

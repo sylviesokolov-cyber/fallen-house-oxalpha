@@ -1,8 +1,8 @@
-import { chance, next, randInt } from './rng.js';
+import { next, randInt } from './rng.js';
 import { bfs, buildPath } from './pathfinding.js';
 import { tileIndex } from './world.js';
 import { traitMod } from './traits.js';
-import { gainXp, skillLevel, workTimeFactor, yieldFactor } from './skills.js';
+import { gainXp, skillLevel, workTimeFactor } from './skills.js';
 import { bondValue, isFamily, resolveChat } from './bonds.js';
 import { lifeStage } from './lifecycle.js';
 import { dateOf } from './time.js';
@@ -10,28 +10,24 @@ import { emotionEffect } from './emotions.js';
 import { leaderWorkBonus } from './settlement.js';
 import { focusValue } from './status.js';
 import { feel } from './mood.js';
+import { buildingById, buildingWith, freeShelter, inside, isWarm, roomSpot } from './buildings.js';
 import {
-  buildingById, freeShelter, isWarm, openSiteFor, placeSite, wantedBuilding, workOnSite,
-} from './buildings.js';
-import {
-  canStoreFood, carryCapacity, craftChoice, eatFromStock, finishCraft, foodInStock, foodReserveWanted, toolWorkFactor, useTool,
+  canStoreFood, carryCapacity, craftChoice, eatFromStock, finishCraft, foodInStock, foodReserveWanted, toolWorkFactor,
 } from './items.js';
 
 // Each human always has one action. An action runs over several ticks and sets
 // `done` when finished; the human then scores its options and starts a new one.
+// Life in the sanctuary: meals in the Dining Hall, beds in the Great Hall,
+// training (or play) at the Training Ground, work in the grove and the field.
 
-const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray']);
+const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray', 'train']);
 // Work in progress: only a critical hunger cuts it short, so a job already
 // underway isn't abandoned lightly.
-const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep', 'goSleep', 'build', 'craft']);
+const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep', 'goSleep', 'craft']);
 
 export function updateHuman(state, data, h) {
   if (shouldRethink(state, data, h)) chooseAction(state, data, h);
   RUN[h.action.type](state, data, h);
-}
-
-function bump(h, counter, n = 1) {
-  h.counters[counter] = (h.counters[counter] ?? 0) + n;
 }
 
 function canSearchFood(state, h) {
@@ -54,9 +50,8 @@ function shouldRethink(state, data, h) {
 }
 
 // Utility scoring: the more urgent a need, the higher its action scores.
-// Traits scale how much someone wants to work or roam. Wandering is the
-// low-scoring fallback. If the best option can't start (e.g. no reachable
-// food), the next one is tried.
+// Traits, emotion, the leader and the current Omen scale how keen someone is
+// to work, train or roam. If the best option can't start, the next is tried.
 function chooseAction(state, data, h) {
   const n = data.config.needs;
   const options = [];
@@ -76,20 +71,24 @@ function chooseAction(state, data, h) {
     options.push({ type: 'pray', score: (p.scoreBase + h.devotion * p.scorePerDevotion) * focusValue(state, data, 'pray') });
   }
   const stage = lifeStage(h, state, data);
-  if (h.carrying) {
+  const train = data.config.training;
+  if (stage === 'child') {
+    options.push({ type: 'train', score: (train.scoreBase + 4 + next(state.rng) * 8) * focusValue(state, data, 'train') });
+  } else if (h.carrying) {
     // Finish a haul that was interrupted (e.g. to eat) before anything else optional.
     options.push({ type: 'deposit', score: 40 });
-  } else if (stage !== 'child') {
-    // Keenness to work: traits, age, emotion, and a charismatic leader.
-    const work = traitMod(h, data, 'workWeight') * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1)
-      * emotionEffect(h, data, 'work') * leaderWorkBonus(state, data);
-    if (openSiteFor(state, data, h) || wantedBuilding(state, data, h)) {
-      const score = (data.config.building.workScore + next(state.rng) * 10) * work * focusValue(state, data, 'build');
-      options.push({ type: 'build', score });
-    }
-    if (craftChoice(state, data, h)) options.push({ type: 'craft', score: (18 + next(state.rng) * 8) * work });
+  } else {
+    const keen = emotionEffect(h, data, 'work') * leaderWorkBonus(state, data) * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1);
+    const work = traitMod(h, data, 'workWeight') * keen;
+    // Those already good at a craft (e.g. the best cooks) are likelier to take it on.
+    const craft = craftChoice(state, data, h);
+    if (craft) options.push({ type: 'craft', score: (14 + skillLevel(h, craft.skill) * 1.5 + next(state.rng) * 8) * work });
     if (canSearchResource(state, h)) {
       options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * work * focusValue(state, data, 'gather') });
+    }
+    if (h.knows.includes('fighting')) {
+      const score = (train.scoreBase + next(state.rng) * 8) * traitMod(h, data, 'trainWeight') * keen * focusValue(state, data, 'train');
+      options.push({ type: 'train', score });
     }
   }
   options.push({ type: 'wander', score: (10 + next(state.rng) * 10) * traitMod(h, data, 'wanderWeight') });
@@ -106,33 +105,44 @@ function pathTo(state, data, h, x, y) {
   return found < 0 ? null : buildPath(prev, start, goal);
 }
 
-const isFood = (data, r) => r.amount > 0 && !r.burning && data.resourcesById[r.type].food;
+// Walks to a free spot inside a building. Returns { spot, path } or null.
+function toRoom(state, data, h, b, beds = false) {
+  const spot = roomSpot(state, b, h, beds);
+  const path = pathTo(state, data, h, spot.x, spot.y);
+  return path ? { spot, path } : null;
+}
+
+const isFood = (data, r) => r.amount > 0 && data.resourcesById[r.type].food;
 
 const START = {
-  // Goes to the nearest food: a bush or field, or the stockpile if it has food
-  // (cooked meals make the stockpile worth a slightly longer walk).
+  // Hot meals are eaten at the Dining Hall. With none cooked, people eat raw
+  // potatoes from the store or straight from the field, whichever is nearer.
   seekFood(state, data, h) {
-    // Someone hauling food eats from their own load first.
     if (h.carrying?.type === 'food') {
       h.action = { type: 'eat', fromCarry: true, ticks: data.config.humans.eatTicks };
       return true;
     }
     const { world, stockpile } = state;
+    const hall = buildingWith(state, data, 'dining');
+    if (stockpile.cooked_food > 0 && hall) {
+      const route = toRoom(state, data, h, hall);
+      if (route) {
+        h.action = { type: 'seekFood', dine: true, buildingId: hall.id, ...route };
+        return true;
+      }
+    }
     const food = new Map();
     for (const r of world.resources) if (isFood(data, r)) food.set(tileIndex(world, r.x, r.y), r);
     const start = tileIndex(world, h.x, h.y);
     const { reached, prev, dist } = bfs(world, data, start);
     const nearest = reached.find((i) => food.has(i));
     const stockTile = tileIndex(world, stockpile.x, stockpile.y);
-    const stockDist = foodInStock(state) > 0 && prev[stockTile] !== -1
-      ? dist[stockTile] - (stockpile.cooked_food > 0 ? 4 : 0)
-      : Infinity;
+    const stockDist = foodInStock(state) > 0 && prev[stockTile] !== -1 ? dist[stockTile] : Infinity;
     if (nearest == null && stockDist === Infinity) {
-      // Nothing reachable: don't search again every tick.
       h.nextFoodSearch = state.tick + data.config.humans.foodSearchCooldown;
       return false;
     }
-    if (nearest == null || stockDist < dist[nearest]) {
+    if (nearest == null || stockDist <= dist[nearest]) {
       h.action = { type: 'seekFood', stock: true, path: buildPath(prev, start, stockTile) };
     } else {
       h.action = { type: 'seekFood', targetId: food.get(nearest).id, path: buildPath(prev, start, nearest) };
@@ -140,37 +150,25 @@ const START = {
     return true;
   },
 
-  // Heads to a free bed in a shelter they know how to use; otherwise sleeps
-  // where they stand (and, in winter, remembers the cold night).
+  // Everyone has a bed in the Great Hall (while there's room); otherwise they
+  // sleep where they stand, and in winter remember the cold night.
   sleep(state, data, h) {
-    const shelter = freeShelter(state, data, h);
-    const path = shelter && pathTo(state, data, h, shelter.x, shelter.y);
-    if (path) {
-      h.action = { type: 'goSleep', buildingId: shelter.id, path };
+    const hall = freeShelter(state, data, h);
+    const route = hall && toRoom(state, data, h, hall, true);
+    if (route) {
+      h.action = { type: 'goSleep', buildingId: hall.id, ...route };
       return true;
     }
     h.action = { type: 'sleep' };
     if (dateOf(state.tick, data.config.time).season === 'Winter' && !isWarm(state, data, h)) {
-      bump(h, 'coldNights');
+      h.counters.coldNights = (h.counters.coldNights ?? 0) + 1;
       feel(state, data, h, 'coldNight', 'Slept out in the cold');
     }
     return true;
   },
 
-  // Curious and brave people go and look at a burning tree; everyone else
-  // just roams nearby.
   wander(state, data, h) {
     const { world } = state;
-    const w = data.config.weather;
-    const fire = world.resources.find((r) => r.burning && Math.abs(r.x - h.x) <= w.watchRadius && Math.abs(r.y - h.y) <= w.watchRadius);
-    const bold = h.traits.includes('curious') || h.traits.includes('brave');
-    if (fire && chance(state.rng, bold ? w.curiousWatchChance : w.curiousWatchChance / 4)) {
-      const path = pathTo(state, data, h, fire.x, fire.y);
-      if (path?.length) {
-        h.action = { type: 'wander', path };
-        return true;
-      }
-    }
     const start = tileIndex(world, h.x, h.y);
     const base = lifeStage(h, state, data) === 'child' ? data.config.lifecycle.childWanderRadius : data.config.humans.wanderRadius;
     const radius = Math.round(base * traitMod(h, data, 'wanderRadius'));
@@ -181,18 +179,27 @@ const START = {
     return true;
   },
 
-  // Picks the best reachable material, not just the nearest: people lean toward
-  // work they're already good at (so specialists emerge) and toward whatever
-  // the stockpile is short of. People with a basket also gather food for
-  // the stockpile while the tribe's reserve is low.
+  // Adults train at the Training Ground; children play there.
+  train(state, data, h) {
+    const ground = buildingWith(state, data, 'training');
+    const route = ground && toRoom(state, data, h, ground);
+    if (!route) return false;
+    h.action = { type: 'train', ...route, ticks: data.config.training.ticks };
+    return true;
+  },
+
+  // Picks the best reachable job, not just the nearest: people lean toward work
+  // they're good at and toward whatever the stores are short of. Farmers bring
+  // in potatoes while the food store is below its target.
   gather(state, data, h) {
     const { world } = state;
     const cfg = data.config.skills;
     const storeFood = canStoreFood(h, data) && foodInStock(state) < foodReserveWanted(state, data);
     const targets = new Map();
     for (const r of world.resources) {
-      if (r.amount <= 0 || r.burning) continue;
+      if (r.amount <= 0) continue;
       const def = data.resourcesById[r.type];
+      if (def.tech && !h.knows.includes(def.tech)) continue;
       if (def.material || (storeFood && def.food)) targets.set(tileIndex(world, r.x, r.y), r);
     }
     const start = tileIndex(world, h.x, h.y);
@@ -249,54 +256,38 @@ const START = {
     return true;
   },
 
-  // Joins an open construction site, or starts a new one the tribe needs.
-  build(state, data, h) {
-    let site = openSiteFor(state, data, h);
-    if (!site) {
-      const def = wantedBuilding(state, data, h);
-      site = def && placeSite(state, data, def);
-    }
-    const path = site && pathTo(state, data, h, site.x, site.y);
-    if (!path) return false;
-    h.action = { type: 'build', siteId: site.id, path };
-    return true;
-  },
-
-  // Prays at the shrine if there is one to reach, otherwise where they stand.
+  // The faithful pray in the Great Hall.
   pray(state, data, h) {
-    const shrine = state.buildings.find((b) => b.built && data.buildingsById[b.type].effects.worship);
-    const path = shrine ? pathTo(state, data, h, shrine.x, shrine.y) : null;
-    h.action = { type: 'pray', atShrine: !!path, path: path ?? [], ticks: data.config.prayer.ticks };
+    const hall = buildingWith(state, data, 'prayer');
+    const route = hall ? toRoom(state, data, h, hall) : null;
+    h.action = { type: 'pray', path: route?.path ?? [], spot: route?.spot, ticks: data.config.prayer.ticks };
     return true;
   },
 
-  // Makes a tool or good at its station (a campfire) or at the stockpile.
+  // Cooks at the Kitchen (or makes things at the stockpile).
   craft(state, data, h) {
     const def = craftChoice(state, data, h);
     if (!def) return false;
-    const station = def.station && state.buildings.find((b) => b.built && b.type === def.station);
-    const where = station ?? state.stockpile;
-    const path = pathTo(state, data, h, where.x, where.y);
-    if (!path) return false;
+    const station = def.station && buildingWith(state, data, 'station');
+    const route = station ? toRoom(state, data, h, station) : { path: pathTo(state, data, h, state.stockpile.x, state.stockpile.y) };
+    if (!route?.path) return false;
     const ticks = Math.max(1, Math.round(def.craftTicks * workTimeFactor(h, data, def.skill)));
-    h.action = { type: 'craft', itemId: def.id, ticks, path };
+    h.action = { type: 'craft', itemId: def.id, ticks, ...route };
     return true;
   },
 };
 
-// Storing food matters more the emptier the store is.
 function foodNeed(state, data) {
   const short = 1 - foodInStock(state) / foodReserveWanted(state, data);
   return data.config.food.storeScarcityBonus * short * focusValue(state, data, 'storeFood');
 }
 
-// How much the tribe wants more of a material: a bonus that grows the further
-// the stockpile is below its target (scaled by population), and a penalty once
-// there's plenty, so people move on to whatever is actually short.
+// A bonus that grows the further a material is below its target (scaled by
+// population), and a penalty once there's plenty.
 function materialNeed(state, data, material) {
   const g = data.config.gather;
-  const target = g.targetPerPerson[material] * state.humans.length;
-  const have = state.stockpile[material];
+  const target = (g.targetPerPerson[material] ?? 0) * state.humans.length;
+  const have = state.stockpile[material] ?? 0;
   return have < target ? g.shortageBonus * (1 - have / target) : -g.surplusPenalty;
 }
 
@@ -313,57 +304,61 @@ function harvestTicks(h, data, def) {
   return Math.max(1, Math.round(data.config.humans.gatherTicks * factor));
 }
 
+// Picks which fighting skill a training session works on. People lean toward
+// what suits their build (strong: sword, agile: bow, tough: defense) and what
+// they're already good at, so fighters develop a style of their own.
+function trainingSkill(state, data, h) {
+  const skills = data.config.training.stats;
+  const weights = skills.map((s) => (h.stats[data.skillsById[s].stat] + skillLevel(h, s) * 2) ** 2);
+  let r = next(state.rng) * weights.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < skills.length; i++) {
+    if ((r -= weights[i]) < 0) return skills[i];
+  }
+  return skills[0];
+}
+
 const RUN = {
   seekFood(state, data, h) {
     const a = h.action;
-    const target = a.stock ? null : findResource(state, a.targetId);
-    if (a.stock ? foodInStock(state) <= 0 : !target || target.amount <= 0) {
+    const target = a.stock || a.dine ? null : findResource(state, a.targetId);
+    const gone = a.dine ? state.stockpile.cooked_food <= 0 : a.stock ? foodInStock(state) <= 0 : !target || target.amount <= 0;
+    if (gone) {
       a.done = true;
       return;
     }
     if (a.path.length) stepAlongPath(state, data, h);
-    else h.action = { type: 'eat', stock: a.stock, targetId: a.targetId, ticks: data.config.humans.eatTicks };
+    else h.action = { type: 'eat', dine: a.dine, buildingId: a.buildingId, spot: a.spot, stock: a.stock, targetId: a.targetId, ticks: data.config.humans.eatTicks };
   },
 
+  // Eats one portion per few ticks, and keeps eating until full (or the food
+  // runs out), so a walk to the field or the Dining Hall is worth it.
   eat(state, data, h) {
-    if (--h.action.ticks > 0) return;
-    h.action.done = true;
-    if (h.action.fromCarry && h.carrying?.type === 'food') {
-      h.needs.hunger = Math.min(100, h.needs.hunger + data.config.food.rawValue);
-      if (--h.carrying.amount <= 0) h.carrying = null;
+    const a = h.action;
+    if (--a.ticks > 0) return;
+    if (!eatPortion(state, data, h, a) || h.needs.hunger >= data.config.humans.eatUntil) {
+      a.done = true;
       return;
     }
-    if (h.action.stock) {
-      eatFromStock(state, data, h);
-      return;
-    }
-    const target = findResource(state, h.action.targetId);
-    if (target && target.amount > 0) {
-      const def = data.resourcesById[target.type];
-      target.amount--;
-      h.needs.hunger = Math.min(100, h.needs.hunger + def.food * yieldFactor(h, data, def.skill));
-      gainXp(state, data, h, def.skill, data.skillsById[def.skill].xpPerAction);
-      bump(h, `eat:${target.type}`);
-    }
+    a.ticks = data.config.humans.eatTicks;
   },
 
   goSleep(state, data, h) {
-    const shelter = buildingById(state, h.action.buildingId);
-    if (!shelter) {
+    const hall = buildingById(state, h.action.buildingId);
+    if (!hall) {
       h.action = { type: 'sleep' };
       return;
     }
     if (h.action.path.length) stepAlongPath(state, data, h);
     else {
-      h.action = { type: 'sleep', buildingId: shelter.id };
-      feel(state, data, h, 'warmBed', `Slept in a ${data.buildingsById[shelter.type].name.toLowerCase()}`);
+      h.action = { type: 'sleep', buildingId: hall.id, spot: h.action.spot };
+      feel(state, data, h, 'warmBed', `Slept in the ${data.buildingsById[hall.type].name}`);
     }
   },
 
   sleep(state, data, h) {
     const e = data.config.needs.energy;
-    const shelter = h.action.buildingId != null && buildingById(state, h.action.buildingId);
-    const bonus = shelter ? data.buildingsById[shelter.type].effects.sleepRestore ?? 1 : 1;
+    const hall = h.action.buildingId != null && buildingById(state, h.action.buildingId);
+    const bonus = hall ? data.buildingsById[hall.type].effects.sleepRestore ?? 1 : 1;
     h.needs.energy = Math.min(100, h.needs.energy + e.sleepRestore * bonus);
     if (h.needs.energy >= e.wakeAt) h.action.done = true;
   },
@@ -373,9 +368,27 @@ const RUN = {
     else h.action = idleAction(state);
   },
 
+  // Training builds fighting skill (and so level and stats), and is tiring.
+  // Children play instead: smaller gains, but they enjoy the company.
+  train(state, data, h) {
+    const a = h.action;
+    if (a.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    h.needs.energy = Math.max(0, h.needs.energy - 0.15);
+    if (--a.ticks > 0) return;
+    a.done = true;
+    const child = lifeStage(h, state, data) === 'child';
+    const skill = trainingSkill(state, data, h);
+    const xp = data.skillsById[skill].xpPerAction * (child ? data.config.training.childFactor : 1);
+    gainXp(state, data, h, skill, xp);
+    feel(state, data, h, 'goodTraining', child ? 'Played at the Training Ground' : 'A good training session');
+  },
+
   gather(state, data, h) {
     const target = findResource(state, h.action.targetId);
-    if (!target || target.amount <= 0 || target.burning) {
+    if (!target || target.amount <= 0) {
       h.action.done = true;
       return;
     }
@@ -386,15 +399,14 @@ const RUN = {
   harvest(state, data, h) {
     if (--h.action.ticks > 0) return;
     const target = findResource(state, h.action.targetId);
-    if (target && target.amount > 0 && !target.burning) {
+    if (target && target.amount > 0) {
       const def = data.resourcesById[target.type];
       const yields = def.material ?? 'food';
       target.amount--;
       h.carrying ??= { type: yields, amount: 0 };
-      h.carrying.amount++;
+      h.carrying.amount += def.harvestYield ?? 1;
       gainXp(state, data, h, def.skill, data.skillsById[def.skill].xpPerAction);
-      bump(h, `gather:${yields}`);
-      if (def.skill === 'woodcutting') useTool(h, 'stone_axe');
+      h.counters[`gather:${yields}`] = (h.counters[`gather:${yields}`] ?? 0) + 1;
       if (target.amount > 0 && h.carrying.amount < carryCapacity(h, data)) {
         h.action.ticks = harvestTicks(h, data, def);
         return;
@@ -409,21 +421,10 @@ const RUN = {
       return;
     }
     if (h.carrying) {
-      state.stockpile[h.carrying.type] += h.carrying.amount;
+      state.stockpile[h.carrying.type] = (state.stockpile[h.carrying.type] ?? 0) + h.carrying.amount;
       h.carrying = null;
-      useTool(h, 'basket');
     }
     h.action.done = true;
-  },
-
-  build(state, data, h) {
-    const site = buildingById(state, h.action.siteId);
-    if (!site || site.built) {
-      h.action.done = true;
-      return;
-    }
-    if (h.action.path.length) stepAlongPath(state, data, h);
-    else if (workOnSite(state, data, h, site)) h.action.done = true;
   },
 
   craft(state, data, h) {
@@ -441,7 +442,7 @@ const RUN = {
     if (--h.action.ticks <= 0) h.action.done = true;
   },
 
-  // Prayer turns devotion into Faith, far more of it at a shrine.
+  // Prayer turns devotion into Faith.
   pray(state, data, h) {
     const a = h.action;
     if (a.path.length) {
@@ -450,8 +451,7 @@ const RUN = {
     }
     if (--a.ticks > 0) return;
     const p = data.config.prayer;
-    const gain = (a.atShrine ? p.shrineFaith : p.fieldFaith) * (0.5 + h.devotion / 100);
-    state.faith = Math.min(data.config.faith.max, state.faith + gain);
+    state.faith = Math.min(data.config.faith.max, state.faith + p.fieldFaith * (0.5 + h.devotion / 100));
     h.devotion = Math.min(100, h.devotion + data.config.devotion.prayerGain * focusValue(state, data, 'devotion'));
     h.nextPrayer = state.tick + p.intervalDays * data.config.time.ticksPerDay;
     a.done = true;
@@ -496,16 +496,38 @@ const RUN = {
   },
 };
 
+// One portion from wherever this meal is being eaten. False if nothing's left.
+function eatPortion(state, data, h, a) {
+  if (a.fromCarry) {
+    if (h.carrying?.type !== 'food') return false;
+    h.needs.hunger = Math.min(100, h.needs.hunger + data.config.food.rawValue);
+    if (--h.carrying.amount <= 0) h.carrying = null;
+    return true;
+  }
+  if (a.dine || a.stock) {
+    if (!eatFromStock(state, data, h)) return false;
+    const hall = a.dine && buildingById(state, a.buildingId);
+    const company = hall && state.humans.some((o) => o !== h && o.action.type === 'eat' && inside(hall, o.x, o.y));
+    if (company) feel(state, data, h, 'dinedTogether', 'Shared a meal in the Dining Hall');
+    return true;
+  }
+  const target = findResource(state, a.targetId);
+  if (!target || target.amount <= 0) return false;
+  target.amount--;
+  h.needs.hunger = Math.min(100, h.needs.hunger + data.resourcesById[target.type].food);
+  return true;
+}
+
 function inRange(a, b, range) {
   return Math.abs(a.x - b.x) <= range && Math.abs(a.y - b.y) <= range;
 }
 
-// The other person stops to talk if they were only idling or wandering;
-// if they're busy, they talk while they work.
+// The other person stops to talk if they were only idling, wandering or
+// training; if they're busy, they talk while they work.
 function startChat(state, data, h, target) {
   const ticks = data.config.social.chatTicks;
   h.action = { type: 'chat', withId: target.id, ticks, initiator: true };
-  if (target.action.type === 'idle' || target.action.type === 'wander') {
+  if (['idle', 'wander', 'train'].includes(target.action.type)) {
     target.action = { type: 'chat', withId: h.id, ticks, initiator: false };
   }
 }

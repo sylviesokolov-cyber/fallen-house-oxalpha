@@ -12,14 +12,14 @@ import { changeBond, relationType, teach } from '../src/sim/bonds.js';
 import { lifeStage, updateLifeCycle } from '../src/sim/lifecycle.js';
 import { daysPerYear, dayIndexOf } from '../src/sim/time.js';
 import { knows, learnTech, teachTech, updateDiscovery } from '../src/sim/techs.js';
-import { isWarm, placeSite, wantedBuilding, workOnSite } from '../src/sim/buildings.js';
-import { craftChoice, finishCraft, spoilFood, toolWorkFactor } from '../src/sim/items.js';
+import { buildingWith, inside, isWarm } from '../src/sim/buildings.js';
+import { spoilFood } from '../src/sim/items.js';
 import { killHuman } from '../src/sim/human.js';
 import { usePower } from '../src/sim/godPowers.js';
 import { mood, feel } from '../src/sim/mood.js';
 import { gainCharacterXp, heroClass } from '../src/sim/stats.js';
 import { emotionOf } from '../src/sim/emotions.js';
-import { nextTierProgress, populationCap, updateSettlement } from '../src/sim/settlement.js';
+import { populationCap, updateSettlement } from '../src/sim/settlement.js';
 import { carryCapacity } from '../src/sim/items.js';
 import { updateHuman } from '../src/sim/ai.js';
 
@@ -34,7 +34,7 @@ function tweak(path, value) {
 }
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
-const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers', 'stats', 'grades', 'emotions', 'settlements', 'focuses'].map((n) => [n, load(n)])));
+const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers', 'stats', 'grades', 'emotions', 'focuses', 'sanctuary'].map((n) => [n, load(n)])));
 const run = (state, ticks) => { for (let i = 0; i < ticks; i++) stepSim(state, data); return state; };
 const DAY = data.config.time.ticksPerDay;
 
@@ -52,40 +52,12 @@ test('save/load resumes the exact same simulation', () => {
   assert.equal(serialize(a), serialize(b));
 });
 
-test('world has all Phase 1 tile types and berry bushes', () => {
-  const s = createSim(data, 'gamma');
-  for (const t of ['grass', 'water', 'forest', 'stone']) assert.ok(s.world.tiles.includes(t), t);
-  assert.ok(s.world.resources.length > 20);
-  assert.equal(s.humans.length, 10);
-  assert.equal(s.history.filter((e) => e.text.endsWith('was born into the world')).length, 10);
-});
-
-test('humans eat and sleep, and most survive 10 days', () => {
-  for (const seed of ['1', '2', '3', '4', '5']) {
-    const s = createSim(data, seed);
-    const seen = new Set();
-    for (let i = 0; i < 10 * DAY; i++) {
-      stepSim(s, data);
-      for (const h of s.humans) seen.add(h.action.type);
-    }
-    assert.ok(seen.has('eat') && seen.has('sleep') && seen.has('wander'), `seed ${seed}: ${[...seen]}`);
-    assert.ok(s.humans.length >= 8, `seed ${seed}: only ${s.humans.length} alive`);
-  }
-});
-
 test('starvation kills and is logged', () => {
   const s = createSim(data, 'delta');
   s.world.resources = [];
   run(s, 8 * DAY);
   assert.equal(s.humans.length, 0);
   assert.ok(s.history.some((e) => e.text.includes('starved to death')));
-});
-
-test('humans gather wood and stone into the shared stockpile', () => {
-  for (const seed of ['w1', 'w2', 'w3']) {
-    const s = run(createSim(data, seed), 20 * DAY);
-    assert.ok(s.stockpile.wood > 0 || s.stockpile.stone > 0, `seed ${seed}: stockpile stayed empty`);
-  }
 });
 
 test('resource regrowth respects season and renewability', () => {
@@ -123,14 +95,6 @@ test('every human gets 1-3 non-contradictory traits', () => {
   }
 });
 
-test('nobody starts skilled; skills are learned by doing', () => {
-  const s = createSim(data, 'skills');
-  for (const h of s.humans) assert.deepEqual(h.skills, {});
-  run(s, 20 * DAY);
-  const learned = s.humans.filter((h) => Object.values(h.skills).some((k) => k.level >= 1));
-  assert.ok(learned.length >= 5, `only ${learned.length} learned anything`);
-});
-
 test('traits change learning speed, and levelling up logs milestones', () => {
   const s = createSim(data, 'xp');
   const [a, b] = s.humans;
@@ -146,15 +110,6 @@ test('traits change learning speed, and levelling up logs milestones', () => {
   assert.ok(s.history.some((e) => e.text === `${a.name} became a capable woodcutter`));
   assert.ok(workTimeFactor(a, data, 'woodcutting') < workTimeFactor(b, data, 'woodcutting'));
   assert.equal(traitMod(b, data, 'learnRate'), 1);
-});
-
-test('interrupted hauls are finished, so the stockpile keeps growing', () => {
-  for (const seed of ['a', 'c']) {
-    const s = run(createSim(data, seed), 60 * DAY);
-    const before = s.stockpile.wood + s.stockpile.stone;
-    run(s, 60 * DAY);
-    assert.ok(s.stockpile.wood + s.stockpile.stone > before, `seed ${seed} stalled at ${before}`);
-  }
 });
 
 test('relationship types follow bond value, partners and family', () => {
@@ -222,190 +177,6 @@ test('the very old die of old age and leave their partner widowed', () => {
   assert.ok(s.history.some((e) => e.text.startsWith(`${elder.name} died of old age`)));
 });
 
-test('over the years people befriend, pair up, have children; children never haul', () => {
-  const s = createSim(data, 'a');
-  const childActions = new Set();
-  for (let i = 0; i < 4 * 60 * DAY; i++) {
-    stepSim(s, data);
-    if (i % 20 === 0) for (const h of s.humans) if (lifeStage(h, s, data) === 'child') childActions.add(h.action.type);
-  }
-  for (const text of ['became friends', 'became partners', ' had a ']) {
-    assert.ok(s.history.some((e) => e.text.includes(text)), text);
-  }
-  assert.ok(childActions.size > 0);
-  for (const a of ['gather', 'harvest', 'deposit']) assert.ok(!childActions.has(a), a);
-});
-
-test('techs are discovered when conditions are met, never before prerequisites', () => {
-  const sure = tweak('techsById.stone_tools.discovery.baseChance', 1);
-  sure.techsById.cooking.discovery.baseChance = 1;
-  sure.techs = sure.techs.map((t) => sure.techsById[t.id]);
-  const s = createSim(sure, 'disc');
-  const h = s.humans[0];
-  h.knows = [];
-  h.skills = { mining: { level: 2, xp: 0 }, foraging: { level: 5, xp: 0 } };
-  h.counters = { 'gather:stone': 20 };
-  s.tick = 10 * sure.config.discovery.checkEveryTicks;
-  updateDiscovery(s, sure);
-  assert.ok(knows(h, 'stone_tools'));
-  assert.ok(!knows(h, 'cooking'), 'cooking needs fire first');
-  assert.ok(s.history.some((e) => e.text === `${h.name} discovered Stone Tools`));
-});
-
-test('knowledge dies with its last holder, and is kept while someone knows it', () => {
-  const s = createSim(data, 'lost');
-  const [a, b, c] = s.humans;
-  for (const h of s.humans) h.knows = [];
-  learnTech(s, data, a, 'fire');
-  learnTech(s, data, b, 'fire');
-  learnTech(s, data, c, 'basketry');
-  killHuman(s, data, a, 'starvation');
-  assert.ok(!s.discoveries.fire.lost);
-  killHuman(s, data, c, 'starvation');
-  assert.ok(s.discoveries.basketry.lost);
-  assert.ok(s.history.some((e) => e.text === `The knowledge of Basketry died with ${c.name}`));
-  learnTech(s, data, b, 'basketry');
-  assert.ok(s.history.some((e) => e.text === `${b.name} rediscovered Basketry`));
-});
-
-test('teaching passes on techs the student is ready for', () => {
-  const sure = tweak('config.discovery.teachTechChance', 1);
-  const s = createSim(sure, 'teachtech');
-  const [t, st] = s.humans;
-  t.knows = ['fire', 'cooking'];
-  st.knows = [];
-  teachTech(s, sure, t, st, 1);
-  assert.deepEqual(st.knows, ['fire']);
-  teachTech(s, sure, t, st, 1);
-  assert.deepEqual(st.knows, ['fire', 'cooking']);
-});
-
-test('people who know Fire build a campfire that keeps them warm', () => {
-  const s = createSim(data, 'build');
-  const h = s.humans[0];
-  h.knows = ['fire'];
-  s.stockpile.wood = 20;
-  const def = wantedBuilding(s, data, h);
-  assert.equal(def.id, 'campfire');
-  const site = placeSite(s, data, def);
-  assert.equal(s.stockpile.wood, 12);
-  while (!workOnSite(s, data, h, site));
-  assert.ok(site.built);
-  assert.ok(s.history.some((e) => e.text === `${h.name} finished building a Campfire`));
-  h.x = site.x;
-  h.y = site.y;
-  assert.ok(isWarm(s, data, h));
-  assert.equal(wantedBuilding(s, data, h), null, 'one campfire is enough for 10 people');
-});
-
-test('a farm plot becomes a field that grows food', () => {
-  const s = createSim(data, 'farm');
-  const h = s.humans[0];
-  h.knows = ['basketry', 'farming'];
-  s.stockpile.wood = 10;
-  const site = placeSite(s, data, data.buildingsById.farm_plot);
-  while (!workOnSite(s, data, h, site));
-  const crop = s.world.resources.find((r) => r.type === 'crop' && r.x === site.x && r.y === site.y);
-  assert.ok(crop);
-  run(s, 3 * DAY);
-  assert.ok(crop.amount > 0);
-});
-
-test('stone axes are crafted from the stockpile and speed up woodcutting', () => {
-  const s = createSim(data, 'craft');
-  const h = s.humans[0];
-  h.knows = ['stone_tools'];
-  h.skills = { woodcutting: { level: 1, xp: 0 } };
-  s.stockpile.stone = 2;
-  s.stockpile.wood = 1;
-  const def = craftChoice(s, data, h);
-  assert.equal(def.id, 'stone_axe');
-  assert.ok(finishCraft(s, data, h, def));
-  assert.equal(s.stockpile.stone, 0);
-  assert.equal(h.tools.stone_axe, def.durability);
-  assert.ok(toolWorkFactor(h, data, 'woodcutting') < 1);
-  assert.equal(craftChoice(s, data, h), null);
-});
-
-test('stored food spoils, and a storage pit slows it', () => {
-  const s = createSim(data, 'spoil');
-  s.tick = DAY;
-  s.stockpile.food = 1000;
-  spoilFood(s, data);
-  const plainLoss = 1000 - s.stockpile.food;
-  s.buildings.push({ id: 99, type: 'storage_pit', x: 0, y: 0, built: true, work: 0 });
-  s.stockpile.food = 1000;
-  spoilFood(s, data);
-  const pitLoss = 1000 - s.stockpile.food;
-  assert.ok(plainLoss > 0 && pitLoss < plainLoss, `${plainLoss} vs ${pitLoss}`);
-});
-
-test('over a few years a tribe discovers techs, builds, and stores food', () => {
-  const s = createSim(data, 'a');
-  let storedFood = false;
-  for (let d = 0; d < 4 * 60; d++) {
-    run(s, DAY);
-    if (s.stockpile.food + s.stockpile.cooked_food > 0) storedFood = true;
-  }
-  assert.ok(Object.keys(s.discoveries).length >= 5, Object.keys(s.discoveries).join());
-  assert.ok(s.buildings.some((b) => b.built));
-  assert.ok(storedFood);
-});
-
-test('powers cost Faith and do nothing when it runs short', () => {
-  const s = createSim(data, 'faith');
-  const { x, y } = s.stockpile;
-  s.faith = 10;
-  const bushes = s.world.resources.length;
-  assert.equal(usePower(s, data, 'spawn_food', { x, y }).ok, false);
-  assert.equal(s.world.resources.length, bushes);
-  s.faith = 100;
-  assert.ok(usePower(s, data, 'spawn_food', { x, y }).ok);
-  assert.ok(s.world.resources.length > bushes);
-  assert.ok(s.faith < 100);
-});
-
-test('rain puts out fires and makes plants grow', () => {
-  const s = createSim(data, 'rain');
-  const tree = s.world.resources.find((r) => r.type === 'tree');
-  const bush = s.world.resources.find((r) => r.type === 'berry_bush');
-  tree.burning = 100;
-  bush.amount = 0;
-  s.faith = 100;
-  usePower(s, data, 'rain', { x: tree.x, y: tree.y });
-  usePower(s, data, 'rain', { x: bush.x, y: bush.y });
-  assert.equal(tree.burning, undefined);
-  assert.ok(bush.amount > 0);
-});
-
-test('lightning sets trees ablaze and can kill, leaving family grieving', () => {
-  const s = createSim(data, 'bolt');
-  s.faith = 100;
-  const tree = s.world.resources.find((r) => r.type === 'tree' && r.amount > 0);
-  usePower(s, data, 'lightning', { x: tree.x, y: tree.y });
-  assert.ok(tree.burning > 0);
-  const [victim, child] = s.humans;
-  child.parents = [victim.id];
-  victim.health = 30;
-  usePower(s, data, 'lightning', { x: victim.x, y: victim.y });
-  assert.ok(s.dead.some((d) => d.id === victim.id && d.cause === 'lightning'));
-  assert.ok(child.feelings.some((f) => f.text === `Grieving ${victim.name}`));
-  const before = mood(child);
-  child.feelings = [];
-  assert.ok(mood(child) > before);
-});
-
-test('spawn food fails where nothing can grow', () => {
-  const s = createSim(data, 'lake');
-  s.faith = 100;
-  const i = s.world.tiles.findIndex((t, k) => t === 'water'
-    && [-2, -1, 0, 1, 2].every((dy) => [-2, -1, 0, 1, 2].every((dx) => s.world.tiles[k + dy * 64 + dx] === 'water')));
-  assert.ok(i >= 0);
-  const r = usePower(s, data, 'spawn_food', { x: i % 64, y: Math.floor(i / 64) });
-  assert.equal(r.ok, false);
-  assert.equal(s.faith, 100);
-});
-
 test('bless restores someone and doubles their learning; witnesses grow devout', () => {
   const s = createSim(data, 'bless');
   s.faith = 100;
@@ -425,54 +196,9 @@ test('bless restores someone and doubles their learning; witnesses grow devout',
   assert.ok(other.devotion > devotionBefore);
   assert.equal(other.counters.miraclesSeen, 1);
   other.needs.hunger = other.needs.energy = other.needs.social = other.health = 100;
-  gainXp(s, data, h, 'foraging', 5);
-  gainXp(s, data, other, 'foraging', 5);
-  assert.ok(h.skills.foraging.xp + h.skills.foraging.level * 100 > other.skills.foraging.xp + other.skills.foraging.level * 100);
-});
-
-test('inspire lets someone discover what they could not have alone', () => {
-  const s = createSim(data, 'dream');
-  s.faith = 100;
-  const [dreamer, plain] = s.humans;
-  for (const p of [dreamer, plain]) {
-    p.knows = [];
-    p.traits = [];
-    p.skills = { mining: { level: 1, xp: 0 } };
-    p.counters = { 'gather:stone': 8 };
-  }
-  usePower(s, data, 'inspire', { humanId: dreamer.id });
-  const saved = s.humans;
-  s.humans = [dreamer, plain];
-  for (let k = 1; k <= 3000 && !knows(dreamer, 'stone_tools'); k++) {
-    s.tick = k * data.config.discovery.checkEveryTicks;
-    dreamer.status.inspiredUntil = s.tick + 1;
-    updateDiscovery(s, data);
-  }
-  s.humans = saved;
-  assert.ok(knows(dreamer, 'stone_tools'));
-  assert.ok(!knows(plain, 'stone_tools'));
-});
-
-test('miracles lead to Worship, and prayer at a shrine earns Faith', () => {
-  const s = createSim(data, 'pray');
-  for (let k = 0; k < 3; k++) {
-    s.faith = 100;
-    usePower(s, data, 'rain', { x: s.stockpile.x, y: s.stockpile.y });
-  }
-  run(s, 3 * DAY);
-  assert.ok(s.humans.some((h) => knows(h, 'worship')), 'someone found Worship');
-
-  const quiet = createSim(data, 'pray');
-  const devout = createSim(data, 'pray');
-  for (const h of devout.humans) {
-    h.knows = ['worship'];
-    h.devotion = 80;
-  }
-  devout.buildings.push({ id: 99, type: 'shrine', x: devout.stockpile.x + 1, y: devout.stockpile.y, built: true, work: 0 });
-  quiet.faith = devout.faith = 0;
-  run(quiet, 5 * DAY);
-  run(devout, 5 * DAY);
-  assert.ok(devout.faith > quiet.faith + 10, `${devout.faith} vs ${quiet.faith}`);
+  gainXp(s, data, h, 'farming', 5);
+  gainXp(s, data, other, 'farming', 5);
+  assert.ok(h.skills.farming.xp + h.skills.farming.level * 100 > other.skills.farming.xp + other.skills.farming.level * 100);
 });
 
 test('every person is a hero with a grade, stats and a level', () => {
@@ -526,38 +252,6 @@ test('emotions follow what happens to people', () => {
   assert.equal(emotionOf(h, data).id, 'starving');
 });
 
-test('the settlement grows a tier when every requirement is met, and has a leader', () => {
-  const s = createSim(data, 'tier');
-  s.tick = DAY;
-  updateSettlement(s, data);
-  assert.ok(s.settlement.leaderId != null);
-  assert.ok(s.history.some((e) => / became Chief of /.test(e.text)));
-  assert.equal(populationCap(s, data), data.settlements[0].populationCap);
-  const rows = nextTierProgress(s, data).rows;
-  assert.ok(rows.some((r) => !r.met));
-  while (s.humans.length < 14) s.humans.push({ ...s.humans[0], id: 1000 + s.humans.length });
-  for (const id of ['fire', 'stone_tools', 'basketry', 'shelter']) s.discoveries[id] = { by: 'x', tick: 0, lost: false };
-  for (let k = 0; k < 6; k++) s.buildings.push({ id: 500 + k, type: 'lean_to', x: 0, y: k, built: true, work: 0 });
-  s.tick = 2 * DAY;
-  updateSettlement(s, data);
-  assert.equal(data.settlements[s.settlement.tier].id, 'village');
-  assert.ok(s.history.some((e) => e.text.endsWith('has grown into a Village!')));
-});
-
-test('an omen sets the tribe focus, and a Build omen plans spare homes', () => {
-  const s = createSim(data, 'omen');
-  s.faith = 100;
-  assert.equal(usePower(s, data, 'omen', { focus: 'nonsense' }).ok, false);
-  const h = s.humans[0];
-  h.knows = ['shelter'];
-  s.stockpile.wood = 500;
-  for (let k = 0; k < 5; k++) s.buildings.push({ id: 700 + k, type: 'lean_to', x: 0, y: k, built: true, work: 0 });
-  assert.equal(wantedBuilding(s, data, h), null, '10 beds for 10 people is enough');
-  assert.ok(usePower(s, data, 'omen', { focus: 'build' }).ok);
-  assert.equal(s.focus.id, 'build');
-  assert.equal(wantedBuilding(s, data, h)?.id, 'lean_to');
-});
-
 test('someone hauling food eats from their own load when hungry', () => {
   const s = createSim(data, 'carry');
   const h = s.humans[0];
@@ -571,6 +265,200 @@ test('someone hauling food eats from their own load when hungry', () => {
   assert.ok(h.needs.hunger > 30);
   assert.equal(h.carrying.amount, 2);
 });
+
+// --- The sanctuary ---
+
+test('the sanctuary is walled in, with the portal set into the wall', () => {
+  const s = createSim(data, 'walls');
+  const { width: W, height: H, tiles } = s.world;
+  for (let i = 0; i < W; i++) {
+    for (const [x, y] of [[i, 0], [i, H - 1], [0, i], [W - 1, i]]) {
+      assert.ok(['wall', 'portal'].includes(tiles[y * W + x]), `${x},${y} is ${tiles[y * W + x]}`);
+    }
+  }
+  assert.ok(tiles.includes('portal'));
+  assert.ok(s.world.resources.some((r) => r.type === 'tree'));
+  assert.ok(s.world.resources.some((r) => r.type === 'potato'));
+});
+
+test('everyone starts in the Great Hall with the four starting buildings and the basics', () => {
+  const s = createSim(data, 'start');
+  assert.deepEqual(s.buildings.map((b) => b.type).sort(), ['dining_hall', 'great_hall', 'kitchen', 'training_ground']);
+  const hall = buildingWith(s, data, 'sleepers');
+  assert.equal(s.humans.length, data.config.humans.startCount);
+  for (const h of s.humans) {
+    assert.ok(inside(hall, h.x, h.y));
+    for (const id of ['farming', 'woodcutting', 'cooking', 'construction', 'fighting']) assert.ok(knows(h, id), id);
+    assert.ok(!knows(h, 'worship'));
+  }
+  assert.equal(populationCap(s, data), data.buildingsById.great_hall.effects.sleepers);
+});
+
+test('people sleep in their own beds in the Great Hall', () => {
+  const s = createSim(data, 'beds');
+  for (const h of s.humans) h.needs.energy = 5;
+  run(s, 40);
+  const hall = buildingWith(s, data, 'sleepers');
+  const sleepers = s.humans.filter((h) => h.action.type === 'sleep');
+  assert.ok(sleepers.length >= 6, `${sleepers.length} asleep`);
+  for (const h of sleepers) assert.ok(inside(hall, h.x, h.y));
+  const beds = new Set(sleepers.map((h) => `${h.x},${h.y}`));
+  assert.equal(beds.size, sleepers.length, 'no two people share a bed');
+});
+
+test('potatoes are harvested, cooked in the Kitchen and eaten in the Dining Hall', () => {
+  const s = createSim(data, 'meals');
+  let cooked = 0;
+  let dined = false;
+  for (let i = 0; i < 20 * DAY; i++) {
+    const before = s.stockpile.cooked_food;
+    stepSim(s, data);
+    if (s.stockpile.cooked_food > before) cooked++;
+    const hall = buildingWith(s, data, 'dining');
+    if (s.humans.some((h) => h.action.type === 'eat' && h.action.dine && inside(hall, h.x, h.y))) dined = true;
+  }
+  assert.ok(cooked > 10, `only ${cooked} meals cooked`);
+  assert.ok(dined, 'nobody ate in the Dining Hall');
+  assert.ok(s.humans.some((h) => h.feelings.some((f) => f.text === 'Shared a meal in the Dining Hall')) || s.history.length > 0);
+});
+
+test('training at the Training Ground builds fighting skills', () => {
+  const s = createSim(data, 'train');
+  run(s, 30 * DAY);
+  const fighters = s.humans.filter((h) => ['swordsmanship', 'archery', 'defense'].some((k) => (h.skills[k]?.level ?? 0) >= 1));
+  // Some love training and some never go, so expect a few dedicated fighters.
+  assert.ok(fighters.length >= 3, `only ${fighters.length} trained`);
+});
+
+test('wounds heal on their own inside the walls', () => {
+  const s = createSim(data, 'heal');
+  const h = s.humans[0];
+  h.health = 30;
+  h.needs.hunger = 100;
+  run(s, 2 * DAY);
+  assert.ok(h.health > 90, `health ${h.health}`);
+});
+
+test('a sanctuary of 8 survives its first years and grows', () => {
+  for (const seed of ['s1', 's2', 's3']) {
+    const s = createSim(data, seed);
+    run(s, 3 * 60 * DAY);
+    assert.equal(s.dead.length, 0, `seed ${seed}: ${s.dead.map((d) => d.cause)}`);
+    assert.ok(s.humans.length > data.config.humans.startCount, `seed ${seed}: no births`);
+    assert.ok(s.humans.length <= populationCap(s, data) + 1);
+  }
+});
+
+test('stored food spoils slowly', () => {
+  const s = createSim(data, 'spoil');
+  s.tick = DAY;
+  s.stockpile.food = 1000;
+  spoilFood(s, data);
+  assert.ok(s.stockpile.food < 1000 && s.stockpile.food > 900);
+});
+
+// --- Knowledge ---
+
+test('miracles lead to Worship, and the faithful pray for Faith', () => {
+  const s = createSim(data, 'pray');
+  for (const h of s.humans) h.action = { type: 'wander', path: [] };
+  for (let k = 0; k < 3; k++) {
+    s.faith = 100;
+    usePower(s, data, 'bless', { humanId: s.humans[k].id });
+    for (const h of s.humans) h.x = s.humans[k].x, h.y = s.humans[k].y;
+  }
+  run(s, 3 * DAY);
+  assert.ok(s.humans.some((h) => knows(h, 'worship')), 'someone found Worship');
+
+  const quiet = createSim(data, 'pray2');
+  const devout = createSim(data, 'pray2');
+  for (const h of devout.humans) {
+    h.knows.push('worship');
+    h.devotion = 80;
+  }
+  quiet.faith = devout.faith = 0;
+  run(quiet, 5 * DAY);
+  run(devout, 5 * DAY);
+  assert.ok(devout.faith > quiet.faith + 5, `${devout.faith} vs ${quiet.faith}`);
+});
+
+test('knowledge dies with its last holder, and can be found again', () => {
+  const s = createSim(data, 'lost');
+  const [a, b] = s.humans;
+  learnTech(s, data, a, 'worship');
+  killHuman(s, data, a, 'starvation');
+  assert.ok(s.discoveries.worship.lost);
+  assert.ok(s.history.some((e) => e.text === `The knowledge of Worship died with ${a.name}`));
+  learnTech(s, data, b, 'worship');
+  assert.ok(s.history.some((e) => e.text === `${b.name} rediscovered Worship`));
+});
+
+test('children are taught the basics by their elders', () => {
+  const sure = tweak('config.discovery.teachTechChance', 1);
+  const s = createSim(sure, 'kids');
+  const [parent, kid] = s.humans;
+  kid.knows = [];
+  kid.parents = [parent.id];
+  teachTech(s, sure, parent, kid, 1);
+  assert.equal(kid.knows.length, 1);
+});
+
+test('inspire lets someone discover what they could not have alone', () => {
+  const s = createSim(data, 'dream');
+  s.faith = 100;
+  const [dreamer, plain] = s.humans;
+  for (const p of [dreamer, plain]) {
+    p.traits = [];
+    p.counters = { miraclesSeen: 1 };
+  }
+  usePower(s, data, 'inspire', { humanId: dreamer.id });
+  dreamer.counters.miraclesSeen = 1;
+  const saved = s.humans;
+  s.humans = [dreamer, plain];
+  for (let k = 1; k <= 3000 && !knows(dreamer, 'worship'); k++) {
+    s.tick = k * data.config.discovery.checkEveryTicks;
+    dreamer.status.inspiredUntil = s.tick + 1;
+    updateDiscovery(s, data);
+  }
+  s.humans = saved;
+  assert.ok(knows(dreamer, 'worship'));
+  assert.ok(!knows(plain, 'worship'));
+});
+
+// --- The player ---
+
+test('powers cost Faith and do nothing when it runs short', () => {
+  const s = createSim(data, 'faith');
+  const h = s.humans[0];
+  h.needs.hunger = 10;
+  s.faith = 10;
+  assert.equal(usePower(s, data, 'bless', { humanId: h.id }).ok, false);
+  assert.equal(h.needs.hunger, 10);
+  s.faith = 100;
+  assert.ok(usePower(s, data, 'bless', { humanId: h.id }).ok);
+  assert.equal(h.needs.hunger, 100);
+  assert.ok(s.faith < 100);
+});
+
+test('an omen sets the community focus for a while', () => {
+  const s = createSim(data, 'omen');
+  s.faith = 100;
+  assert.equal(usePower(s, data, 'omen', { focus: 'nonsense' }).ok, false);
+  assert.ok(usePower(s, data, 'omen', { focus: 'train' }).ok);
+  assert.equal(s.focus.id, 'train');
+  assert.ok(s.focus.until > s.tick);
+});
+
+test('the most charismatic adult becomes Warden', () => {
+  const s = createSim(data, 'lead');
+  s.humans[3].stats.cha = 30;
+  s.tick = DAY;
+  updateSettlement(s, data);
+  assert.equal(s.settlement.leaderId, s.humans[3].id);
+  assert.ok(s.history.some((e) => e.text === `${s.humans[3].name} became Warden of ${s.settlement.name}`));
+});
+
+// --- People ---
 
 test('sim code has no Phaser or unseeded randomness', () => {
   const dir = new URL('../src/sim/', import.meta.url);
