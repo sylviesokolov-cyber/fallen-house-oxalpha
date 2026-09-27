@@ -7,7 +7,7 @@ import { gainXp } from './skills.js';
 import { lifeStage } from './lifecycle.js';
 import { populationCap } from './settlement.js';
 import { builtOfType } from './buildings.js';
-import { combatPower, fight, heroFighter, monsterFighters } from './combat.js';
+import { castOf, combatPower, fight, heroFighter, monsterFighters } from './combat.js';
 import { portalYard, listNames } from './dungeon.js';
 import { createHuman, freshHouse, killHuman } from './human.js';
 
@@ -49,7 +49,9 @@ const RUN = {
     const monsters = monsterFighters(data, ids);
     const heroes = defenders.map((h) => heroFighter(h, data));
     const lines = [];
-    const { won } = heroes.length ? fight(state, data, heroes, monsters, lines) : { won: false };
+    const events = [];
+    const cast = castOf(heroes, monsters);
+    const { won } = heroes.length ? fight(state, data, heroes, monsters, lines, events) : { won: false };
     for (const f of heroes) {
       const h = state.humans.find((o) => o.id === f.id);
       h.health = f.dead ? 0 : Math.max(f.down ? 5 : 1, (f.hp / f.maxHp) * 100);
@@ -71,7 +73,7 @@ const RUN = {
     }
     state.expeditions.push({
       id: state.dungeon.nextId++, floor: floor.id, raid: true, members: defenders.map((h) => h.id), phase: 'done',
-      reports: [{ title: `Raid: ${monsters.map((m) => m.name).join(', ')}`, lines: lines.slice(0, data.dungeon.maxReportLines), result: won ? 'repelled' : 'overrun' }],
+      reports: [{ title: `Raid: ${monsters.map((m) => m.name).join(', ')}`, lines: lines.slice(0, data.dungeon.maxReportLines), events: events.slice(0, data.dungeon.maxReportLines), cast, result: won ? 'repelled' : 'overrun' }],
       loot: {}, outcome: won ? 'repelled' : 'overrun', endTick: state.tick,
     });
     return true;

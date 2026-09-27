@@ -24,6 +24,7 @@ import { carryCapacity } from '../src/sim/items.js';
 import { updateHuman } from '../src/sim/ai.js';
 import { currentChapter, goalProgress, updateGoals } from '../src/sim/goals.js';
 import { updateEvents } from '../src/sim/events.js';
+import { castOf } from '../src/sim/combat.js';
 
 // A copy of the content with some settings overridden, for forcing rare events.
 function tweak(path, value) {
@@ -1088,4 +1089,24 @@ test('all eight floors, their monsters and the mithril tier are wired up', () =>
   }
   assert.ok(data.itemsById.mithril && data.itemsById.mithril_sword.tech === 'mithril_smithing');
   assert.ok(data.techs.some((t) => t.id === 'mithril_smithing'));
+});
+
+test('battle reports carry a replayable event for every fight line', () => {
+  const s = createSim(data, 'viewer');
+  const heroes = s.humans.slice(0, 3).map((h) => heroFighter(h, data));
+  const monsters = monsterFighters(data, ['goblin', 'goblin', 'cave_boar']);
+  const cast = castOf(heroes, monsters);
+  const lines = [];
+  const events = [];
+  fight(s, data, heroes, monsters, lines, events);
+  assert.equal(events.length, lines.length);
+  assert.equal(cast.length, 6);
+  // Replaying the damage and healing reproduces the fighters' final HP.
+  const hp = cast.map((c) => c.hp);
+  for (const [, t, kind, n] of events) {
+    if (kind === 'hit' || kind === 'crit') hp[t] -= n;
+    if (kind === 'heal') hp[t] += n;
+  }
+  [...heroes, ...monsters].forEach((f, i) => assert.ok(Math.abs(hp[i] - f.hp) < 1.5, `${f.name}: ${hp[i]} vs ${f.hp}`));
+  assert.ok(JSON.parse(JSON.stringify({ cast, events })).events.length === events.length);
 });

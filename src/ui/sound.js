@@ -102,6 +102,14 @@ export function createSound() {
     },
     victory: () => arp([60, 64, 67, 72, 76, 79], 0.1, { dur: 0.5, vol: 0.08, type: 'triangle' }),
     love: () => arp([76, 81], 0.18, { dur: 0.8, vol: 0.09, type: 'sine' }),
+    hit: () => noise({ dur: 0.07, freq: 900, q: 1.5, vol: 0.25 }),
+    crit: () => {
+      noise({ dur: 0.12, freq: 1400, q: 1, vol: 0.35 });
+      tone(NOTE(55), { dur: 0.15, vol: 0.12, type: 'square', glide: 0.5 });
+    },
+    miss: () => noise({ dur: 0.12, freq: 2500, q: 0.7, vol: 0.08 }),
+    heal: () => arp([79, 84], 0.06, { dur: 0.3, vol: 0.06, type: 'sine' }),
+    slain: () => tone(NOTE(48), { dur: 0.35, vol: 0.12, type: 'sawtooth', glide: 0.4 }),
   };
 
   function play(name) {

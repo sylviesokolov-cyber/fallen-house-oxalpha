@@ -20,6 +20,7 @@ const ICONS = {
   pause: `<rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/>`,
   play: `<path d="M7 5l12 7-12 7z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>`,
   fast: `<path d="M3 6l9 6-9 6zM12 6l9 6-9 6z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>`,
+  restart: `<path d="M5 12a7 7 0 1 0 2.2-5.1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M4 3.5v5h5z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>`,
   faster: `<path d="M1.5 7l7 5-7 5zM8.5 7l7 5-7 5zM15.5 7l7 5-7 5z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>`,
   log: `<path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z" fill="#e8d9b0" ${S}/><path d="M6 3a2 2 0 0 0-2 2v1h2M6 21a2 2 0 0 1-2-2v-1h2" fill="#c9b27a" ${S}/><path d="M9 8h7M9 11.5h7M9 15h5" stroke="#8a6a45" stroke-width="1.4" stroke-linecap="round"/>`,
   tribe: `<path d="M5 3v18" stroke="#8a6a45" stroke-width="2" stroke-linecap="round"/><path d="M6 4h13l-3 4.5 3 4.5H6z" fill="#e5604f" ${S}/><path d="M11 6.5l1 2 2 .3-1.5 1.3.4 2L11 11l-1.9 1.1.4-2L8 8.8l2-.3z" fill="#ffd35c"/>`,

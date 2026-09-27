@@ -6,6 +6,7 @@ import { icon, hydrateIcons } from './icons.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
 import { createPortalPanel } from './portalPanel.js';
+import { createBattleViewer } from './battleViewer.js';
 import { createMenuPanel } from './menuPanel.js';
 import { createTopBar } from './topBar.js';
 import { createSheets, haptic } from './sheets.js';
@@ -80,7 +81,8 @@ export function createHud(ctx, sound) {
 
   const sheet = createCharacterSheet(ctx, { toast, select: selectPerson });
   const tribe = createTribePanel(ctx, { toast, select: selectPerson });
-  const portal = createPortalPanel(ctx, { toast, select: selectPerson, close: () => showPanel(null) });
+  const viewer = createBattleViewer(ctx, sound);
+  const portal = createPortalPanel(ctx, { toast, select: selectPerson, close: () => showPanel(null), viewer });
   const throne = createThronePanel(ctx, { toast, select: selectPerson });
 
   // God-power dock. Picking Bless or Inspire arms it; the next tap on a

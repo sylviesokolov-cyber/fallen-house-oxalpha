@@ -28,6 +28,7 @@
 - World rendering: `mapRenderer.js` bakes the map at 2x (normal and winter variants), `textures.js` bakes trees, crops, particles and loads the icons for Phaser, `fxView.js` (particles, clouds), `bubbleView.js` (activity icons, floating text). All cosmetic randomness there may use `Math.random`.
 - People and the throne: `src/sim/appeal.js` (looks, what people are drawn to, `appeal`), `src/sim/dynasty.js` (houses, spouses and consorts via `partnerId` + `consorts`, widowing, succession, `crown`), `src/sim/decrees.js` (what a puppet ruler can be made to do). A consort's `partnerId` is the ruler; use `isSpouse`/`spousesOf`, not `a.partnerId === b.id` alone.
 - `src/sim/data.js` `DATA_FILES` lists every content file; add new ones there.
+- Battle viewer: `combat.js` `fight` also records one event `[actor, target, kind, amount]` per report line, and each report stores the `cast`. `src/ui/battleViewer.js` replays them; monsters are drawn by `src/ui/monsterArt.js` from each monster's `look` in `data/monsters.json`.
 - `src/sim/goals.js` (milestones from `data/goals.json`, `goalProgress` for the UI) and `src/sim/events.js` (raids, festivals, sickness `h.sick`, strangers from `data/events.json`). Raids are stored in `state.expeditions` with `raid: true`.
 - `src/sim/construction.js`: plots, construction sites, upgrades and family homes. Building effects at a level come from `effectsOf`/`buildingEffect` in `buildings.js` (base effects plus upgrades reached).
 

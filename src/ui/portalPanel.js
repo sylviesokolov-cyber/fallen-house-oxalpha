@@ -3,6 +3,8 @@ import { activeExpedition, cannotGo } from '../sim/dungeon.js';
 import { combatPower, heroFighter } from '../sim/combat.js';
 import { gradeOf } from '../sim/stats.js';
 import { $, el, button, bar, stars, renderKeyed } from './dom.js';
+import { icon } from './icons.js';
+import { canWatch } from './battleViewer.js';
 
 // The Portal panel: pick a floor and up to five heroes and send them in;
 // follow a party that's out; read the battle reports of past expeditions.
@@ -14,7 +16,7 @@ const OUTCOME = {
 };
 const STYLE = { swordsmanship: '⚔️ Sword', archery: '🏹 Bow', magic: '🔮 Magic' };
 
-export function createPortalPanel(ctx, { toast, select, close }) {
+export function createPortalPanel(ctx, { toast, select, close, viewer }) {
   const chosen = new Set();
   let floor = 1;
   let openReport = null;
@@ -123,7 +125,13 @@ export function createPortalPanel(ctx, { toast, select, close }) {
       const loot = lootText(exp);
       if (loot) box.append(el('div', 'report-loot', `Loot: ${loot}`));
       for (const r of exp.reports) {
-        box.append(el('div', `report-title result-${r.result}`, `${r.title} — ${r.result}`));
+        const t = el('div', `report-title result-${r.result}`, `${r.title} — ${r.result}`);
+        if (canWatch(r)) {
+          const watch = button('watch', '', () => viewer.open(r, exp.raid ? 'Raid on the sanctuary' : `Floor ${fl.id}: ${fl.name}`));
+          watch.append(icon('play'), el('span', null, 'Watch'));
+          t.append(watch);
+        }
+        box.append(t);
         for (const line of r.lines) box.append(el('div', 'report-line', line));
       }
       nodes.push(box);

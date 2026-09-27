@@ -8,7 +8,9 @@ import { toolEffect, toolSum } from './items.js';
 // first, stays out of reach more) or, for those who know the Arcane Arts,
 // magic (INT: ignores armour, and a practised mage mends the wounded).
 // Defense skill, VIT and armour soak damage, and good defenders draw the
-// monsters' attention. Every line of the fight goes into a battle report.
+// monsters' attention. Every line of the fight goes into a battle report,
+// and, for the battle viewer, a matching event [actor, target, kind, amount]
+// (indexes into `castOf`; kinds: miss hit crit heal slain down dead flee).
 
 const HERO_VERB = { swordsmanship: 'strikes', archery: 'shoots', magic: 'blasts' };
 
@@ -79,13 +81,25 @@ export function monsterFighters(data, ids) {
 
 const standing = (list) => list.filter((f) => f.hp > 0);
 
+// Who's in the fight, as the viewer needs them: index = position here.
+export function castOf(heroes, monsters) {
+  return [...heroes, ...monsters].map((f) => ({
+    id: f.id, name: f.name, hero: f.hero, hp: Math.round(f.hp), maxHp: Math.round(f.maxHp), style: f.style ?? null,
+  }));
+}
+
 // Runs the fight. Heroes left at 0 HP are `down` (can still be carried out),
 // or `dead` if the blow went far past 0 (killed outright). When someone falls
 // or the party as a whole is badly hurt, it flees, taking a parting blow from
 // each monster.
-// Returns { won, fled, rounds }.
-export function fight(state, data, heroes, monsters, lines) {
+// Returns { won, fled, rounds }. `events`, if given, gets one entry per line.
+export function fight(state, data, heroes, monsters, lines, events = null) {
   const d = data.dungeon;
+  [...heroes, ...monsters].forEach((f, i) => { f.ix = i; });
+  const log = (text, e) => {
+    lines.push(text);
+    events?.push(e);
+  };
   let round = 0;
   while (standing(heroes).length && standing(monsters).length && round < d.maxRounds) {
     round++;
@@ -98,14 +112,14 @@ export function fight(state, data, heroes, monsters, lines) {
       const foes = standing(a.hero ? monsters : heroes);
       if (!foes.length) break;
       const hurt = a.heal && weakest(standing(heroes));
-      if (hurt && hurt.hp < hurt.maxHp * 0.4) mend(state, a, hurt, lines);
-      else attack(state, data, a, a.hero ? weakest(foes) : pickByAggro(state, foes), lines);
+      if (hurt && hurt.hp < hurt.maxHp * 0.4) mend(state, a, hurt, log);
+      else attack(state, data, a, a.hero ? weakest(foes) : pickByAggro(state, foes), log);
     }
     if (standing(heroes).length && standing(monsters).length && mustFlee(data, heroes)) {
-      lines.push('The party turns and flees!');
+      log('The party turns and flees!', [-1, -1, 'flee', 0]);
       for (const m of standing(monsters)) {
         const foes = standing(heroes);
-        if (foes.length) attack(state, data, m, pickByAggro(state, foes), lines);
+        if (foes.length) attack(state, data, m, pickByAggro(state, foes), log);
       }
       return { won: false, fled: true, rounds: round };
     }
@@ -130,18 +144,18 @@ function pickByAggro(state, heroes) {
   return heroes[0];
 }
 
-function mend(state, a, t, lines) {
+function mend(state, a, t, log) {
   const amount = Math.round(Math.min(t.maxHp - t.hp, a.heal * (0.8 + next(state.rng) * 0.4)));
   t.hp += amount;
   a.attacks++;
-  lines.push(`${a.name} mends ${t.name}'s wounds (+${amount}).`);
+  log(`${a.name} mends ${t.name}'s wounds (+${amount}).`, [a.ix, t.ix, 'heal', amount]);
 }
 
-function attack(state, data, a, t, lines) {
+function attack(state, data, a, t, log) {
   const hit = Math.max(0.4, Math.min(0.95, 0.75 + (a.agi - t.agi) * 0.015));
   if (a.hero) a.attacks++;
   if (next(state.rng) >= hit) {
-    lines.push(`${a.name} misses ${t.name}.`);
+    log(`${a.name} misses ${t.name}.`, [a.ix, t.ix, 'miss', 0]);
     return;
   }
   const crit = next(state.rng) < (a.hero ? 0.05 + a.agi * 0.004 : data.dungeon.monsterCrit);
@@ -150,18 +164,18 @@ function attack(state, data, a, t, lines) {
   t.hp -= dmg;
   if (t.hero) t.hitsTaken++;
   const verb = a.hero ? HERO_VERB[a.style] : a.verb;
-  lines.push(`${a.name} ${verb} ${t.name} for ${dmg}${crit ? ' (critical!)' : ''}.`);
+  log(`${a.name} ${verb} ${t.name} for ${dmg}${crit ? ' (critical!)' : ''}.`, [a.ix, t.ix, crit ? 'crit' : 'hit', dmg]);
   if (t.hp > 0) return;
   if (!t.hero) {
     a.kills.push(t.id);
-    lines.push(`${t.name} is slain.`);
+    log(`${t.name} is slain.`, [a.ix, t.ix, 'slain', 0]);
   } else if (-t.hp >= t.maxHp * data.dungeon.overkill) {
     t.dead = true;
     t.killedBy = t.killedBy ?? data.monstersById[a.id].name;
-    lines.push(`${t.name} is killed outright!`);
+    log(`${t.name} is killed outright!`, [a.ix, t.ix, 'dead', 0]);
   } else {
     t.down = true;
     t.killedBy = data.monstersById[a.id].name;
-    lines.push(`${t.name} collapses!`);
+    log(`${t.name} collapses!`, [a.ix, t.ix, 'down', 0]);
   }
 }

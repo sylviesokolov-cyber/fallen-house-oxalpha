@@ -123,7 +123,7 @@ The portal leads to **dungeon floors** of rising difficulty.
 - A **party** (1–5 heroes) goes in, clears rooms of **monsters**, and comes back with **loot**: meat, ingredients, ore, monster parts, mana crystals, rare items.
 - **Combat** uses stats, combat skills, weapons and armour: STR/AGI for attacks, VIT for HP and defence, INT for magic. Each fight grows the fighters' combat skills and levels.
 - **Danger is real.** HP does not recover inside the dungeon. A hero at 0 HP is **dead**, unless someone carries them out in time. A strong enough blow kills in one hit. Parties can retreat.
-- Fights are shown as a **battle report**: a turn-by-turn log the player can open, in the style of the manhwa.
+- Fights are shown as a **battle report**: a turn-by-turn log the player can open, in the style of the manhwa. Any fight can also be **watched**: an animated replay with the monsters above, the party below, damage numbers, heals and falls.
 - Each floor has a **boss**; clearing it opens the next floor and is a history event.
 
 ## The Player's Role

@@ -6,7 +6,7 @@ import { feel } from './mood.js';
 import { lifeStage } from './lifecycle.js';
 import { killHuman } from './human.js';
 import { changeBond } from './bonds.js';
-import { fight, heroFighter, monsterFighters } from './combat.js';
+import { castOf, fight, heroFighter, monsterFighters } from './combat.js';
 
 // Expeditions through the portal. The player calls a party (see usePower):
 // the members walk to the portal (h.called), step through together (h.away),
@@ -140,9 +140,11 @@ function nextRoom(state, data, exp, members) {
   const monsters = monsterFighters(data, rollMonsters(state, data, floor, boss));
   const heroes = members.filter((h) => h.health > 0).map((h) => heroFighter(h, data));
   const lines = [];
-  const { won } = fight(state, data, heroes, monsters, lines);
+  const events = [];
+  const cast = castOf(heroes, monsters);
+  const { won } = fight(state, data, heroes, monsters, lines, events);
   const title = boss ? `Boss: ${monsters[0].name}` : `Room ${exp.room}: ${monsters.map((m) => m.name).join(', ')}`;
-  const report = { title, lines: lines.slice(0, cfg.maxReportLines), result: won ? 'cleared' : 'fled' };
+  const report = { title, lines: lines.slice(0, cfg.maxReportLines), events: events.slice(0, cfg.maxReportLines), cast, result: won ? 'cleared' : 'fled' };
   exp.reports.push(report);
 
   // Wounds, experience and loot.
