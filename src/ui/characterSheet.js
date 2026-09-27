@@ -11,6 +11,7 @@ import { gradeOf, heroClass, xpForLevel } from '../sim/stats.js';
 import { leaderTitle } from '../sim/settlement.js';
 import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
+import { portrait } from './portrait.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
 // emotion, stats, needs, thoughts, relationships, skills and knowledge.
@@ -42,6 +43,14 @@ const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintanc
 const MAX_BONDS_SHOWN = 7;
 
 export function createCharacterSheet(ctx, { toast, select }) {
+  // Tabs: Status, Skills, People, Story.
+  for (const b of document.querySelectorAll('.sheet-tabs button')) {
+    b.addEventListener('click', () => {
+      for (const t of document.querySelectorAll('.sheet-tabs button')) t.classList.toggle('active', t === b);
+      for (const s of document.querySelectorAll('.sheet-tab')) s.classList.toggle('hidden', s.dataset.sheet !== b.dataset.sheet);
+    });
+  }
+
   const setNeed = (id, value) => {
     const b = $(id);
     b.style.width = `${value}%`;
@@ -247,22 +256,4 @@ export function createCharacterSheet(ctx, { toast, select }) {
   }
 
   return { render };
-}
-
-// A little portrait matching the map sprite: hair, face and tunic, framed in
-// the colour of their grade.
-function portrait(look, who, stage, alive, data) {
-  const frame = el('div', `portrait-frame${alive ? '' : ' dead'}${stage === 'child' ? ' child' : ''}`);
-  const grade = gradeOf(data, who.grade).color;
-  frame.style.borderColor = grade === '#1b1b1b' ? '#5c6878' : grade;
-  const body = el('div', 'p-body');
-  body.style.background = look.tunic;
-  const back = el('div', `p-hair-back${look.longHair ? '' : ' hidden'}`);
-  back.style.background = look.hair;
-  const head = el('div', 'p-head');
-  head.style.background = look.skin;
-  const hair = el('div', 'p-hair');
-  hair.style.background = look.hair;
-  frame.append(body, back, head, hair);
-  return frame;
 }

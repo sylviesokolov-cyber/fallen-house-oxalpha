@@ -4,6 +4,9 @@ import { gradeOf, heroClass } from '../sim/stats.js';
 import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, stars, renderKeyed } from './dom.js';
+import { portrait } from './portrait.js';
+import { appearance } from '../render/appearance.js';
+import { lifeStage } from '../sim/lifecycle.js';
 
 // The Tribe tab: an overview of the settlement's progress, a roster of every
 // person, the tribe's inventory, and its knowledge.
@@ -103,7 +106,11 @@ export function createTribePanel(ctx, { toast, select }) {
     const { sim, data } = ctx;
     const sorted = [...sim.humans].sort((a, b) => b.level - a.level || b.grade - a.grade);
     return sorted.map((h) => {
-      const b = button('person', '', () => select(h.id));
+      const b = button('person with-face', '', () => select(h.id));
+      const stage = lifeStage(h, sim, data);
+      const face = portrait(appearance(h, stage === 'elder'), h, stage, true, data);
+      face.classList.add('mini');
+      const info = el('div', 'person-info');
       const top = el('div', 'person-top');
       const name = el('span', 'person-name', `${h.name} `);
       name.append(stars(h.grade, gradeOf(data, h.grade)));
@@ -113,7 +120,8 @@ export function createTribePanel(ctx, { toast, select }) {
       const emo = el('span', null, e.name);
       emo.style.color = e.color;
       bottom.append(el('span', null, h.away != null ? 'In the dungeon' : heroClass(h, data)), emo);
-      b.append(top, bottom);
+      info.append(top, bottom);
+      b.append(face, info);
       return b;
     });
   }

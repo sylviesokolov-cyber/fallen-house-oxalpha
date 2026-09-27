@@ -166,6 +166,25 @@ E. **Polish** — done.
 - **Installable web app (PWA):** a manifest and icons, so Chrome can add the game to the Android home screen. A network-first service worker makes it playable offline after the first visit.
 - Still to come when wanted: packaging as a Capacitor APK (possible from the phone by building it with GitHub Actions).
 
+F. **Visual and UX polish** — done.
+- **Look:**
+  - A custom SVG icon set shared by the HUD, powers, sheets and the bubbles over people's heads.
+  - Nunito for the UI and Cinzel for titles, with a dark glass theme and gold and violet accents.
+- **Title screen** with Continue, New world and How to play.
+- **HUD:**
+  - A date card with a day/night dial, and chips for Faith, people and each store. The numbers pop +/− as they change.
+  - A compact clock (pause, and a speed button that cycles 1×, 2×, 4×).
+  - Round shortcuts on the right edge, and a power dock with glowing orbs.
+- **Sheets:** they slide up and down, can be swiped down to close, and give haptic feedback. The character sheet has tabs (Status, Skills, People, Story), and the Tribe roster shows portraits.
+- **World:**
+  - A crisp, double-resolution map with a feathered grove, a fenced field, dirt paths linking every door, a cobbled plaza and lanterns.
+  - Plank floors, and buildings with front walls and shuttered windows.
+  - Trees (round and pine) that thin as they're cut, and potato plants.
+  - A snowy map that settles in winter and melts in spring, and deep blue nights with warm windows and lantern light.
+  - Chimney smoke, seasonal weather (petals, leaves, snow, fireflies), chips and sparks from work, portal sparkles and drifting cloud shadows.
+  - Activity bubbles over people when zoomed in, the selected person's name, and floating level-ups and discoveries.
+- **Camera:** a glide after a flick, double-tap to zoom, and following the selected person.
+
 ## Open Questions
 
 Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.

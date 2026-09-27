@@ -1,33 +1,34 @@
 import { dateOf } from '../sim/time.js';
 import { formatEntry } from '../sim/history.js';
 import { usePower } from '../sim/godPowers.js';
-import { populationCap } from '../sim/settlement.js';
-import { mealsInStock } from '../sim/items.js';
 import { $, el, button } from './dom.js';
+import { icon, hydrateIcons } from './icons.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
 import { createPortalPanel } from './portalPanel.js';
 import { createMenuPanel } from './menuPanel.js';
+import { createTopBar } from './topBar.js';
+import { createSheets, haptic } from './sheets.js';
+import { createTitleScreen } from './titleScreen.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
-// work better on phones than drawing UI inside Phaser. This module owns the
-// top bar, power toolbar, panel switching, save/load and the history log.
+// work better on phones than drawing UI inside Phaser. This module wires the
+// pieces together: top bar, power dock, sheets, news banners, title screen.
 
 const REFRESH_MS = 200;
 const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal', 'help'];
 
-const SEASON_ICON = { Spring: '🌱', Summer: '☀️', Autumn: '🍂', Winter: '❄️' };
-// [pattern, icon, sound]
+// [pattern, icon, sound, vibration]
 const NEWS = [
-  [/ had a /, '👶', 'birth'],
-  [/died|starved|slain|struck down|fell to|never came back/, '🕯️', 'death'],
-  [/discovered/, '💡', 'discover'],
-  [/was finished|was upgraded/, '🏠', 'build'],
-  [/slew|lies open/, '⚔️', 'victory'],
-  [/came home from/, '🌀', 'portal'],
-  [/became partners/, '💞', 'love'],
-  [/moved into/, '🏡', 'love'],
-  [/became Warden/, '👑', 'discover'],
+  [/ had a /, 'baby', 'birth', [10, 40, 10]],
+  [/died|starved|slain|struck down|fell to|never came back/, 'candle', 'death', [60]],
+  [/discovered/, 'bulb', 'discover'],
+  [/was finished|was upgraded/, 'house', 'build'],
+  [/slew|lies open/, 'swords', 'victory', [20, 30, 20]],
+  [/came home from/, 'portal', 'portal'],
+  [/became partners/, 'heart', 'love'],
+  [/moved into/, 'house', 'love'],
+  [/became Warden/, 'crown', 'discover'],
 ];
 
 export function createHud(ctx, sound) {
@@ -35,6 +36,9 @@ export function createHud(ctx, sound) {
   let newsSeen = null;
   let logKey = null;
   let toastTimer = null;
+
+  hydrateIcons();
+  const top = createTopBar(ctx);
 
   function toast(msg) {
     const t = $('toast');
@@ -44,13 +48,15 @@ export function createHud(ctx, sound) {
     toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  const isOpen = (id) => !$(id).classList.contains('hidden');
-
-  function showPanel(id) {
-    for (const p of PANELS) $(p).classList.toggle('hidden', p !== id);
-    $('powers').classList.toggle('hidden', !!id);
-    if (id) selectPower(null);
-  }
+  const sheets = createSheets(PANELS, {
+    onChange(id) {
+      document.body.classList.toggle('sheet-open', !!id);
+      if (id) selectPower(null);
+      if (id !== 'inspect') ctx.selectedId = null;
+    },
+  });
+  const isOpen = (id) => sheets.current === id;
+  const showPanel = (id) => sheets.show(id);
 
   function togglePanel(id) {
     showPanel(isOpen(id) ? null : id);
@@ -59,9 +65,9 @@ export function createHud(ctx, sound) {
 
   // Opens someone's character sheet (and, from a list, moves the camera to them).
   function selectPerson(id, pan = true) {
+    showPanel('inspect');
     ctx.selectedId = id;
     if (pan) ctx.events.emit('focus-human', id);
-    showPanel('inspect');
     refresh();
   }
 
@@ -69,9 +75,9 @@ export function createHud(ctx, sound) {
   const tribe = createTribePanel(ctx, { toast, select: selectPerson });
   const portal = createPortalPanel(ctx, { toast, select: selectPerson, close: () => showPanel(null) });
 
-  // God-power toolbar. Picking a power arms it; the next tap on the map (a
-  // tile, or a person for Bless/Inspire) uses it. Tap the button again to
-  // cancel. Omen instead opens a list of callings to choose from.
+  // God-power dock. Picking Bless or Inspire arms it; the next tap on a
+  // person uses it (tap the button again to cancel). Omen and Portal open
+  // their own sheets.
   function selectPower(id) {
     ctx.selectedPower = id;
     for (const b of $('power-buttons').children) b.classList.toggle('selected', b.dataset.power === id);
@@ -82,7 +88,8 @@ export function createHud(ctx, sound) {
 
   $('power-buttons').replaceChildren(
     ...ctx.data.powers.map((p) => {
-      const b = button('', '', () => {
+      const b = button('power', '', () => {
+        haptic();
         if (p.target === 'focus') return togglePanel('omen');
         if (p.target === 'party') return togglePanel('portal');
         const turnOn = ctx.selectedPower !== p.id;
@@ -90,7 +97,10 @@ export function createHud(ctx, sound) {
         selectPower(turnOn ? p.id : null);
       });
       b.dataset.power = p.id;
-      b.append(el('span', null, `${p.icon ?? ''} ${p.name}`.trim()), el('span', 'cost', p.cost ? `${p.cost} faith` : 'dungeon'));
+      const orb = el('span', 'power-orb');
+      orb.append(icon(p.id));
+      b.append(orb, el('span', 'power-name', p.name), el('span', 'cost', p.cost ? `${p.cost}` : 'free'));
+      if (p.cost) b.lastChild.prepend(icon('faith', 'cost-icon'));
       return b;
     }),
   );
@@ -111,15 +121,6 @@ export function createHud(ctx, sound) {
     }),
   );
 
-  for (const b of document.querySelectorAll('[data-speed]')) {
-    b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
-  }
-
-  function setSpeed(speed) {
-    ctx.runner.speed = speed;
-    for (const b of document.querySelectorAll('[data-speed]')) b.classList.toggle('active', Number(b.dataset.speed) === speed);
-  }
-
   // Swaps in a loaded or brand-new world and redraws everything.
   function replaceSim(sim, message) {
     ctx.sim = sim;
@@ -130,11 +131,15 @@ export function createHud(ctx, sound) {
     for (const n of document.querySelectorAll('[data-key]')) n.dataset.key = '';
     showPanel(null);
     ctx.events.emit('sim-replaced');
-    toast(`${message} (Year ${dateOf(sim.tick, ctx.data.config.time).year}, Day ${dateOf(sim.tick, ctx.data.config.time).day})`);
+    const d = dateOf(sim.tick, ctx.data.config.time);
+    toast(`${message} (Year ${d.year}, Day ${d.day})`);
   }
 
   const menu = createMenuPanel(ctx, { toast, replaceSim, showPanel, sound });
-  ctx.events.on('power-used', ({ powerId }) => sound.play(powerId));
+  ctx.events.on('power-used', ({ powerId }) => {
+    sound.play(powerId);
+    haptic([15, 30, 15]);
+  });
   // A soft click for every button.
   document.addEventListener('click', (e) => {
     if (e.target.closest('button')) sound.play('tap');
@@ -149,30 +154,20 @@ export function createHud(ctx, sound) {
     menu.render();
     togglePanel('menu');
   });
-  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal', 'help']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
-  $('inspect-close').addEventListener('click', () => {
-    ctx.selectedId = null;
-    showPanel(null);
-  });
-
-  function renderTopBar() {
-    const { sim, data } = ctx;
-    const d = dateOf(sim.tick, data.config.time);
-    $('date').textContent = `${SEASON_ICON[d.season] ?? ''} Day ${d.day} · ${d.season}, Year ${d.year}`;
-    $('pop').textContent = `✨ ${Math.floor(sim.faith)} · 👥 ${sim.humans.length}/${populationCap(sim, data)}`;
-    for (const b of $('power-buttons').children) b.classList.toggle('poor', sim.faith < data.powersById[b.dataset.power].cost);
-    const s = sim.stockpile;
-    const extra = [['🍺', s.potato_ale], ['🍖', s.meat], ['⛏️', s.ore], ['💎', s.mana_crystal], ['🌿', s.herbal_remedy]]
-      .filter(([, n]) => n > 0).map(([icon, n]) => ` · ${icon} ${n}`).join('');
-    $('stock').textContent = `🪵 ${s.wood} · 🥔 ${s.food} · 🍲 ${mealsInStock(sim, data)}${extra}`;
-  }
+  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal', 'help', 'inspect']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
 
   function renderLog() {
     const hist = ctx.sim.history;
     const key = `${hist.length}:${hist[hist.length - 1]?.tick}`;
     if (key === logKey) return;
     logKey = key;
-    $('log-list').replaceChildren(...hist.slice().reverse().map((e) => el('li', null, formatEntry(e, ctx.data.config.time))));
+    $('log-list').replaceChildren(...hist.slice().reverse().map((e) => {
+      const kind = NEWS.find(([re]) => re.test(e.text));
+      const li = el('li', kind ? 'major' : null);
+      if (kind) li.append(icon(kind[1]));
+      li.append(el('span', null, formatEntry(e, ctx.data.config.time)));
+      return li;
+    }));
   }
 
   // Big moments in anyone's life pop up as a banner for a few seconds.
@@ -188,10 +183,13 @@ export function createHud(ctx, sound) {
     newsSeen.entry = last;
     const news = hist.slice(start).map((e) => [NEWS.find(([re]) => re.test(e.text)), e]).filter(([kind]) => kind);
     for (const [kind, e] of news.slice(-2)) showNews(kind[1], e.text);
-    if (news.length) sound.play(news.at(-1)[0][2]);
+    if (!news.length) return;
+    const [, , snd, buzz] = news.at(-1)[0];
+    sound.play(snd);
+    if (buzz) haptic(buzz);
   }
 
-  function showNews(icon, text) {
+  function showNews(iconName, text) {
     const box = $('news');
     box.style.top = `${$('topbar').offsetHeight + 8}px`;
     while (box.children.length >= 2) box.firstChild.remove();
@@ -201,14 +199,17 @@ export function createHud(ctx, sound) {
       showPanel('log');
       refresh();
     });
-    item.append(el('span', 'news-icon', icon), el('span', null, text));
+    const badge = el('span', 'news-icon');
+    badge.append(icon(iconName));
+    item.append(badge, el('span', null, text));
     box.append(item);
     setTimeout(() => item.classList.add('fade'), 4500);
     setTimeout(() => item.remove(), 5200);
   }
 
   function refresh() {
-    renderTopBar();
+    top.render();
+    for (const b of $('power-buttons').children) b.classList.toggle('poor', ctx.sim.faith < ctx.data.powersById[b.dataset.power].cost);
     renderNews();
     if (isOpen('inspect') && !sheet.render()) showPanel(null);
     if (isOpen('log')) renderLog();
@@ -216,17 +217,15 @@ export function createHud(ctx, sound) {
     if (isOpen('portal')) portal.render();
   }
 
-  setSpeed(ctx.runner.speed);
-
-  // First time here: explain the basics.
-  try {
-    if (!localStorage.getItem('godsim.seenHelp')) {
-      localStorage.setItem('godsim.seenHelp', '1');
-      showPanel('help');
-    }
-  } catch {
-    // No storage: skip the intro.
-  }
+  createTitleScreen(ctx, {
+    start: () => {
+      ctx.events.emit('game-start');
+      top.setSpeed(1);
+    },
+    replaceSim,
+    showHelp: () => showPanel('help'),
+  });
+  top.setSpeed(0);
 
   return {
     toast,

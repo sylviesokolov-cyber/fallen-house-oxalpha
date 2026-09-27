@@ -3,8 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#141b26">
+  <meta name="theme-color" content="#0f1522">
   <title>God Sim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Nunito:wght@500;700;800;900&display=swap">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
@@ -15,27 +18,38 @@
 <body>
   <div id="game"></div>
 
+  <!-- Top HUD: the date and time of day, Faith, people, stores, and the clock. -->
   <header id="topbar">
-    <div class="row">
-      <span id="date">Day 1</span>
-      <span id="pop">Pop 0</span>
-    </div>
-    <div id="stock">Wood 0 · Stone 0</div>
-    <div class="row">
-      <div class="group">
-        <button data-speed="0" aria-label="Pause">II</button>
-        <button data-speed="1">1x</button>
-        <button data-speed="2">2x</button>
-        <button data-speed="4">4x</button>
+    <div class="hud-row">
+      <div id="date-card" class="card">
+        <div id="day-dial"></div>
+        <div class="date-text">
+          <strong id="date">Day 1</strong>
+          <span id="season">Spring · Year 1</span>
+        </div>
       </div>
-      <div class="group">
-        <button id="btn-log">Log</button>
-        <button id="btn-tribe">Tribe</button>
-        <button id="btn-menu" aria-label="Menu">☰</button>
+      <div class="hud-right">
+        <div id="faith" class="chip-stat faith"><i data-icon="faith"></i><span>0</span></div>
+        <div id="pop" class="chip-stat"><i data-icon="people"></i><span>0</span></div>
+      </div>
+    </div>
+    <div class="hud-row">
+      <div id="stock" class="stock"></div>
+      <div id="clock" class="clock">
+        <button id="btn-pause" aria-label="Pause"><i data-icon="pause"></i></button>
+        <button id="btn-speed" aria-label="Speed"><i data-icon="play"></i><span>1x</span></button>
       </div>
     </div>
   </header>
 
+  <!-- Round shortcuts on the right edge. -->
+  <nav id="fabs">
+    <button id="btn-tribe" class="fab" aria-label="Tribe"><i data-icon="tribe"></i></button>
+    <button id="btn-log" class="fab" aria-label="History"><i data-icon="log"></i></button>
+    <button id="btn-menu" class="fab" aria-label="Menu"><i data-icon="menu"></i></button>
+  </nav>
+
+  <!-- God powers. -->
   <nav id="powers">
     <div id="power-hint" class="hidden"></div>
     <div id="power-buttons"></div>
@@ -50,47 +64,60 @@
         <div id="insp-leader" class="leader-line"></div>
         <div class="sub"><span id="insp-age"></span> · <span id="insp-action"></span></div>
       </div>
-      <button id="inspect-close" aria-label="Close">✕</button>
+      <button id="inspect-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div class="chips"><span id="insp-emotion-row"></span><span id="insp-traits" class="chips inline"></span></div>
-    <div id="insp-tools" class="sub"></div>
-    <div id="insp-alive">
-      <div id="insp-level"></div>
-      <div id="insp-stats" class="stats-grid"></div>
-      <div class="need"><label>Health</label><div class="bar"><div id="bar-health"></div></div></div>
-      <div class="need"><label>Food</label><div class="bar"><div id="bar-hunger"></div></div></div>
-      <div class="need"><label>Energy</label><div class="bar"><div id="bar-energy"></div></div></div>
-      <div class="need"><label>Social</label><div class="bar"><div id="bar-social"></div></div></div>
-      <div class="need"><label>Mood</label><div class="bar"><div id="bar-mood"></div></div></div>
-      <div class="need"><label>Devotion</label><div class="bar devotion"><div id="bar-devotion"></div></div></div>
-      <h3>Thoughts</h3>
-      <div id="insp-thoughts"></div>
-      <h3>Relationships</h3>
-      <div id="insp-bonds"></div>
-      <h3>Skills</h3>
-      <div id="insp-skills"></div>
+    <div class="tabs sheet-tabs">
+      <button data-sheet="status" class="active">Status</button>
+      <button data-sheet="skills">Skills</button>
+      <button data-sheet="people">People</button>
+      <button data-sheet="story">Story</button>
     </div>
-    <h3>Knows</h3>
-    <div id="insp-knows" class="chips"></div>
-    <h3>Life story</h3>
-    <ol id="insp-story" class="story"></ol>
+    <div class="sheet-tab" data-sheet="status">
+      <div id="insp-tools" class="sub"></div>
+      <div id="insp-alive">
+        <div id="insp-level"></div>
+        <div id="insp-stats" class="stats-grid"></div>
+        <div class="needs">
+          <div class="need"><label><i data-icon="heart"></i>Health</label><div class="bar"><div id="bar-health"></div></div></div>
+          <div class="need"><label><i data-icon="meal"></i>Food</label><div class="bar"><div id="bar-hunger"></div></div></div>
+          <div class="need"><label><i data-icon="bulb"></i>Energy</label><div class="bar"><div id="bar-energy"></div></div></div>
+          <div class="need"><label><i data-icon="people"></i>Social</label><div class="bar"><div id="bar-social"></div></div></div>
+          <div class="need"><label><i data-icon="star"></i>Mood</label><div class="bar"><div id="bar-mood"></div></div></div>
+          <div class="need"><label><i data-icon="faith"></i>Devotion</label><div class="bar devotion"><div id="bar-devotion"></div></div></div>
+        </div>
+        <h3>Thoughts</h3>
+        <div id="insp-thoughts"></div>
+      </div>
+    </div>
+    <div class="sheet-tab hidden" data-sheet="skills">
+      <div id="insp-skills"></div>
+      <h3>Knows</h3>
+      <div id="insp-knows" class="chips"></div>
+    </div>
+    <div class="sheet-tab hidden" data-sheet="people">
+      <div id="insp-bonds"></div>
+    </div>
+    <div class="sheet-tab hidden" data-sheet="story">
+      <ol id="insp-story" class="story"></ol>
+    </div>
   </section>
 
   <section id="log" class="panel hidden">
     <div class="panel-head">
-      <h2>History</h2>
-      <button id="log-close" aria-label="Close">✕</button>
+      <div class="head-text"><h2>History</h2><div class="sub">Everything that has happened, newest first.</div></div>
+      <button id="log-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <ol id="log-list"></ol>
   </section>
 
   <section id="tribe" class="panel hidden">
     <div class="panel-head">
-      <div>
+      <div class="head-text">
         <h2 id="tribe-title"></h2>
         <div id="tribe-sub" class="sub"></div>
       </div>
-      <button id="tribe-close" aria-label="Close">✕</button>
+      <button id="tribe-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div class="tabs">
       <button data-tab="overview">Overview</button>
@@ -103,51 +130,63 @@
 
   <section id="omen" class="panel hidden">
     <div class="panel-head">
-      <div>
+      <div class="head-text">
         <h2>Send an omen</h2>
         <div class="sub">30 Faith. The whole tribe follows its calling for 10 days.</div>
       </div>
-      <button id="omen-close" aria-label="Close">✕</button>
+      <button id="omen-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div id="omen-list"></div>
   </section>
 
   <section id="portal" class="panel hidden">
     <div class="panel-head">
-      <div>
+      <div class="head-text">
         <h2>The Portal</h2>
         <div id="portal-sub" class="sub"></div>
       </div>
-      <button id="portal-close" aria-label="Close">✕</button>
+      <button id="portal-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div id="portal-body"></div>
   </section>
 
   <section id="menu" class="panel hidden">
     <div class="panel-head">
-      <h2>Game</h2>
-      <button id="menu-close" aria-label="Close">✕</button>
+      <div class="head-text"><h2>Game</h2></div>
+      <button id="menu-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div id="menu-body"></div>
   </section>
 
   <section id="help" class="panel hidden">
     <div class="panel-head">
-      <h2>How to play</h2>
-      <button id="help-close" aria-label="Close">✕</button>
+      <div class="head-text"><h2>How to play</h2></div>
+      <button id="help-close" class="close" aria-label="Close"><i data-icon="close"></i></button>
     </div>
     <div class="help-body">
-      <p>You are the unseen god of a small walled sanctuary. Its people live their own lives: they eat, sleep, work, train, fall in love, raise children, discover new things and build their home up, building by building. Every one of them has a story.</p>
-      <h3>Watch</h3>
-      <p>Drag to look around, pinch to zoom. Tap anyone to see their character sheet, thoughts, relationships and life story. <b>Tribe</b> shows the whole sanctuary, <b>Log</b> everything that has happened.</p>
-      <h3>Act</h3>
-      <p><b>✨ Bless</b> heals someone and doubles how fast they learn. <b>💡 Inspire</b> sends a dream that leads to discoveries. <b>🌠 Omen</b> sets what the whole tribe focuses on. Miracles that people see grow their faith, and the faithful pray, which gives you more Faith.</p>
-      <h3>The Portal</h3>
-      <p>Tap <b>🌀 Portal</b> (or the portal in the north wall) to send up to five heroes into the dungeon for meat, herbs, ore and mana crystals. Match the floor's recommended power. Death in the dungeon is real, but what they bring back lets your people forge iron, brew remedies and learn magic.</p>
-      <h3>Time</h3>
-      <p>Pause or speed up with the buttons at the top. The game autosaves every minute and when you leave; the ☰ menu has save slots and a new world.</p>
+      <div class="help-card"><i data-icon="crown"></i><p>You are the unseen god of a small walled sanctuary. Its people live their own lives: they eat, sleep, work, train, fall in love, raise children, discover new things and build their home up, building by building. Every one of them has a story.</p></div>
+      <div class="help-card"><i data-icon="people"></i><p><b>Watch.</b> Drag to look around, pinch to zoom, double-tap to zoom in. Tap anyone for their character sheet: thoughts, skills, relationships and life story. <b>Tribe</b> shows the whole sanctuary, <b>History</b> everything that has happened.</p></div>
+      <div class="help-card"><i data-icon="bless"></i><p><b>Act.</b> <b>Bless</b> heals someone and doubles how fast they learn. <b>Inspire</b> sends a dream that leads to discoveries. <b>Omen</b> sets what the whole tribe focuses on. People who see miracles grow devout, and the devout pray, which gives you Faith.</p></div>
+      <div class="help-card"><i data-icon="portal"></i><p><b>The Portal.</b> Send up to five heroes into the dungeon for meat, herbs, ore and mana crystals. Match the floor's recommended power: death there is real. What they bring back lets your people forge iron, brew remedies and learn magic.</p></div>
+      <div class="help-card"><i data-icon="save"></i><p><b>Time.</b> Pause or change the speed at the top right. The game saves itself every minute and whenever you leave.</p></div>
     </div>
   </section>
+
+  <!-- Title screen. -->
+  <div id="title">
+    <div class="title-sky"></div>
+    <div class="title-inner">
+      <img class="title-logo" src="icons/icon-512.png" alt="">
+      <h1>God Sim</h1>
+      <p class="tagline">A sanctuary where every life matters</p>
+      <div id="title-buttons">
+        <button id="title-continue" class="big primary hidden"></button>
+        <button id="title-new" class="big">New world</button>
+        <button id="title-help" class="big ghost">How to play</button>
+      </div>
+      <div id="title-loading">Loading…</div>
+    </div>
+  </div>
 
   <div id="news"></div>
   <div id="toast"></div>

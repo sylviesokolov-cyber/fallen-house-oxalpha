@@ -135,13 +135,24 @@ export function createPortalPanel(ctx, { toast, select, close }) {
   }
 
   // Rebuilt when anything shown changes; `force` after a tap in the panel.
-  function render(force = false) {
+  // Rebuilt only when something that matters changes (who's shown, their HP
+  // in 10% steps, the party's progress), so taps aren't lost to rebuilds
+  // while people slowly heal.
+  function stateKey() {
     const { sim } = ctx;
     const exp = activeExpedition(sim);
-    const nodes = [...(exp ? status(exp) : picker()), ...reports()];
+    const hp = sim.humans.map((h) => `${h.id}:${Math.round(h.health / 10)}:${h.level}:${h.away ?? ''}`).join();
+    const trips = sim.expeditions.map((e) => `${e.id}${e.phase}${e.reports.length}`).join();
+    return `${exp?.id}|${exp?.phase}|${exp?.room}|${exp?.recall}|${floor}|${[...chosen]}|${openReport}|${hp}|${trips}|${sim.dungeon.deepest}`;
+  }
+
+  function render(force = false) {
+    const { sim } = ctx;
+    const key = stateKey();
+    if (force) $('portal-body').dataset.key = '';
+    const exp = activeExpedition(sim);
     $('portal-sub').textContent = `Deepest floor open: ${sim.dungeon.deepest}`;
-    const key = force ? String(Math.random()) : nodes.map((n) => n.textContent).join('|');
-    renderKeyed($('portal-body'), key, () => nodes);
+    renderKeyed($('portal-body'), key, () => [...(exp ? status(exp) : picker()), ...reports()]);
   }
 
   return { render };

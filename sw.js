@@ -2,7 +2,7 @@
 // up straight away; the cache is only the fallback when there's no signal.
 // Everything fetched (game files, data, Phaser from the CDN) is cached as it
 // goes, so after one online visit the game works offline.
-const CACHE = 'godsim-v1';
+const CACHE = 'godsim-v2';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', 'index.html', 'styles.css', 'manifest.json'])));

@@ -9,6 +9,7 @@ import { activeExpedition } from '../sim/dungeon.js';
 // when something visible changes (a site progresses, a level goes up).
 
 const FLOOR = 0xa58a66;
+const FONT = 'Nunito, system-ui, sans-serif';
 const px = TILE_SIZE;
 
 function beds(g, b, count) {
@@ -200,10 +201,11 @@ export class BuildingView {
     const y = b.ry * px;
     const w = b.w * px;
     const h = b.h * px;
+    const open = effectsOf(data, b).training;
     // A soft shadow to the lower right, so rooms stand up off the grass.
     g.fillStyle(0x000000, 0.22);
-    g.fillRect(x + w, y + 4, 4, h);
-    g.fillRect(x + 4, y + h, w, 4);
+    g.fillRect(x + w + 1, y + 4, 4, h + (open ? 0 : 5));
+    g.fillRect(x + 4, y + h + (open ? 1 : 6), w, 4);
     if (b.plot) {
       g.fillStyle(FLOOR);
       g.fillRect(x, y, w, h);
@@ -218,9 +220,22 @@ export class BuildingView {
       g.strokeRect(x, y, w, h);
       g.lineStyle(1, shade(color, 1.35), 0.8);
       g.strokeRect(x + 2, y + 2, w - 4, h - 4);
-      // A doorway in the bottom wall.
+      // The front wall seen from above: a strip of wall face with shuttered
+      // windows and the doorway, which gives the room some height.
+      const face = shade(color, 0.5);
+      g.fillStyle(face);
+      g.fillRect(x - 1.5, y + h + 1.5, w + 3, 5);
+      g.fillStyle(shade(color, 0.75));
+      g.fillRect(x - 1.5, y + h + 1.5, w + 3, 1);
+      g.fillStyle(0x2a1d14);
+      for (let k = 1; k < b.w; k += 2) {
+        if (Math.abs(k + 0.5 - b.w / 2) < 1) continue;
+        g.fillRect(x + k * px + 3, y + h + 3, 6, 2.5);
+      }
       g.fillStyle(0x6b4a2b);
       g.fillRect(x + w / 2 - 5, y + h - 2, 10, 4);
+      g.fillStyle(0x3a2616);
+      g.fillRect(x + w / 2 - 4, y + h + 1.5, 8, 5);
     }
     let text = b.level > 1 ? `${def.name} Lv${b.level}` : def.name;
     if (b.upgrade) {
@@ -258,7 +273,7 @@ function shade(color, f) {
 }
 
 function label(scene, x, y, text, color) {
-  return scene.add.text(x, y, text, { fontSize: '9px', fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 3 })
+  return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: '9px', fontStyle: '900', color, stroke: '#0b0f18', strokeThickness: 3 })
     .setOrigin(0.5, 1)
     .setResolution(3)
     .setDepth(4);

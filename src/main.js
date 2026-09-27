@@ -23,10 +23,18 @@ const ctx = {
 // Exposed for debugging from the browser console.
 window.godSim = ctx;
 
+// Give the web fonts a moment to arrive so map labels use them; carry on
+// without them if offline.
+const fontsReady = Promise.race([
+  Promise.all(['900 12px Nunito', '800 12px Nunito', '900 12px Cinzel'].map((f) => document.fonts?.load(f))),
+  new Promise((resolve) => setTimeout(resolve, 1500)),
+]).catch(() => {});
+
+await fontsReady;
 ctx.game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  backgroundColor: '#141b26',
+  backgroundColor: '#0f1522',
   scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
   // Phaser only assigns touches to pointers 1..activePointers-1, so 3 = two fingers.
   input: { activePointers: 3 },

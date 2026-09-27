@@ -4,6 +4,9 @@ import { ResourceView } from '../render/resourceView.js';
 import { HumanView } from '../render/humanView.js';
 import { BuildingView } from '../render/buildingView.js';
 import { AmbientView } from '../render/ambientView.js';
+import { makeTextures } from '../render/textures.js';
+import { FxView } from '../render/fxView.js';
+import { BubbleView } from '../render/bubbleView.js';
 import { setupCameraControls } from '../render/cameraControls.js';
 import { Effects } from '../render/effects.js';
 import { createHud } from '../ui/hud.js';
@@ -29,24 +32,36 @@ export class WorldScene extends Phaser.Scene {
     this.buildViews();
     this.ctx.events.on('sim-replaced', () => this.buildViews());
     this.ctx.events.on('power-used', ({ powerId, x, y, radius }) => this.effects.play(powerId, x, y, radius));
+    // The camera keeps the selected person in view (in the part of the
+    // screen the open sheet doesn't cover) until the player pans away.
+    this.followId = null;
     this.ctx.events.on('focus-human', (id) => {
-      const h = this.ctx.sim.humans.find((o) => o.id === id);
-      if (h) this.cameras.main.pan((h.x + 0.5) * TILE_SIZE, (h.y + 0.5) * TILE_SIZE, 300);
+      this.followId = id;
+    });
+    this.camControls.onPan(() => {
+      this.followId = null;
     });
   }
 
   buildViews() {
     this.mapImage?.destroy();
+    this.winterMap?.destroy();
     this.resourceView?.destroy();
     this.buildingView?.destroy();
     this.humanView?.destroy();
     this.ambientView?.destroy();
+    this.fxView?.destroy();
+    this.bubbleView?.destroy();
     const { sim, data } = this.ctx;
+    makeTextures(this);
     this.mapImage = drawMap(this, sim.world, data);
+    this.winterMap = drawMap(this, sim.world, data, 'winter').setAlpha(0);
     this.resourceView = new ResourceView(this);
     this.buildingView = new BuildingView(this, sim, data);
     this.humanView = new HumanView(this);
     this.ambientView = new AmbientView(this, sim, data);
+    this.fxView = new FxView(this, sim, data);
+    this.bubbleView = new BubbleView(this);
     this.focusOnTribe();
   }
 
@@ -74,6 +89,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     this.ctx.selectedId = id;
+    this.followId = id;
     this.hud.showInspect(id);
   }
 
@@ -98,6 +114,22 @@ export class WorldScene extends Phaser.Scene {
     this.hud.powerUsed();
   }
 
+  follow() {
+    const { selectedId } = this.ctx;
+    if (this.followId == null || this.followId !== selectedId) return;
+    const s = this.humanView.sprites.get(selectedId);
+    if (!s?.visible) return;
+    const cam = this.cameras.main;
+    const top = document.getElementById('topbar').offsetHeight;
+    const sheet = document.querySelector('.panel:not(.hidden)');
+    const bottom = sheet ? sheet.getBoundingClientRect().top : cam.height;
+    const sy = (top + bottom) / 2;
+    const tx = s.x - cam.width / 2;
+    const ty = s.y - cam.height / 2 - (sy - cam.height / 2) / cam.zoom;
+    cam.scrollX += (tx - cam.scrollX) * 0.12;
+    cam.scrollY += (ty - cam.scrollY) * 0.12;
+  }
+
   update(time, delta) {
     const { runner, sim, data, selectedId } = this.ctx;
     runner.update(delta);
@@ -105,7 +137,10 @@ export class WorldScene extends Phaser.Scene {
     this.buildingView.update(sim, data);
 
     this.humanView.update(sim, data, runner.alpha, selectedId);
-    this.ambientView.update(sim, data, runner.alpha, time);
+    this.follow();
+    this.ambientView.update(sim, data, runner.alpha, time, this.winterMap);
+    this.fxView.update(sim, data, time, this.ambientView.dark, this.humanView.sprites);
+    this.bubbleView.update(sim, data, this.humanView.sprites, selectedId);
     this.effects.update(time);
     this.hud.update(time);
   }

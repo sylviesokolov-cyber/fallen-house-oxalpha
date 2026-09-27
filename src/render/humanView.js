@@ -18,7 +18,7 @@ export class HumanView {
   create(h) {
     const add = this.scene.add;
     const shadow = add.ellipse(0, 6, 10, 4, 0x000000, 0.28);
-    const hairBack = add.rectangle(0, -3, 8, 5, 0x000000);
+    const hairBack = add.ellipse(0, -2.5, 8.6, 8, 0x000000);
     const body = add.ellipse(0, 2, 10, 10, 0xffffff);
     const head = add.circle(0, -4, 3.6, 0xffffff).setStrokeStyle(0.8, 0x1b1b1b, 0.6);
     const hair = add.arc(0, -4.6, 3.9, 180, 360, false, 0x000000);
