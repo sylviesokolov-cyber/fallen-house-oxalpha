@@ -3,6 +3,7 @@ import { formatEntry } from '../sim/history.js';
 import { serialize, deserialize } from '../sim/save.js';
 import { usePower } from '../sim/godPowers.js';
 import { populationCap } from '../sim/settlement.js';
+import { mealsInStock } from '../sim/items.js';
 import { $, el, button } from './dom.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
@@ -148,7 +149,8 @@ export function createHud(ctx) {
     $('pop').textContent = `Faith ${Math.floor(sim.faith)} · Pop ${sim.humans.length}/${populationCap(sim, data)}`;
     for (const b of $('power-buttons').children) b.classList.toggle('poor', sim.faith < data.powersById[b.dataset.power].cost);
     const s = sim.stockpile;
-    $('stock').textContent = `Wood ${s.wood} · Potatoes ${s.food} · Meals ${s.cooked_food}`;
+    const ale = s.potato_ale ? ` · Ale ${s.potato_ale}` : '';
+    $('stock').textContent = `Wood ${s.wood} · Potatoes ${s.food} · Meals ${mealsInStock(sim, data)}${ale}`;
   }
 
   function renderLog() {

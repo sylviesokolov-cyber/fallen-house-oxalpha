@@ -19,7 +19,8 @@
 - `src/scenes/`: `BootScene` loads `/data` and creates the sim; `WorldScene` runs the clock and drives rendering.
 - `src/ui/`: HTML/CSS overlay UI (top bar, panels). Uses DOM because native text, scrolling, and buttons work better on phones.
 - `src/runner.js`: fixed-timestep loop (ticks/sec from `data/config.json`; speed 0/1/2/4).
-- `data/*.json`: content and tuning. New content or balance changes should mean editing JSON, not code. `data/sanctuary.json` is the map layout (walls, portal, zones, starting buildings, plots).
+- `data/*.json`: content and tuning. New content or balance changes should mean editing JSON, not code. `data/sanctuary.json` is the map layout (walls, portal, zones, starting buildings, plots, home plots).
+- `src/sim/construction.js`: plots, construction sites, upgrades and family homes. Building effects at a level come from `effectsOf`/`buildingEffect` in `buildings.js` (base effects plus upgrades reached).
 
 ## Sim rules
 - All sim randomness goes through `src/sim/rng.js` (mulberry32). The RNG state lives in the sim state, so a save resumes the same sequence.

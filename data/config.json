@@ -108,13 +108,18 @@
     "oldAgeBaseYearly": 0.02,
     "oldAgeGrowth": 1.25,
     "elderWorkWeight": 0.5,
-    "childWanderRadius": 4
+    "childWanderRadius": 4,
+    "foodSecureFraction": 0.5
   },
   "food": {
     "rawValue": 25,
     "spoilPerDay": 0.02,
     "reservePerPerson": 20,
-    "storeScarcityBonus": 12
+    "storeScarcityBonus": 12,
+    "mealsPerPerson": 3,
+    "harvestUrgency": 30,
+    "startStock": 80,
+    "cookUrgency": 20
   },
   "discovery": {
     "checkEveryTicks": 10,
@@ -122,7 +127,7 @@
   },
   "gather": {
     "targetPerPerson": {
-      "wood": 15
+      "wood": 25
     },
     "shortageBonus": 8,
     "surplusPenalty": 12
@@ -143,7 +148,7 @@
     "intervalDays": 2,
     "ticks": 15,
     "fieldFaith": 0.4,
-    "scoreBase": 10,
+    "scoreBase": 22,
     "scorePerDevotion": 0.3
   },
   "mood": {
@@ -192,10 +197,6 @@
       5,
       1
     ],
-    "cookedMeal": [
-      6,
-      1
-    ],
     "discovered": [
       20,
       5
@@ -219,6 +220,14 @@
     "goodTraining": [
       4,
       1
+    ],
+    "newHome": [
+      15,
+      5
+    ],
+    "sharedDrink": [
+      8,
+      1
     ]
   },
   "leader": {
@@ -239,5 +248,20 @@
       "archery",
       "defense"
     ]
+  },
+  "construction": {
+    "workScore": 20,
+    "ticks": 40
+  },
+  "study": {
+    "ticks": 40,
+    "scoreBase": 10,
+    "discoveryBoost": 6,
+    "thresholdFactor": 0.75
+  },
+  "tavern": {
+    "ticks": 20,
+    "socialBelow": 70,
+    "bondGain": 2
   }
 }

@@ -1,4 +1,5 @@
 [
+  {"id": "build", "name": "Build", "description": "People throw themselves into building and upgrading.", "effects": {"build": 1.8}},
   {"id": "train", "name": "Training", "description": "People spend far more time at the Training Ground.", "effects": {"train": 2}},
   {"id": "gather", "name": "Gather", "description": "People throw themselves into cutting wood.", "effects": {"gather": 1.6}},
   {"id": "harvest", "name": "Harvest", "description": "People harvest and store potatoes for leaner times.", "effects": {"storeFood": 2}},

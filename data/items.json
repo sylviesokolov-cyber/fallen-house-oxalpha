@@ -1,3 +1,9 @@
 [
-  {"id": "cooked_food", "name": "Boiled potatoes", "tech": "cooking", "kind": "good", "cost": {"food": 1}, "craftTicks": 10, "skill": "cooking", "station": "kitchen", "want": {"perPerson": 3}, "food": 50}
+  {"id": "cooked_food", "name": "Boiled potatoes", "tech": "cooking", "kind": "meal", "cost": {"food": 1}, "craftTicks": 10, "skill": "cooking", "station": "kitchen", "food": 50, "mood": 4},
+  {"id": "mashed_potatoes", "name": "Mashed potatoes", "tech": "potato_cuisine", "kind": "meal", "cost": {"food": 1}, "craftTicks": 14, "skill": "cooking", "station": "kitchen", "food": 60, "mood": 8},
+  {"id": "potato_bread", "name": "Potato bread", "tech": "potato_cuisine", "kind": "meal", "cost": {"food": 1}, "craftTicks": 18, "skill": "cooking", "station": "kitchen", "stationLevel": 2, "food": 70, "mood": 12},
+  {"id": "potato_ale", "name": "Potato ale", "tech": "brewing", "kind": "drink", "cost": {"food": 2}, "craftTicks": 16, "skill": "cooking", "station": "tavern", "want": {"perPerson": 1}, "mood": 10, "social": 40},
+  {"id": "wooden_sword", "name": "Wooden sword", "tech": "carpentry", "kind": "tool", "cost": {"wood": 4}, "craftTicks": 20, "skill": "carpentry", "station": "carpentry_workshop", "durability": 40, "forSkills": ["swordsmanship", "archery", "defense"], "effects": {"trainingXp": 1.3}},
+  {"id": "hoe", "name": "Hoe", "tech": "carpentry", "kind": "tool", "cost": {"wood": 3}, "craftTicks": 16, "skill": "carpentry", "station": "carpentry_workshop", "durability": 60, "forSkills": ["farming"], "effects": {"workSpeed": {"farming": 0.7}}},
+  {"id": "basket", "name": "Basket", "tech": "carpentry", "kind": "tool", "cost": {"wood": 2}, "craftTicks": 12, "skill": "carpentry", "station": "carpentry_workshop", "durability": 50, "forSkills": ["farming", "woodcutting"], "effects": {"carryBonus": 3}}
 ]

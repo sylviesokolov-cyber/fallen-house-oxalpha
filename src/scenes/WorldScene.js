@@ -92,6 +92,7 @@ export class WorldScene extends Phaser.Scene {
     const { runner, sim, data, selectedId } = this.ctx;
     runner.update(delta);
     this.resourceView.update(sim, data);
+    this.buildingView.update(sim, data);
 
     this.humanView.update(sim, data, runner.alpha, selectedId);
     this.effects.update(time);

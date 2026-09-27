@@ -9,7 +9,8 @@ import { updateProximity } from './bonds.js';
 import { updateLifeCycle } from './lifecycle.js';
 import { updateDiscovery } from './techs.js';
 import { createStartingBuildings, isWarm } from './buildings.js';
-import { spoilFood } from './items.js';
+import { handOutTools, spoilFood } from './items.js';
+import { updateHomes } from './construction.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -66,4 +67,6 @@ export function stepSim(state, data) {
   updateSettlement(state, data);
   updateDiscovery(state, data);
   spoilFood(state, data);
+  handOutTools(state, data);
+  if (newDay) updateHomes(state, data);
 }

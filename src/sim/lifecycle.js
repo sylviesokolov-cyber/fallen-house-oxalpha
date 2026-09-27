@@ -7,6 +7,7 @@ import { rollTraits } from './traits.js';
 import { addFeeling } from './mood.js';
 import { inheritGrade, gradeOf } from './stats.js';
 import { populationCap } from './settlement.js';
+import { foodInStock, foodReserveWanted } from './items.js';
 import { focusValue } from './status.js';
 
 export function lifeStage(h, state, data) {
@@ -51,6 +52,8 @@ function canConceive(state, data, h) {
   const l = data.config.lifecycle;
   if (h.sex !== 'female' || h.pregnantUntil != null || !h.partnerId) return false;
   if (state.humans.length >= populationCap(state, data)) return false;
+  // Nobody starts a family while the stores are nearly bare.
+  if (foodInStock(state, data) < foodReserveWanted(state, data) * l.foodSecureFraction) return false;
   const partner = findHuman(state, h.partnerId);
   if (!partner || partner.sex !== 'male') return false;
   const today = dayIndexOf(state.tick, data.config.time);

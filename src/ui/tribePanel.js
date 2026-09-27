@@ -2,12 +2,11 @@ import { mood } from '../sim/mood.js';
 import { emotionOf } from '../sim/emotions.js';
 import { gradeOf, heroClass } from '../sim/stats.js';
 import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
+import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, stars, renderKeyed } from './dom.js';
 
 // The Tribe tab: an overview of the settlement's progress, a roster of every
 // person, the tribe's inventory, and its knowledge.
-
-const ITEM_ROWS = [['wood', 'Wood'], ['food', 'Potatoes'], ['cooked_food', 'Meals']];
 
 export function createTribePanel(ctx, { toast, select }) {
   let tab = 'overview';
@@ -53,12 +52,11 @@ export function createTribePanel(ctx, { toast, select }) {
     nodes.push(section('The sanctuary'));
     for (const b of sim.buildings) {
       const def = data.buildingsById[b.type];
-      const r = button('bond', '', () => toast(def.description));
-      r.append(el('span', null, def.name), el('span', 'kind', `Lv ${b.level}`));
+      const r = button('bond', '', () => toast(buildingInfo(b)));
+      r.append(el('span', null, def.name), el('span', 'kind', buildingStatus(b)));
       nodes.push(r);
     }
-    const empty = data.sanctuary.plots.length;
-    nodes.push(row('Empty building plots', `${empty}`));
+    nodes.push(row('Empty plots', `${freePlotCount(sim, data)} · home plots ${freePlotCount(sim, data, 'home')}`));
 
     const people = sim.humans;
     const avgLevel = people.length ? people.reduce((s, h) => s + h.level, 0) / people.length : 0;
@@ -78,6 +76,27 @@ export function createTribePanel(ctx, { toast, select }) {
       row('Lives lost', `${sim.dead.length}`),
     );
     return nodes;
+  }
+
+  function buildingStatus(b) {
+    const { sim, data } = ctx;
+    const p = jobProgress(data, b);
+    if (!b.built) return `Building ${Math.floor(p * 100)}%`;
+    if (b.upgrade) return `Lv ${b.level} → ${b.upgrade.level} ${Math.floor(p * 100)}%`;
+    const owners = (b.owners ?? []).map((id) => sim.humans.find((h) => h.id === id)?.name).filter(Boolean);
+    return owners.length ? `Home of ${owners.join(' & ')}` : `Lv ${b.level}`;
+  }
+
+  // The description, plus what the next upgrade needs (naming the tech only
+  // once someone has found it).
+  function buildingInfo(b) {
+    const { sim, data } = ctx;
+    const def = data.buildingsById[b.type];
+    const u = b.built && !b.upgrade && nextUpgrade(data, b);
+    if (!u) return def.description;
+    const tech = !u.tech ? '' : sim.discoveries[u.tech] ? `${data.techsById[u.tech].name}, ` : 'a discovery not yet made, ';
+    const cost = Object.entries(u.cost).map(([k, v]) => `${v} ${k}`).join(', ');
+    return `${def.description} Level ${u.level} needs ${tech}${cost}.`;
   }
 
   function people() {
@@ -102,20 +121,16 @@ export function createTribePanel(ctx, { toast, select }) {
   function items() {
     const { sim, data } = ctx;
     const nodes = [section('Stockpile')];
-    for (const [key, label] of ITEM_ROWS) nodes.push(row(label, `${sim.stockpile[key] ?? 0}`));
+    nodes.push(row('Wood', `${sim.stockpile.wood}`), row('Potatoes', `${sim.stockpile.food}`));
+    for (const def of data.items) {
+      const n = sim.stockpile[def.id] ?? 0;
+      if (n > 0 || (def.kind !== 'tool' && sim.discoveries[def.tech])) nodes.push(row(def.name, `${n}`));
+    }
     nodes.push(section('Tools in use'));
     const tools = {};
     for (const h of sim.humans) for (const id of Object.keys(h.tools)) tools[id] = (tools[id] ?? 0) + 1;
     const toolRows = Object.entries(tools).map(([id, n]) => row(data.itemsById[id].name, `${n}`));
     nodes.push(...(toolRows.length ? toolRows : [el('div', 'empty', 'None yet')]));
-    nodes.push(section('Buildings'));
-    const counts = {};
-    for (const b of sim.buildings) {
-      const c = (counts[b.type] ??= { built: 0, site: 0 });
-      c[b.built ? 'built' : 'site']++;
-    }
-    const bRows = Object.entries(counts).map(([type, c]) => row(data.buildingsById[type].name, `${c.built}${c.site ? ` (+${c.site} going up)` : ''}`));
-    nodes.push(...(bRows.length ? bRows : [el('div', 'empty', 'None yet')]));
     return nodes;
   }
 

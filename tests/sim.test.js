@@ -55,6 +55,7 @@ test('save/load resumes the exact same simulation', () => {
 test('starvation kills and is logged', () => {
   const s = createSim(data, 'delta');
   s.world.resources = [];
+  s.stockpile.food = 0;
   run(s, 8 * DAY);
   assert.equal(s.humans.length, 0);
   assert.ok(s.history.some((e) => e.text.includes('starved to death')));
@@ -148,6 +149,7 @@ test('a fed couple has a child who inherits family ties and valid traits', () =>
   const father = s.humans.find((h) => h.sex === 'male');
   mother.partnerId = father.id;
   father.partnerId = mother.id;
+  s.stockpile.food = 1000;
   const before = s.humans.length;
   run(s, 1);
   for (let d = 0; d < 4; d++) {
@@ -377,8 +379,8 @@ test('miracles lead to Worship, and the faithful pray for Faith', () => {
     h.devotion = 80;
   }
   quiet.faith = devout.faith = 0;
-  run(quiet, 5 * DAY);
-  run(devout, 5 * DAY);
+  run(quiet, 8 * DAY);
+  run(devout, 8 * DAY);
   assert.ok(devout.faith > quiet.faith + 5, `${devout.faith} vs ${quiet.faith}`);
 });
 
@@ -466,4 +468,184 @@ test('sim code has no Phaser or unseeded randomness', () => {
     const src = readFileSync(new URL(f, dir), 'utf8');
     assert.ok(!/Math\.random|Phaser|document\.|window\.|localStorage/.test(src), f);
   }
+});
+
+// --- Building and upgrading ---
+
+import { addWork, planJob, startJob } from '../src/sim/construction.js';
+import { buildingEffect, builtOfType, freeShelter } from '../src/sim/buildings.js';
+import { craftChoice, eatFromStock, handOutTools, wearTools } from '../src/sim/items.js';
+import { tryDiscover } from '../src/sim/techs.js';
+
+// Lays out and finishes a building (or upgrade) at once, as person h.
+function finish(s, h, job) {
+  const b = startJob(s, data, h, job);
+  while (!addWork(s, data, h, b, 50));
+  return b;
+}
+
+test('people raise new buildings on the plots once they know how', () => {
+  const s = createSim(data, 'builders');
+  const carpenter = s.humans[0];
+  learnTech(s, data, carpenter, 'carpentry');
+  s.stockpile.wood = 200;
+  run(s, 12 * DAY);
+  const shop = s.buildings.find((b) => b.type === 'carpentry_workshop');
+  assert.ok(shop, 'a workshop was started');
+  assert.ok(shop.built, 'and finished');
+  assert.match(shop.plot, /^plot:\d$/);
+  assert.ok(s.history.some((e) => e.text.startsWith('The Carpentry Workshop was finished')));
+  assert.ok(carpenter.skills.building?.xp > 0 || carpenter.skills.building?.level > 0);
+});
+
+test('nobody builds what nobody knows, or without the wood', () => {
+  const s = createSim(data, 'nobuild');
+  const h = s.humans[0];
+  s.stockpile.wood = 0;
+  learnTech(s, data, h, 'carpentry');
+  assert.equal(planJob(s, data, h), null, 'no wood');
+  s.stockpile.wood = 200;
+  assert.equal(planJob(s, data, s.humans[1]), null, 'does not know carpentry');
+  assert.equal(planJob(s, data, h).def.id, 'carpentry_workshop');
+});
+
+test('upgrades raise a building\'s level and its effects', () => {
+  const s = createSim(data, 'upgrade');
+  const h = s.humans[0];
+  const ground = builtOfType(s, 'training_ground');
+  assert.equal(buildingEffect(data, ground, 'trainingXp'), 1);
+  learnTech(s, data, h, 'drills');
+  s.stockpile.wood = 500;
+  const job = planJob(s, data, h);
+  assert.equal(job.b, ground);
+  finish(s, h, job);
+  assert.equal(ground.level, 2);
+  assert.equal(buildingEffect(data, ground, 'trainingXp'), 1.5);
+  assert.ok(s.history.some((e) => e.text === 'The Training Ground was upgraded to level 2'));
+  // The Great Hall only grows when it's nearly full.
+  learnTech(s, data, h, 'carpentry');
+  learnTech(s, data, h, 'architecture');
+  finish(s, h, planJob(s, data, h)); // the workshop comes first
+  const next = planJob(s, data, h);
+  assert.notEqual(next?.b?.type, 'great_hall');
+});
+
+test('a couple gets a family house with beds of their own', () => {
+  const s = createSim(data, 'house');
+  const a = s.humans.find((h) => h.sex === 'female');
+  const b = s.humans.find((h) => h.sex === 'male');
+  a.partnerId = b.id;
+  b.partnerId = a.id;
+  learnTech(s, data, a, 'carpentry');
+  s.stockpile.wood = 500;
+  const cap = populationCap(s, data);
+  finish(s, a, planJob(s, data, a)); // workshop
+  const job = planJob(s, data, a);
+  assert.equal(job.def.id, 'family_house');
+  const house = finish(s, a, job);
+  assert.match(house.plot, /^home:\d$/);
+  assert.deepEqual([...house.owners].sort(), [a.id, b.id].sort());
+  assert.equal(populationCap(s, data), cap + 4);
+  assert.equal(freeShelter(s, data, a), house);
+  assert.notEqual(freeShelter(s, data, s.humans.find((h) => h !== a && h !== b)), house);
+  assert.ok(a.feelings.some((f) => f.text === 'Moved into a home of our own'));
+  assert.equal(planJob(s, data, a), null, 'no more houses wanted');
+  // When the owners are gone, the next couple moves in.
+  const c = s.humans.find((h) => h !== a && h.sex === 'female');
+  const e = s.humans.find((h) => h !== b && h.sex === 'male');
+  c.partnerId = e.id;
+  e.partnerId = c.id;
+  killHuman(s, data, a, 'old age');
+  killHuman(s, data, b, 'old age');
+  run(s, DAY);
+  assert.deepEqual([...house.owners].sort(), [c.id, e.id].sort());
+});
+
+test('carpenters make tools that people pick up and wear out', () => {
+  const s = createSim(data, 'tools');
+  const h = s.humans[0];
+  learnTech(s, data, h, 'carpentry');
+  s.stockpile.wood = 500;
+  finish(s, h, planJob(s, data, h));
+  for (const o of s.humans) o.skills = {};
+  const farmer = s.humans[1];
+  gainXp(s, data, farmer, 'farming', 1);
+  assert.equal(craftChoice(s, data, h)?.id, 'hoe', 'a hoe is wanted for the farmer');
+  s.stockpile.hoe = 1;
+  s.tick = DAY * 3;
+  handOutTools(s, data);
+  assert.equal(farmer.tools.hoe, data.itemsById.hoe.durability);
+  assert.equal(s.stockpile.hoe, 0);
+  assert.notEqual(craftChoice(s, data, h)?.id, 'hoe', 'no more hoes wanted');
+  for (let i = 0; i < data.itemsById.hoe.durability; i++) wearTools(farmer, data, 'farming');
+  assert.equal(farmer.tools.hoe, undefined, 'worn out');
+});
+
+test('better recipes: mashed potatoes, then bread from an upgraded kitchen', () => {
+  const s = createSim(data, 'recipes');
+  const cook = s.humans[0];
+  s.stockpile.food = 500;
+  assert.equal(craftChoice(s, data, cook).id, 'cooked_food');
+  learnTech(s, data, cook, 'potato_cuisine');
+  assert.equal(craftChoice(s, data, cook).id, 'mashed_potatoes');
+  s.stockpile.wood = 500;
+  finish(s, cook, { b: builtOfType(s, 'kitchen'), u: data.buildingsById.kitchen.upgrades[0] });
+  assert.equal(craftChoice(s, data, cook).id, 'potato_bread');
+  s.stockpile.potato_bread = 1;
+  s.stockpile.cooked_food = 1;
+  cook.needs.hunger = 10;
+  eatFromStock(s, data, cook);
+  assert.equal(s.stockpile.potato_bread, 0, 'the best meal is eaten first');
+  assert.ok(cook.feelings.some((f) => f.text === 'Ate potato bread'));
+});
+
+test('ale at the Tavern lifts spirits and brings people closer', () => {
+  const s = createSim(data, 'tavern');
+  const [a, b] = s.humans;
+  learnTech(s, data, a, 'brewing');
+  s.stockpile.wood = 500;
+  s.stockpile.food = 500;
+  const tavern = finish(s, a, { def: data.buildingsById.tavern });
+  assert.equal(craftChoice(s, data, a).id, 'potato_ale');
+  s.stockpile.potato_ale = 10;
+  for (const h of [a, b]) {
+    h.x = tavern.x;
+    h.y = tavern.y;
+    h.needs.social = 10;
+    h.needs.hunger = h.needs.energy = 100;
+    h.action = { type: 'drink', buildingId: tavern.id, path: [], ticks: 1 };
+  }
+  updateHuman(s, data, a);
+  updateHuman(s, data, b);
+  assert.ok(a.needs.social > 40 && b.needs.social > 40);
+  assert.equal(s.stockpile.potato_ale, 8);
+  assert.ok(b.feelings.some((f) => f.text === 'Shared a drink at the Tavern'));
+});
+
+test('study in the Library builds Research and leads to discoveries', () => {
+  const s = createSim(data, 'library');
+  const h = s.humans[0];
+  // Martial Drills needs any fighting skill at 4: study lowers the bar.
+  h.skills.archery = { level: 3, xp: 0 };
+  let found = null;
+  for (let i = 0; i < 200 && !found; i++) found = tryDiscover(s, data, h, 1000, data.config.study.thresholdFactor);
+  assert.equal(found?.id, 'drills');
+  learnTech(s, data, h, 'writing');
+  s.stockpile.wood = 500;
+  const lib = finish(s, h, { def: data.buildingsById.library });
+  h.x = lib.x;
+  h.y = lib.y;
+  h.needs.hunger = h.needs.energy = 100;
+  h.action = { type: 'study', buildingId: lib.id, path: [], ticks: 1 };
+  updateHuman(s, data, h);
+  assert.ok(h.skills.research?.xp > 0 || h.skills.research?.level > 0);
+});
+
+test('over the years the sanctuary builds itself up without famine', () => {
+  const s = createSim(data, 'years');
+  run(s, 5 * 60 * DAY);
+  assert.equal(s.dead.filter((d) => d.cause === 'starvation').length, 0);
+  const built = s.buildings.filter((b) => b.built && b.plot);
+  assert.ok(built.length >= 3, `only ${built.map((b) => b.type)}`);
+  assert.ok(s.buildings.some((b) => b.level >= 2), 'something was upgraded');
 });

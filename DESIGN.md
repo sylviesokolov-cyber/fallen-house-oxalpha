@@ -94,7 +94,20 @@ Discoveries now unlock **buildings, building upgrades, recipes, gear and magic**
 - **The people decide for themselves** what to build, when someone knows how and the materials exist (as now). The player can steer this with an Omen.
 - Buildings have **levels**. Upgrading needs materials and sometimes a discovery, and unlocks more (e.g. Kitchen Lv2: new recipes; Training Ground Lv2: faster training; Great Hall → private family houses).
 
-Planned buildings (JSON, extendable): Carpentry Workshop, Storehouse, Blacksmith, Infirmary, Library, Family Houses, Mage Tower, Tavern.
+Built so far (all in `data/buildings.json`):
+
+| Building | Needs | Does |
+|---|---|---|
+| Carpentry Workshop | Carpentry | Wooden swords (faster training), hoes (faster farming), baskets (carry more) |
+| Family House (home plot) | Carpentry | 4 beds for a couple and their children |
+| Storehouse | Food Preservation | Food spoils far more slowly |
+| Library | Writing | Study: Research XP and much better odds of a discovery |
+| Tavern | Brewing | Potato ale: social need, mood, bonds |
+| Shrine | Worship | Prayer gives 3× Faith |
+
+Upgrades: Great Hall Lv2 (Architecture, 18 beds, only when nearly full), Kitchen Lv2 (Potato Cuisine, bread), Dining Hall Lv2 (Architecture, meals lift mood more), Training Ground Lv2/Lv3 (Martial Drills, more XP per session).
+
+Still planned: Blacksmith, Infirmary, Mage Tower (need the portal).
 
 ## Food
 
@@ -129,12 +142,14 @@ Replaced: the open noise-generated world, berry bushes, stone and clay deposits,
 ## Roadmap
 
 A. **The Sanctuary** — done. The walled map with zones and plots, the four starting buildings, potatoes and trees, eating in the Dining Hall, sleeping in the Great Hall, training at the Training Ground, auto-healing inside the walls, starting knowledge. Old world systems removed.
-B. **Building and upgrading.** Plots, building levels, the people deciding what to build; a new discovery tree for the sanctuary (carpentry, writing, recipes…); recipes from potatoes.
+B. **Building and upgrading** — done. People start buildings on the plots when they know how and the wood is there. Materials are paid up front, and the site is finished by work that teaches Building. Upgrades work the same way. New discoveries lead to new buildings (listed below). Family houses on home plots go to couples, and are passed on when the owners die. Recipes go from boiled to mashed potatoes, then to bread once the Kitchen is Lv2, plus potato ale. The Carpentry Workshop makes tools that people pick up and wear out. The Library lets people study to discover techs. The Tavern lets people drink together. The Build omen is back. Births wait for food security.
 C. **The Portal.** Parties, dungeon floors, monsters, combat and battle reports, loot, injuries and death, bosses.
-D. **Depth from the dungeon.** Smithing and gear, recipes with dungeon ingredients, herbalism, magic and the Mage Tower, family houses.
+D. **Depth from the dungeon.** Smithing and gear, recipes with dungeon ingredients, herbalism, magic and the Mage Tower.
 E. **Polish.** Art, sound, save slots, Capacitor APK.
 
 ## Open Questions
+
+Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.
 
 1. **Who goes through the portal?** The player picks the party and floor (recommended, the most Pick Me Up–like), or the people volunteer on their own (brave, strong, bored).
 2. **The player's role:** stay an unseen god with Faith and powers, or become the sanctuary's master who gives orders (build here, train this person)?

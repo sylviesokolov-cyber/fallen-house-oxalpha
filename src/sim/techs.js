@@ -55,6 +55,7 @@ export function techEffect(h, data, key) {
 // `f` scales thresholds down for inspired people (their dream shows the way).
 const CONDITIONS = {
   skillMin: (c, h, state, data, f) => skillLevel(h, c.skill) >= Math.floor(c.level * f),
+  skillMinAny: (c, h, state, data, f) => c.skills.some((s) => skillLevel(h, s) >= Math.floor(c.level * f)),
   counterMin: (c, h, state, data, f) => (h.counters[c.counter] ?? 0) >= c.min * f,
   tribeCounterMin: (c, h, state, data, f) => (state.tribeCounters[c.counter] ?? 0) >= c.min * f,
   nearTile: (c, h, state) => tileNear(state.world, h.x, h.y, c.tile, c.radius),
@@ -69,19 +70,27 @@ const CONDITIONS = {
 // and the Inspire power makes it far likelier still.
 export function updateDiscovery(state, data) {
   if (state.tick % data.config.discovery.checkEveryTicks !== 0) return;
+  for (const h of state.humans) tryDiscover(state, data, h);
+}
+
+// One roll per tech for this person. `mult` scales the chance and `f` the
+// thresholds (study in the Library passes both). Returns the tech found, if any.
+export function tryDiscover(state, data, h, mult = 1, f = 1) {
   const inspire = data.powersById.inspire;
-  for (const h of state.humans) {
-    const inspired = isInspired(h, state);
-    const f = inspired ? inspire.thresholdFactor : 1;
-    for (const tech of data.techs) {
-      const d = tech.discovery;
-      if (!d || !canLearn(h, data, tech.id)) continue;
-      if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data, f))) continue;
-      let p = d.baseChance * (inspired ? inspire.chanceMultiplier : 1) * statFactor(h, data, 'int') * focusValue(state, data, 'discovery');
-      for (const t of h.traits) p *= d.traitBonus?.[t] ?? 1;
-      if (chance(state.rng, p)) learnTech(state, data, h, tech.id);
+  const inspired = isInspired(h, state);
+  if (inspired) f *= inspire.thresholdFactor;
+  for (const tech of data.techs) {
+    const d = tech.discovery;
+    if (!d || !canLearn(h, data, tech.id)) continue;
+    if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data, f))) continue;
+    let p = d.baseChance * mult * (inspired ? inspire.chanceMultiplier : 1) * statFactor(h, data, 'int') * focusValue(state, data, 'discovery');
+    for (const t of h.traits) p *= d.traitBonus?.[t] ?? 1;
+    if (chance(state.rng, p)) {
+      learnTech(state, data, h, tech.id);
+      return tech;
     }
   }
+  return null;
 }
 
 // During a friendly chat, a teacher may pass on one tech the student is ready

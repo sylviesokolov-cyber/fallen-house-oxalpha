@@ -27,8 +27,10 @@ const ACTION_LABELS = {
   goSleep: 'Heading to bed',
   build: 'Building',
   craft: 'Crafting',
-  pray: 'Praying in the Great Hall',
+  pray: 'Praying',
   train: 'Training',
+  study: 'Studying in the Library',
+  drink: 'Having a drink at the Tavern',
 };
 const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintance: 'Acquaintance', rival: 'Rival' };
 const MAX_BONDS_SHOWN = 7;
@@ -47,17 +49,21 @@ export function createCharacterSheet(ctx, { toast, select }) {
       const other = sim.humans.find((o) => o.id === a.withId);
       if (other) return `Chatting with ${other.name}`;
     }
-    if (a.type === 'craft') return a.itemId === 'cooked_food' ? 'Cooking' : `Making ${data.itemsById[a.itemId].name.toLowerCase()}`;
-    if (a.type === 'build') {
-      const site = sim.buildings.find((b) => b.id === a.siteId);
-      return site ? `Building a ${data.buildingsById[site.type].name.toLowerCase()}` : 'Building';
+    const place = a.buildingId != null ? sim.buildings.find((b) => b.id === a.buildingId) : null;
+    const placeName = place && data.buildingsById[place.type].name;
+    if (a.type === 'craft') {
+      const item = data.itemsById[a.itemId];
+      const verb = item.kind === 'meal' ? 'Cooking' : item.kind === 'drink' ? 'Brewing' : 'Making';
+      return `${verb} ${item.name.toLowerCase()}`;
     }
+    if (a.type === 'build' && place) return place.built ? `Upgrading the ${placeName}` : `Building the ${placeName}`;
+    if (a.type === 'pray' && place) return `Praying in the ${placeName}`;
     if (a.type === 'seekFood' && a.dine) return 'Going to the Dining Hall';
     if (a.type === 'seekFood' && a.stock) return 'Going to the store for potatoes';
     if (a.type === 'eat' && a.dine) return 'Having a meal in the Dining Hall';
     if (a.type === 'eat' && !a.stock && !a.fromCarry) return 'Eating raw potatoes in the field';
     if (a.type === 'train' && lifeStage(h, sim, data) === 'child') return 'Playing at the Training Ground';
-    if (a.type === 'sleep' && a.buildingId != null) return `Sleeping in the ${data.buildingsById[sim.buildings.find((b) => b.id === a.buildingId)?.type]?.name ?? 'hall'}`;
+    if (a.type === 'sleep' && place) return place.owners ? 'Sleeping at home' : `Sleeping in the ${placeName}`;
     return ACTION_LABELS[a.type] ?? a.type;
   }
 

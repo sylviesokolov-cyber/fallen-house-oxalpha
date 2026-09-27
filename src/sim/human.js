@@ -74,9 +74,11 @@ export function createHuman(state, data, x, y, opts = {}) {
 export function spawnInitialHumans(state, data) {
   const cfg = data.config.humans;
   const L = data.sanctuary;
-  state.stockpile = { x: L.stockpile.x, y: L.stockpile.y, wood: 0, food: 0, cooked_food: 0 };
+  state.stockpile = { x: L.stockpile.x, y: L.stockpile.y, wood: 0, food: data.config.food.startStock };
+  for (const def of data.items) state.stockpile[def.id] = 0;
   const hall = state.buildings.find((b) => data.buildingsById[b.type].effects.sleepers);
   const basics = data.techs.filter((t) => t.starting).map((t) => t.id);
+  for (const id of basics) state.discoveries[id] = { by: 'the first people', tick: 0, lost: false };
   for (let n = 0; n < cfg.startCount; n++) {
     const x = randInt(state.rng, hall.rx, hall.rx + hall.w - 1);
     const y = randInt(state.rng, hall.ry, hall.ry + hall.h - 1);
