@@ -31,6 +31,7 @@ export function cannotGo(state, data, h) {
   if (lifeStage(h, state, data) === 'child') return 'too young';
   if (h.pregnantUntil != null) return 'pregnant';
   if (h.away != null || h.called != null) return 'already called';
+  if (h.punished) return 'serving a sentence';
   return null;
 }
 

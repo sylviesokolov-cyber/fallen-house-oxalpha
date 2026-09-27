@@ -58,6 +58,10 @@ const GLYPHS = {
   shrine: () => `<circle cx="16" cy="11" r="7" fill="#ffe27a" opacity=".45"/><path d="M8 28V14l8-7 8 7v14z" fill="#e8e2d0" ${O}/><path d="M16 12v10M12 16h8" stroke="#c9a64a" stroke-width="2.2" stroke-linecap="round"/>`,
   flame: () => `<path d="M16 3c2 5 8 8 8 15 0 5-4 10-8 10s-8-5-8-10c0-4 2-6 4-8 0 3 1 4 2 5 0-5 1-9 2-12z" fill="#f08a2a" ${O}/><path d="M16 15c2 2 4 4 4 7 0 2-2 4-4 4s-4-2-4-4c0-3 2-5 4-7z" fill="#ffd35c"/>`,
   sun: () => `<circle cx="16" cy="16" r="6.5" fill="#ffd35c" ${O}/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M7 7l3 3M22 22l3 3M25 7l-3 3M10 22l-3 3" stroke="#f2a93b" stroke-width="2" stroke-linecap="round"/>`,
+  shield: (c) => `<path d="M16 3l11 4v7c0 7-5 12-11 15C10 26 5 21 5 14V7z" fill="${c}" ${O}/><path d="M16 6l8 3v5c0 5-3.5 9-8 11.5z" fill="${shade(c, 1.35)}"/><path d="M16 10v12M11 15h10" stroke="#f2c14e" stroke-width="2" stroke-linecap="round"/>`,
+  stall: () => `<path d="M4 12l3-7h18l3 7z" fill="#d94a4a" ${O}/><path d="M7 5l-1 7M12 5v7M17 5l1 7M22 5l2 7" stroke="#f4efe0" stroke-width="2.4"/><path d="M6 12v15M26 12v15" stroke="#6b4a2b" stroke-width="2.2"/><path d="M5 19h22v4H5z" fill="#a07440" ${O}/><circle cx="11" cy="17" r="2" fill="#e8792a"/><circle cx="16" cy="17" r="2" fill="#7fc45a"/><circle cx="21" cy="17" r="2" fill="#d9c05a"/>`,
+  cathedral: () => `<path d="M16 2l3 6v4h-6V8z" fill="#cfc6ae" ${O}/><path d="M5 14l11-4 11 4v14H5z" fill="#e8e2d0" ${O}/><path d="M16 1v4M14.5 2.5h3" stroke="#f2c14e" stroke-width="1.4"/><path d="M13 28v-7a3 3 0 0 1 6 0v7z" fill="#6b4a2b" ${O}/><circle cx="16" cy="16" r="2.4" fill="#7fb8ff" ${O}/><path d="M8 20v4M24 20v4" stroke="#8a93a6" stroke-width="2"/>`,
+  scales: () => `<path d="M16 5v21M10 27h12M6 9h20" stroke="#c9a64a" stroke-width="2" stroke-linecap="round"/><path d="M6 9l-3 8h6zM26 9l-3 8h6z" fill="none" stroke="#c9a64a" stroke-width="1.2"/><path d="M2 17a4 2 0 0 0 8 0zM22 17a4 2 0 0 0 8 0z" fill="#f2c14e" ${O}/><circle cx="16" cy="5" r="1.8" fill="#f2c14e" ${O}/>`,
   gem: (c) => `<path d="M8 6h16l5 7-13 15L3 13z" fill="${c}" ${O}/><path d="M3 13h26M12 6l-2 7 6 15 6-15-2-7" stroke="${shade(c, 1.4)}" stroke-width="1" fill="none"/>`,
 };
 

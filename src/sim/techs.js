@@ -32,6 +32,7 @@ export function learnTech(state, data, h, techId) {
   const name = data.techsById[techId].name;
   logEvent(state, record ? `${h.name} rediscovered ${name}` : `${h.name} discovered ${name}`);
   feel(state, data, h, 'discovered', `Discovered ${name}`);
+  h.counters.discoveries = (h.counters.discoveries ?? 0) + 1;
   state.discoveries[techId] = { by: h.name, tick: state.tick, lost: false };
 }
 
@@ -54,6 +55,7 @@ export function techEffect(h, data, key) {
 
 // `f` scales thresholds down for inspired people (their dream shows the way).
 const CONDITIONS = {
+  tierMin: (c, h, state) => (state.settlement.tier ?? 1) >= c.tier,
   skillMin: (c, h, state, data, f) => skillLevel(h, c.skill) >= Math.floor(c.level * f),
   skillMinAny: (c, h, state, data, f) => c.skills.some((s) => skillLevel(h, s) >= Math.floor(c.level * f)),
   counterMin: (c, h, state, data, f) => (h.counters[c.counter] ?? 0) >= c.min * f,

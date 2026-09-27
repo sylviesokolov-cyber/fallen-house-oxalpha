@@ -1,4 +1,5 @@
 import { chance, next, pick, randInt } from './rng.js';
+import { rollAmbition } from './rank.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
 import { addStory, logEvent } from './history.js';
 import { rollTraits } from './traits.js';
@@ -17,7 +18,6 @@ function uniqueName(state, data, sex) {
   return pick(state.rng, data.names[sex]);
 }
 
-// Who someone can fall for: 'opposite', 'same' or 'both', weighted by config.
 // opts.ageYears: 0 for a newborn (born today); omitted for a random starting adult.
 export function createHuman(state, data, x, y, opts = {}) {
   const { rng } = state;
@@ -28,7 +28,7 @@ export function createHuman(state, data, x, y, opts = {}) {
   const birthDay = opts.ageYears === 0
     ? today
     : today - randInt(rng, cfg.startAgeMin, cfg.startAgeMax) * yearLen - randInt(rng, 0, yearLen - 1);
-  return {
+  const h = {
     id: state.nextId++,
     name: uniqueName(state, data, sex),
     sex,
@@ -55,6 +55,12 @@ export function createHuman(state, data, x, y, opts = {}) {
     health: 100,
     ...newHeroFields(state, data, opts.grade),
     traits: opts.traits ?? rollTraits(state, data),
+    ambition: null,
+    renown: opts.renown ?? 0,
+    rank: null,
+    crimes: 0,
+    outcastUntil: null,
+    punished: null,
     skills: {},
     knows: [],
     tools: {},
@@ -69,6 +75,8 @@ export function createHuman(state, data, x, y, opts = {}) {
     away: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
+  h.ambition = rollAmbition(next(rng), h.traits, opts.parentsList ?? []);
+  return h;
 }
 
 // The first people have always lived in the sanctuary: they wake in the Great
@@ -103,6 +111,7 @@ export function humanAge(h, state, data) {
 }
 
 const DEATH_TEXT = {
+  exile: (name, age, detail) => `${name} ${detail}`,
   starvation: (name, age) => `${name} starved to death, aged ${age}`,
   'old age': (name, age) => `${name} died of old age, aged ${age}`,
   dungeon: (name, age, detail) => `${name} ${detail}, aged ${age}`,

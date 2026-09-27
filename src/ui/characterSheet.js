@@ -15,6 +15,7 @@ import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait, royalMarks } from './portrait.js';
 import { artIcon } from './itemArt.js';
+import { rankIndex, standingOf } from '../sim/rank.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
 // emotion, stats, needs, thoughts, relationships, skills and knowledge.
@@ -41,6 +42,7 @@ const ACTION_LABELS = {
   arcane: 'Practising magic in the Mage Tower',
   atPortal: 'Waiting at the portal',
   drink: 'Having a drink at the Tavern',
+  punished: 'Serving a sentence',
 };
 const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintance: 'Acquaintance', rival: 'Rival' };
 const MAX_BONDS_SHOWN = 7;
@@ -86,6 +88,8 @@ export function createCharacterSheet(ctx, { toast, select }) {
     if (a.type === 'eat' && a.dine) return 'Having a meal in the Dining Hall';
     if (a.type === 'eat' && !a.stock && !a.fromCarry) return 'Eating raw potatoes in the field';
     if (a.type === 'train' && lifeStage(h, sim, data) === 'child') return 'Playing at the Training Ground';
+    if (a.type === 'study' && place) return lifeStage(h, sim, data) === 'child' ? `At school in the ${placeName}` : `Studying in the ${placeName}`;
+    if (a.type === 'punished') return h.punished?.kind === 'jail' ? 'Locked in the Watch House cells' : 'In the stocks by the stockpile';
     if (a.type === 'sleep' && place) return place.owners ? 'Sleeping at home' : `Sleeping in the ${placeName}`;
     return ACTION_LABELS[a.type] ?? a.type;
   }
@@ -106,10 +110,34 @@ export function createCharacterSheet(ctx, { toast, select }) {
     $('insp-house').textContent = who.house
       ? `House ${who.house} · ${looksLabel(who)}${drawn}${who.eternal ? ' · ageless' : ''}`
       : '';
+    renderRank(who, alive);
     const stage = alive ? lifeStage(who, sim, data) : 'adult';
     const look = appearance(who, stage === 'elder', data);
     const marks = alive ? royalMarks(sim, who) : {};
     renderKeyed($('insp-portrait'), `${who.id}|${JSON.stringify(look)}|${stage}|${alive}|${JSON.stringify(marks)}|${who.eternal}`, () => [portrait(look, who, stage, alive, data, marks)]);
+  }
+
+  // Rank, standing and ambition; a sentence being served.
+  function renderRank(who, alive) {
+    const { sim, data } = ctx;
+    const i = alive ? rankIndex(sim, data, who) : -1;
+    const node = $('insp-rank');
+    if (i < 0) {
+      node.replaceChildren();
+      node.dataset.key = '';
+      return;
+    }
+    const r = data.ranks[i];
+    const amb = who.ambition ?? 0.5;
+    const drive = amb >= 0.7 ? 'driven' : amb >= 0.45 ? 'ambitious' : amb >= 0.25 ? 'content' : 'unambitious';
+    const spurred = who.spurUntil != null && sim.tick < who.spurUntil ? ' · spurred on' : '';
+    const crimes = who.crimes ? ` · ${who.crimes} conviction${who.crimes > 1 ? 's' : ''}` : '';
+    const jailed = who.punished ? (who.punished.kind === 'jail' ? ' · in the cells' : ' · in the stocks') : '';
+    renderKeyed(node, `${who.id}|${i}|${standingOf(who, data)}|${drive}|${spurred}|${crimes}|${jailed}`, () => {
+      const chip = button('rank-chip', r.name, () => toast(r.description));
+      chip.style.setProperty('--rank', r.color);
+      return [chip, el('span', null, ` Standing ${standingOf(who, data)} · ${drive}${spurred}${crimes}${jailed}`)];
+    });
   }
 
   // The newest chapters first, each with the age they were then.
@@ -219,6 +247,7 @@ export function createCharacterSheet(ctx, { toast, select }) {
     renderKeyed($(containerId), ids.join(), () => {
       if (!ids.length) return [el('div', 'empty', 'Nothing yet')];
       return ids.map((id) => {
+        if (!byId[id].art) return button(className, byId[id].name, () => toast(byId[id].description));
         const b = button(`${className} with-icon`, '', () => toast(byId[id].description));
         b.append(artIcon(byId[id], 'art-icon small'), el('span', null, byId[id].name));
         return b;

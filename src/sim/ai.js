@@ -23,6 +23,7 @@ import { portalYard } from './dungeon.js';
 import { changeBond } from './bonds.js';
 import { appeal } from './appeal.js';
 import { addFeeling } from './mood.js';
+import { drive, rankDef } from './rank.js';
 
 // Each human always has one action. An action runs over several ticks and sets
 // `done` when finished; the human then scores its options and starts a new one.
@@ -40,11 +41,34 @@ const CALLED = new Set(['toPortal', 'atPortal']);
 const EATING = new Set(['seekFood', 'eat']);
 
 export function updateHuman(state, data, h) {
+  if (h.punished && servePunishment(state, data, h)) return;
   const hungry = h.needs.hunger < data.config.needs.hunger.seekBelow;
   if (h.called != null && !CALLED.has(h.action.type) && !(hungry && EATING.has(h.action.type))) {
     if (!(hungry && canSearchFood(state, h) && START.seekFood(state, data, h))) answerCall(state, data, h);
   } else if (shouldRethink(state, data, h)) chooseAction(state, data, h);
   RUN[h.action.type](state, data, h);
+}
+
+// The convicted stand in the stocks by the stockpile, or sit in the Watch
+// House cells, until their time is up; they're given bread and water.
+function servePunishment(state, data, h) {
+  const p = h.punished;
+  if (state.tick >= p.until) {
+    h.punished = null;
+    h.action = { type: 'idle', ticks: 2 };
+    return false;
+  }
+  if (h.action.type !== 'punished') {
+    const cell = p.buildingId != null && buildingById(state, p.buildingId);
+    const sp = data.sanctuary.stockpile;
+    const route = cell ? toRoom(state, data, h, cell) : null;
+    h.action = { type: 'punished', path: route?.path ?? pathTo(state, data, h, sp.x + 2, sp.y + 1) ?? [], spot: route?.spot };
+  }
+  const fed = data.config.crime.fedAbove;
+  h.needs.hunger = Math.max(h.needs.hunger, fed);
+  h.needs.energy = Math.max(h.needs.energy, fed);
+  if (h.action.path.length) stepAlongPath(state, data, h);
+  return true;
 }
 
 function answerCall(state, data, h) {
@@ -107,11 +131,15 @@ function chooseAction(state, data, h) {
   const train = data.config.training;
   if (stage === 'child') {
     options.push({ type: 'train', score: (train.scoreBase + 4 + next(state.rng) * 8) * focusValue(state, data, 'train') });
+    // With an Academy, children go to school.
+    if (builtOfType(state, 'academy')) options.push({ type: 'study', score: data.config.study.schoolScore + next(state.rng) * 8 });
   } else if (h.carrying) {
     // Finish a haul that was interrupted (e.g. to eat) before anything else optional.
     options.push({ type: 'deposit', score: 40 });
   } else {
-    const keen = emotionEffect(h, data, 'work') * leaderWorkBonus(state, data) * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1);
+    // Ambition to rise in rank makes people keener to work, train and study.
+    const keen = emotionEffect(h, data, 'work') * leaderWorkBonus(state, data) * drive(state, data, h)
+      * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1);
     const work = traitMod(h, data, 'workWeight') * keen;
     // Those already good at a craft (e.g. the best cooks) are likelier to take it on.
     const craft = craftChoice(state, data, h);
@@ -132,7 +160,7 @@ function chooseAction(state, data, h) {
       const score = (data.config.construction.workScore + next(state.rng) * 10) * work * focusValue(state, data, 'build');
       options.push({ type: 'build', score });
     }
-    if (h.knows.includes('writing') && builtOfType(state, 'library')) {
+    if (studyPlace(state, data, h)) {
       const st = data.config.study;
       const score = (st.scoreBase + next(state.rng) * 8) * traitMod(h, data, 'studyWeight') * keen
         * focusValue(state, data, 'discovery');
@@ -151,6 +179,14 @@ function chooseAction(state, data, h) {
   options.push({ type: 'wander', score: (10 + next(state.rng) * 10) * traitMod(h, data, 'wanderWeight') });
   options.sort((a, b) => b.score - a.score);
   for (const o of options) if (START[o.type](state, data, h)) return;
+}
+
+// Where someone may study: the Academy if their rank earns them a seat (any
+// child may go to school), else the Library for those who can read.
+function studyPlace(state, data, h) {
+  const academy = builtOfType(state, 'academy');
+  if (academy && (lifeStage(h, state, data) === 'child' || rankDef(state, data, h)?.academy)) return academy;
+  return h.knows.includes('writing') ? builtOfType(state, 'library') : null;
 }
 
 function pathTo(state, data, h, x, y) {
@@ -352,7 +388,7 @@ const START = {
   },
 
   study(state, data, h) {
-    const lib = builtOfType(state, 'library');
+    const lib = studyPlace(state, data, h);
     const route = lib && toRoom(state, data, h, lib);
     if (!route) return false;
     h.action = { type: 'study', buildingId: lib.id, ticks: data.config.study.ticks, ...route };
@@ -583,8 +619,16 @@ const RUN = {
     if (--a.ticks > 0) return;
     a.done = true;
     const st = data.config.study;
-    gainXp(state, data, h, 'research', data.skillsById.research.xpPerAction);
-    tryDiscover(state, data, h, st.discoveryBoost * (1 + skillLevel(h, 'research') * 0.1), st.thresholdFactor);
+    const place = buildingById(state, a.buildingId);
+    const boost = (place && buildingEffect(data, place, 'studyBoost')) ?? 1;
+    if (lifeStage(h, state, data) === 'child') {
+      // School: a little of everything, and a trade picked up young.
+      const skill = data.skills[randInt(state.rng, 0, data.skills.length - 1)].id;
+      gainXp(state, data, h, skill, data.skillsById[skill].xpPerAction * boost);
+      return;
+    }
+    gainXp(state, data, h, 'research', data.skillsById.research.xpPerAction * boost);
+    tryDiscover(state, data, h, st.discoveryBoost * boost * (1 + skillLevel(h, 'research') * 0.1), st.thresholdFactor);
   },
 
   recover(state, data, h) {

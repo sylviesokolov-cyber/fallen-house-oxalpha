@@ -1,0 +1,8 @@
+[
+  {"id": "outcast", "name": "Outcast", "min": -100000, "mealMood": 4, "color": "#9a6a6a", "description": "Convicted of crimes. Only the plainest food, and no place in the Academy or the Market."},
+  {"id": "commoner", "name": "Commoner", "min": 0, "mealMood": 12, "color": "#9aa8bb", "description": "Everyone starts here. Plain meals."},
+  {"id": "freeman", "name": "Freeman", "min": 60, "mealMood": 16, "academy": true, "market": true, "color": "#7fc45a", "description": "Known for good work. Better meals, a seat at the Academy and market days."},
+  {"id": "artisan", "name": "Artisan", "min": 160, "mealMood": 20, "academy": true, "market": true, "color": "#6ab0ff", "description": "A master of a craft or a proven fighter. Fine meals, and first pick of new homes after the notables."},
+  {"id": "notable", "name": "Notable", "min": 260, "mealMood": 99, "academy": true, "market": true, "color": "#b48cff", "description": "A pillar of the community. The best meals and first claim on a home."},
+  {"id": "noble", "name": "Noble", "min": 480, "mealMood": 99, "academy": true, "market": true, "color": "#ffd35c", "description": "Renowned throughout the land. Their children are born with a head start."}
+]

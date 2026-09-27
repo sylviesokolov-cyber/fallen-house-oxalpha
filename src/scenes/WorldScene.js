@@ -12,6 +12,7 @@ import { setupCameraControls } from '../render/cameraControls.js';
 import { Effects } from '../render/effects.js';
 import { createHud } from '../ui/hud.js';
 import { usePower } from '../sim/godPowers.js';
+import { zonesOf } from '../sim/tiers.js';
 
 // Drives the sim clock and draws the world. It only reads sim state.
 export class WorldScene extends Phaser.Scene {
@@ -21,8 +22,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   create() {
-    const { world } = this.ctx.sim;
-    this.camControls = setupCameraControls(this, world.width * TILE_SIZE, world.height * TILE_SIZE, (x, y) => this.onTap(x, y),
+    this.camControls = setupCameraControls(this, () => ({ w: this.ctx.sim.world.width * TILE_SIZE, h: this.ctx.sim.world.height * TILE_SIZE }), (x, y) => this.onTap(x, y),
       () => ({
         top: document.getElementById('topbar').offsetHeight,
         bottom: document.getElementById('powers').offsetHeight,
@@ -32,6 +32,11 @@ export class WorldScene extends Phaser.Scene {
     this.effects = new Effects(this);
     this.buildViews();
     this.ctx.events.on('sim-replaced', () => this.buildViews());
+    // The walls moved out: re-bake the map at its new size.
+    this.ctx.events.on('world-expanded', () => {
+      this.buildViews(false);
+      this.camControls.refresh();
+    });
     this.ctx.events.on('power-used', ({ powerId, x, y, radius }) => this.effects.play(powerId, x, y, radius));
     // The camera keeps the selected person in view (in the part of the
     // screen the open sheet doesn't cover) until the player pans away.
@@ -44,7 +49,7 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
-  buildViews() {
+  buildViews(refocus = true) {
     this.mapImage?.destroy();
     this.winterMap?.destroy();
     this.resourceView?.destroy();
@@ -56,8 +61,10 @@ export class WorldScene extends Phaser.Scene {
     this.bubbleView?.destroy();
     const { sim, data } = this.ctx;
     makeTextures(this);
-    this.mapImage = drawMap(this, sim.world, data);
-    this.winterMap = drawMap(this, sim.world, data, 'winter').setAlpha(0);
+    const zones = zonesOf(sim, data);
+    const tier = sim.settlement.tier ?? 1;
+    this.mapImage = drawMap(this, sim.world, data, 'normal', zones, tier);
+    this.winterMap = drawMap(this, sim.world, data, 'winter', zones, tier).setAlpha(0);
     this.resourceView = new ResourceView(this);
     this.buildingView = new BuildingView(this, sim, data);
     this.roofView = new RoofView(this);
@@ -65,7 +72,8 @@ export class WorldScene extends Phaser.Scene {
     this.ambientView = new AmbientView(this, sim, data);
     this.fxView = new FxView(this, sim, data);
     this.bubbleView = new BubbleView(this);
-    this.focusOnTribe();
+    if (refocus) this.focusOnTribe();
+    this.camControls.refresh();
   }
 
   // Start looking at the heart of the sanctuary: the Great Hall.

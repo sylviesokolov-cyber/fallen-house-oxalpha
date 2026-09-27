@@ -1,156 +1,424 @@
 {
- "width": 40,
- "height": 40,
- "portal": {
-  "x": 19,
-  "y": 0,
-  "w": 2,
-  "h": 1
- },
- "stockpile": {
-  "x": 19,
-  "y": 25
- },
- "zones": [
-  {
-   "name": "Tree grove",
-   "tile": "grove",
-   "x": 2,
-   "y": 3,
-   "w": 9,
-   "h": 17,
-   "resource": "tree",
-   "density": 0.35
+  "width": 40,
+  "height": 40,
+  "portal": {
+    "x": 19,
+    "y": 0,
+    "w": 2,
+    "h": 1
   },
-  {
-   "name": "Potato field",
-   "tile": "field",
-   "x": 29,
-   "y": 24,
-   "w": 8,
-   "h": 8,
-   "resource": "potato",
-   "density": 1
-  }
- ],
- "buildings": [
-  {
-   "type": "great_hall",
-   "x": 14,
-   "y": 15,
-   "w": 12,
-   "h": 6
+  "stockpile": {
+    "x": 19,
+    "y": 25
   },
-  {
-   "type": "kitchen",
-   "x": 14,
-   "y": 23,
-   "w": 5,
-   "h": 4
-  },
-  {
-   "type": "dining_hall",
-   "x": 20,
-   "y": 23,
-   "w": 6,
-   "h": 4
-  },
-  {
-   "type": "training_ground",
-   "x": 15,
-   "y": 4,
-   "w": 10,
-   "h": 7
-  }
- ],
- "plots": [
-  {
-   "x": 29,
-   "y": 4,
-   "w": 6,
-   "h": 5
-  },
-  {
-   "x": 29,
-   "y": 12,
-   "w": 6,
-   "h": 5
-  },
-  {
-   "x": 3,
-   "y": 24,
-   "w": 6,
-   "h": 5
-  },
-  {
-   "x": 3,
-   "y": 31,
-   "w": 6,
-   "h": 5
-  },
-  {
-   "x": 13,
-   "y": 31,
-   "w": 6,
-   "h": 5
-  },
-  {
-   "x": 21,
-   "y": 31,
-   "w": 6,
-   "h": 5
-  }
- ],
- "homePlots": [
-  {
-   "x": 30,
-   "y": 18,
-   "w": 4,
-   "h": 3
-  },
-  {
-   "x": 35,
-   "y": 18,
-   "w": 4,
-   "h": 3
-  },
-  {
-   "x": 30,
-   "y": 33,
-   "w": 4,
-   "h": 3
-  },
-  {
-   "x": 35,
-   "y": 33,
-   "w": 4,
-   "h": 3
-  },
-  {
-   "x": 27,
-   "y": 1,
-   "w": 4,
-   "h": 3
-  },
-  {
-   "x": 32,
-   "y": 1,
-   "w": 4,
-   "h": 3
-  }
- ],
- "smallPlots": [
-  {
-   "x": 35,
-   "y": 4,
-   "w": 4,
-   "h": 5
-  },
-  {
-   "x": 35,
-   "y": 10,
-   "w": 4,
-   "h": 5
-  }
- ]
+  "zones": [
+    {
+      "name": "Tree grove",
+      "tile": "grove",
+      "x": 2,
+      "y": 3,
+      "w": 9,
+      "h": 17,
+      "resource": "tree",
+      "density": 0.35
+    },
+    {
+      "name": "Potato field",
+      "tile": "field",
+      "x": 29,
+      "y": 24,
+      "w": 8,
+      "h": 8,
+      "resource": "potato",
+      "density": 1
+    }
+  ],
+  "buildings": [
+    {
+      "type": "great_hall",
+      "x": 14,
+      "y": 15,
+      "w": 12,
+      "h": 6
+    },
+    {
+      "type": "kitchen",
+      "x": 14,
+      "y": 23,
+      "w": 5,
+      "h": 4
+    },
+    {
+      "type": "dining_hall",
+      "x": 20,
+      "y": 23,
+      "w": 6,
+      "h": 4
+    },
+    {
+      "type": "training_ground",
+      "x": 15,
+      "y": 4,
+      "w": 10,
+      "h": 7
+    }
+  ],
+  "plots": [
+    {
+      "x": 29,
+      "y": 4,
+      "w": 6,
+      "h": 5
+    },
+    {
+      "x": 29,
+      "y": 12,
+      "w": 6,
+      "h": 5
+    },
+    {
+      "x": 3,
+      "y": 24,
+      "w": 6,
+      "h": 5
+    },
+    {
+      "x": 3,
+      "y": 31,
+      "w": 6,
+      "h": 5
+    },
+    {
+      "x": 13,
+      "y": 31,
+      "w": 6,
+      "h": 5
+    },
+    {
+      "x": 21,
+      "y": 31,
+      "w": 6,
+      "h": 5
+    }
+  ],
+  "homePlots": [
+    {
+      "x": 30,
+      "y": 18,
+      "w": 4,
+      "h": 3
+    },
+    {
+      "x": 35,
+      "y": 18,
+      "w": 4,
+      "h": 3
+    },
+    {
+      "x": 30,
+      "y": 33,
+      "w": 4,
+      "h": 3
+    },
+    {
+      "x": 35,
+      "y": 33,
+      "w": 4,
+      "h": 3
+    },
+    {
+      "x": 27,
+      "y": 1,
+      "w": 4,
+      "h": 3
+    },
+    {
+      "x": 32,
+      "y": 1,
+      "w": 4,
+      "h": 3
+    }
+  ],
+  "smallPlots": [
+    {
+      "x": 35,
+      "y": 4,
+      "w": 4,
+      "h": 5
+    },
+    {
+      "x": 35,
+      "y": 10,
+      "w": 4,
+      "h": 5
+    }
+  ],
+  "tiers": [
+    {
+      "level": 1,
+      "name": "Sanctuary"
+    },
+    {
+      "level": 2,
+      "name": "Town",
+      "width": 52,
+      "height": 52,
+      "cost": 250,
+      "description": "The walls move out. New plots, a second grove and field, and room for an Academy, a Watch House and a Market.",
+      "requires": [
+        {
+          "type": "population",
+          "min": 16,
+          "label": "People"
+        },
+        {
+          "type": "plotBuildings",
+          "min": 5,
+          "label": "Buildings raised"
+        },
+        {
+          "type": "goals",
+          "min": 7,
+          "label": "Milestones reached"
+        }
+      ],
+      "zones": [
+        {
+          "name": "East grove",
+          "tile": "grove",
+          "x": 41,
+          "y": 3,
+          "w": 9,
+          "h": 12,
+          "resource": "tree",
+          "density": 0.35
+        },
+        {
+          "name": "South field",
+          "tile": "field",
+          "x": 30,
+          "y": 41,
+          "w": 10,
+          "h": 8,
+          "resource": "potato",
+          "density": 1
+        }
+      ],
+      "plots": [
+        {
+          "x": 41,
+          "y": 17,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 41,
+          "y": 25,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 3,
+          "y": 42,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 12,
+          "y": 42,
+          "w": 6,
+          "h": 5
+        }
+      ],
+      "homePlots": [
+        {
+          "x": 42,
+          "y": 32,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 47,
+          "y": 32,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 42,
+          "y": 37,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 47,
+          "y": 37,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 21,
+          "y": 42,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 21,
+          "y": 46,
+          "w": 4,
+          "h": 3
+        }
+      ],
+      "smallPlots": [
+        {
+          "x": 47,
+          "y": 17,
+          "w": 4,
+          "h": 5
+        },
+        {
+          "x": 47,
+          "y": 24,
+          "w": 4,
+          "h": 5
+        }
+      ]
+    },
+    {
+      "level": 3,
+      "name": "City",
+      "width": 64,
+      "height": 64,
+      "cost": 600,
+      "description": "A city of the god. The last ring of walls, more homes and fields, and a Cathedral.",
+      "requires": [
+        {
+          "type": "population",
+          "min": 30,
+          "label": "People"
+        },
+        {
+          "type": "plotBuildings",
+          "min": 11,
+          "label": "Buildings raised"
+        },
+        {
+          "type": "goals",
+          "min": 13,
+          "label": "Milestones reached"
+        },
+        {
+          "type": "rank",
+          "rank": "notable",
+          "min": 2,
+          "label": "Notables or better"
+        }
+      ],
+      "zones": [
+        {
+          "name": "Far grove",
+          "tile": "grove",
+          "x": 53,
+          "y": 22,
+          "w": 9,
+          "h": 12,
+          "resource": "tree",
+          "density": 0.35
+        },
+        {
+          "name": "Great field",
+          "tile": "field",
+          "x": 42,
+          "y": 54,
+          "w": 10,
+          "h": 8,
+          "resource": "potato",
+          "density": 1
+        }
+      ],
+      "plots": [
+        {
+          "x": 53,
+          "y": 3,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 53,
+          "y": 10,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 3,
+          "y": 53,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 12,
+          "y": 53,
+          "w": 6,
+          "h": 5
+        },
+        {
+          "x": 23,
+          "y": 53,
+          "w": 6,
+          "h": 5
+        }
+      ],
+      "homePlots": [
+        {
+          "x": 53,
+          "y": 38,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 58,
+          "y": 38,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 53,
+          "y": 43,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 58,
+          "y": 43,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 33,
+          "y": 54,
+          "w": 4,
+          "h": 3
+        },
+        {
+          "x": 33,
+          "y": 58,
+          "w": 4,
+          "h": 3
+        }
+      ],
+      "smallPlots": [
+        {
+          "x": 53,
+          "y": 49,
+          "w": 4,
+          "h": 5
+        },
+        {
+          "x": 58,
+          "y": 49,
+          "w": 4,
+          "h": 5
+        }
+      ]
+    }
+  ]
 }

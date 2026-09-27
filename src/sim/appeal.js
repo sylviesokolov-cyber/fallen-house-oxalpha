@@ -24,7 +24,7 @@ function preferred(state, a, b) {
   switch (a.drawnTo) {
     case 'looks': return b.looks ?? 5;
     case 'strength': return Math.min(10, (b.stats.str + Math.max(...COMBAT.map((s) => skillLevel(b, s)))) / 2);
-    case 'status': return state.settlement?.leaderId === b.id ? 10 : Math.min(10, b.level / 3);
+    case 'status': return state.settlement?.leaderId === b.id ? 10 : Math.min(10, Math.max(b.level / 3, (b.rank ?? 0) * 2));
     case 'wit': return Math.min(10, b.stats.int * 0.8);
     case 'kindness': return Math.min(10, (b.traits.includes('kind') ? 5 : 0) + b.stats.cha * 0.5);
     default: return 5;

@@ -4,6 +4,7 @@ import { callParty, recallParty } from './dungeon.js';
 import { learnTech } from './techs.js';
 import { decreeCost, issueDecree } from './decrees.js';
 import { leaderTitle } from './settlement.js';
+import { expand } from './tiers.js';
 
 // The player's only way to act. usePower is called by the UI with a power id
 // and a target ({ x, y } for tiles, { humanId } for people). It spends Faith,
@@ -13,6 +14,10 @@ import { leaderTitle } from './settlement.js';
 export function usePower(state, data, powerId, target) {
   const power = data.powersById[powerId];
   if (power.target === 'decree') return decree(state, data, target);
+  if (power.target === 'expand') {
+    const error = expand(state, data);
+    return error ? { ok: false, error } : { ok: true, x: state.stockpile.x, y: state.stockpile.y };
+  }
   if (state.faith < power.cost) return { ok: false, error: `Not enough Faith (${power.cost} needed)` };
   const h = target.humanId != null ? state.humans.find((o) => o.id === target.humanId) : null;
   if (power.target === 'human' && !h) return { ok: false, error: 'Tap a person to use this power' };

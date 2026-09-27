@@ -6,5 +6,6 @@
   {"id": "gift", "name": "Gift", "icon": "sparkle", "cost": 50, "target": "human", "awe": 10, "levels": 3, "description": "Grant someone a talent (three levels in a skill) or a piece of knowledge, even one the tribe has lost."},
   {"id": "eternity", "name": "Eternal youth", "icon": "infinity", "cost": 200, "target": "human", "awe": 20, "description": "The chosen never grow old and never die of age. They can still fall in battle."},
   {"id": "puppet", "name": "Puppet", "icon": "crown", "cost": 100, "target": "human", "awe": 0, "description": "Bend the ruler to your will. Through them you can then issue decrees: marriages, the heir, buildings and the people's calling."},
-  {"id": "decree", "name": "Decree", "icon": "crown", "cost": 0, "target": "decree", "awe": 0, "description": "Speak through your puppet ruler."}
+  {"id": "decree", "name": "Decree", "icon": "crown", "cost": 0, "target": "decree", "awe": 0, "description": "Speak through your puppet ruler."},
+  {"id": "expand", "name": "Expand", "icon": "house", "cost": 0, "target": "expand", "awe": 0, "description": "Raise the walls anew when the sanctuary is ready: more land, plots and new kinds of buildings."}
 ]

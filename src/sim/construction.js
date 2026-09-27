@@ -1,6 +1,7 @@
 import { logEvent } from './history.js';
 import { feel } from './mood.js';
 import { buildingEffect, sleepCapacity } from './buildings.js';
+import { standingOf } from './rank.js';
 
 // New buildings go up on the fixed plots from sanctuary.json (family houses on
 // the smaller home plots). Anyone who knows construction, and the building's
@@ -17,21 +18,28 @@ const affordable = (stockpile, cost) => Object.entries(cost).every(([k, v]) => (
 const PLOT_LISTS = { plot: 'plots', small: 'smallPlots', home: 'homePlots' };
 export const PLOT_KINDS = Object.keys(PLOT_LISTS);
 
-export function plotList(data, kind) {
-  return data.sanctuary[PLOT_LISTS[kind]] ?? [];
+// The plots open so far: the first ones, then each tier's as the walls move
+// out (appended, so plot numbers never change).
+export function plotList(data, kind, state = null) {
+  const tier = state?.settlement.tier ?? 1;
+  const key = PLOT_LISTS[kind];
+  const tiers = (data.sanctuary.tiers ?? []).filter((t) => t.level > 1 && t.level <= tier);
+  return [...(data.sanctuary[key] ?? []), ...tiers.flatMap((t) => t[key] ?? [])];
 }
+
+const tierAllows = (state, def) => (def.tier ?? 1) <= (state.settlement.tier ?? 1);
 
 // Plot keys look like "plot:3" or "home:0".
 function freePlot(state, data, def) {
   const kind = def.plot ?? 'plot';
   const used = new Set(state.buildings.map((b) => b.plot));
-  const list = plotList(data, kind);
+  const list = plotList(data, kind, state);
   const i = list.findIndex((_, n) => !used.has(`${kind}:${n}`));
   return i < 0 ? null : { key: `${kind}:${i}`, rect: list[i] };
 }
 
 export function freePlotCount(state, data, kind = 'plot') {
-  const list = plotList(data, kind);
+  const list = plotList(data, kind, state);
   const used = new Set(state.buildings.map((b) => b.plot));
   return list.filter((_, n) => !used.has(`${kind}:${n}`)).length;
 }
@@ -42,13 +50,18 @@ export function nextUpgrade(data, b) {
 
 const isOwner = (state, id) => state.buildings.some((b) => b.owners?.includes(id));
 
-// Partnered pairs where neither partner owns a home yet.
-export function homelessCouples(state) {
+// Partnered pairs where neither partner owns a home yet, those of higher
+// standing first (they get the next home).
+export function homelessCouples(state, data = null) {
   const out = [];
   for (const a of state.humans) {
     if (a.partnerId == null || a.partnerId < a.id) continue;
     const b = state.humans.find((o) => o.id === a.partnerId);
     if (b && !isOwner(state, a.id) && !isOwner(state, b.id)) out.push([a, b]);
+  }
+  if (data) {
+    const worth = (c) => Math.max(...c.map((h) => standingOf(h, data)));
+    out.sort((x, y) => worth(y) - worth(x));
   }
   return out;
 }
@@ -83,7 +96,7 @@ export function planJob(state, data, h) {
   const decreed = decreedJob(state, data, h);
   if (decreed) return decreed;
   for (const def of data.buildings) {
-    if (!def.cost || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost)) continue;
+    if (!def.cost || !tierAllows(state, def) || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost)) continue;
     if (wantsBuilding(state, def) && freePlot(state, data, def)) return { def };
   }
   for (const b of state.buildings) {
@@ -103,7 +116,7 @@ function decreedJob(state, data, h) {
     const u = built.built && !built.upgrade && nextUpgrade(data, built);
     return u && knowsTech(h, u.tech) && affordable(state.stockpile, u.cost) ? { b: built, u } : null;
   }
-  if (!def.cost || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost) || !freePlot(state, data, def)) return null;
+  if (!def.cost || !tierAllows(state, def) || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost) || !freePlot(state, data, def)) return null;
   return { def };
 }
 
@@ -186,7 +199,7 @@ export function updateHomes(state, data) {
     if (!buildingEffect(data, b, 'home')) continue;
     b.owners = (b.owners ?? []).filter((id) => state.humans.some((o) => o.id === id));
     if (b.owners.length) continue;
-    const couple = homelessCouples(state)[0];
+    const couple = homelessCouples(state, data)[0];
     if (!couple) continue;
     b.owners = couple.map((p) => p.id);
     const name = data.buildingsById[b.type].name;

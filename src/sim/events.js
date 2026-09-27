@@ -62,7 +62,10 @@ const RUN = {
     const what = listNames([...new Set(monsters.map((m) => data.monstersById[m.id].name))].map((m) => `${m}s`));
     if (won) {
       logEvent(state, `${what} burst out of the portal! ${names} drove them back`);
-      for (const h of defenders) feel(state, data, h, 'dungeonVictory', 'Defended the sanctuary');
+      for (const h of defenders) {
+        feel(state, data, h, 'dungeonVictory', 'Defended the sanctuary');
+        h.renown = (h.renown ?? 0) + data.config.rank.raidDefenseRenown;
+      }
     } else {
       const lost = Math.floor(state.stockpile.food * 0.25);
       state.stockpile.food -= lost;

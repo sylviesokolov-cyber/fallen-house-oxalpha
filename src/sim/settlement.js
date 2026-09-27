@@ -4,13 +4,14 @@ import { lifeStage } from './lifecycle.js';
 import { statFactor } from './stats.js';
 import { sleepCapacity } from './buildings.js';
 import { royalLine, rulerTitle, seat, successorOf, updateDynasty } from './dynasty.js';
+import { standingOf } from './rank.js';
 
 // The sanctuary as a community: its name, its ruler (a Warden, or a King
 // once the throne passes by blood; see dynasty.js), and how many
 // people it has room for (one per bed).
 
 export function createSettlement(state, data) {
-  return { name: pick(state.rng, data.names.places), leaderId: null };
+  return { name: pick(state.rng, data.names.places), leaderId: null, tier: 1 };
 }
 
 export function populationCap(state, data) {
@@ -56,7 +57,7 @@ function chooseLeader(state, data) {
   let best = null;
   let bestScore = -Infinity;
   for (const h of men.length ? men : adults) {
-    const score = h.stats.cha * l.chaWeight * statFactor(h, data, 'cha') + h.level * l.levelWeight;
+    const score = h.stats.cha * l.chaWeight * statFactor(h, data, 'cha') + h.level * l.levelWeight + standingOf(h, data) * l.standingWeight;
     if (score > bestScore) {
       bestScore = score;
       best = h;

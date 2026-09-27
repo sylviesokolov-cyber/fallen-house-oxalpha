@@ -5,6 +5,12 @@ import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, bar, stars, renderKeyed } from './dom.js';
 import { artIcon } from './itemArt.js';
+import { icon } from './icons.js';
+import { usePower } from '../sim/godPowers.js';
+import { nextTier, tierDef, tierOf, tierRequirements } from '../sim/tiers.js';
+import { rankIndex } from '../sim/rank.js';
+import { lawLevel } from '../sim/crime.js';
+import { haptic } from './sheets.js';
 import { portrait, royalMarks } from './portrait.js';
 import { appearance } from '../render/appearance.js';
 import { lifeStage } from '../sim/lifecycle.js';
@@ -33,9 +39,63 @@ export function createTribePanel(ctx, { toast, select }) {
     return r;
   }
 
+  // The next tier of the sanctuary: what it needs, and the god's button.
+  function expansion() {
+    const { sim, data } = ctx;
+    const t = nextTier(sim, data);
+    const here = tierDef(data, tierOf(sim));
+    if (!t) return [section(`The ${here.name}`), el('div', 'sub', 'The walls stand at their widest.')];
+    const reqs = tierRequirements(sim, data);
+    const card = el('div', 'expand-card');
+    card.append(el('div', 'expand-title', `${here.name} → ${t.name}`), el('div', 'goal-desc', t.description));
+    for (const r of reqs) {
+      const line = el('div', `expand-req${r.ok ? ' ok' : ''}`);
+      line.append(el('span', null, `${r.ok ? '✓ ' : ''}${r.label}`), el('span', 'kind', `${r.have} / ${r.need}`));
+      card.append(line, bar(r.have / r.need, 'goal-bar'));
+    }
+    const ready = reqs.every((r) => r.ok);
+    const b = button(`wide expand-btn${ready ? '' : ' locked'}`, '', () => {
+      const result = usePower(sim, data, 'expand', {});
+      if (!result.ok) return toast(result.error);
+      haptic([30, 50, 30, 50, 80]);
+      ctx.events.emit('world-expanded');
+      ctx.events.emit('power-used', { powerId: 'decree', x: result.x, y: result.y });
+      toast(`The walls rise: ${sim.settlement.name} is now a ${t.name}`);
+      render();
+    });
+    b.append(icon('house'), el('span', null, ready ? `Raise the walls (${t.cost} Faith)` : 'Not ready yet'));
+    card.append(b);
+    return [section('Expand the sanctuary'), card];
+  }
+
+  // Ranks, the law, and crime.
+  function society() {
+    const { sim, data } = ctx;
+    const counts = data.ranks.map(() => 0);
+    for (const h of sim.humans) {
+      const i = rankIndex(sim, data, h);
+      if (i >= 0) counts[i]++;
+    }
+    const nodes = [section('Society')];
+    const ladder = el('div', 'rank-ladder');
+    data.ranks.forEach((r, i) => {
+      if (!counts[i] && i === 0) return;
+      const chip = button('rank-chip', `${r.name} ${counts[i]}`, () => toast(r.description));
+      chip.style.setProperty('--rank', r.color);
+      ladder.append(chip);
+    });
+    const law = lawLevel(sim, data);
+    const jailed = sim.humans.filter((h) => h.punished).length;
+    nodes.push(ladder,
+      row('The law', law[0].toUpperCase() + law.slice(1)),
+      row('Crimes so far', `${sim.tribeCounters.crimes ?? 0}${jailed ? ` · ${jailed} serving a sentence` : ''}`),
+      row('Exiled', `${sim.dead.filter((d) => d.cause === 'exile').length}`));
+    return nodes;
+  }
+
   function overview() {
     const { sim, data } = ctx;
-    const nodes = [];
+    const nodes = [...expansion(), ...society()];
     const leader = leaderOf(sim);
     if (leader) {
       const lb = button('bond', '', () => select(leader.id));
@@ -89,7 +149,7 @@ export function createTribePanel(ctx, { toast, select }) {
       row('Average mood', `${Math.round(avgMood)}`),
       row('Feeling', Object.entries(emotions).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ') || '-'),
       row('Faith', `${Math.floor(sim.faith)}`),
-      row('Lives lost', `${sim.dead.length}`),
+      row('Lives lost', `${sim.dead.filter((d) => d.cause !== 'exile').length}`),
     );
     return nodes;
   }
@@ -132,7 +192,14 @@ export function createTribePanel(ctx, { toast, select }) {
       const bottom = el('div', 'person-sub');
       const emo = el('span', null, e.name);
       emo.style.color = e.color;
-      bottom.append(el('span', null, h.away != null ? 'In the dungeon' : heroClass(h, data)), emo);
+      const r = data.ranks[rankIndex(sim, data, h)];
+      const cls = el('span', null, h.away != null ? 'In the dungeon' : h.punished ? 'Serving a sentence' : heroClass(h, data));
+      if (r) {
+        const chip = el('span', 'rank-chip small', r.name);
+        chip.style.setProperty('--rank', r.color);
+        cls.prepend(chip, ' ');
+      }
+      bottom.append(cls, emo);
       info.append(top, bottom);
       b.append(face, info);
       return b;
@@ -223,7 +290,7 @@ export function createTribePanel(ctx, { toast, select }) {
   function render() {
     const { sim, data } = ctx;
     $('tribe-title').textContent = sim.settlement.name;
-    $('tribe-sub').textContent = `Sanctuary · ${sim.humans.length} people`;
+    $('tribe-sub').textContent = `${tierDef(data, tierOf(sim))?.name ?? 'Sanctuary'} · ${sim.humans.length} people`;
     for (const b of document.querySelectorAll('#tribe .tabs button')) b.classList.toggle('active', b.dataset.tab === tab);
     const nodes = TABS[tab]();
     const key = `${tab}|${nodes.map((n) => n.textContent + (n.querySelector?.('.bar div')?.style.width ?? '')).join('|')}`;

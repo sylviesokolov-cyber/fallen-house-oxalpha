@@ -15,6 +15,8 @@ import { updateDungeon } from './dungeon.js';
 import { newDynasty } from './dynasty.js';
 import { updateGoals } from './goals.js';
 import { updateEvents } from './events.js';
+import { updateRanks } from './rank.js';
+import { updateCrime } from './crime.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -80,6 +82,8 @@ export function stepSim(state, data) {
   updateDungeon(state, data);
   updateGoals(state, data);
   updateEvents(state, data);
+  updateRanks(state, data);
+  updateCrime(state, data);
   handOutTools(state, data);
   if (newDay) updateHomes(state, data);
 }

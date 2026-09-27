@@ -14,7 +14,7 @@ import { daysPerYear, dayIndexOf } from '../src/sim/time.js';
 import { knows, learnTech, teachTech, updateDiscovery } from '../src/sim/techs.js';
 import { buildingWith, inside, isWarm } from '../src/sim/buildings.js';
 import { spoilFood } from '../src/sim/items.js';
-import { killHuman } from '../src/sim/human.js';
+import { createHuman, killHuman } from '../src/sim/human.js';
 import { usePower } from '../src/sim/godPowers.js';
 import { mood, feel } from '../src/sim/mood.js';
 import { gainCharacterXp, heroClass } from '../src/sim/stats.js';
@@ -25,6 +25,9 @@ import { updateHuman } from '../src/sim/ai.js';
 import { currentChapter, goalProgress, updateGoals } from '../src/sim/goals.js';
 import { updateEvents } from '../src/sim/events.js';
 import { castOf } from '../src/sim/combat.js';
+import { drive, rankDef, updateRanks } from '../src/sim/rank.js';
+import { commitCrime, temptation } from '../src/sim/crime.js';
+import { nextTier } from '../src/sim/tiers.js';
 
 // A copy of the content with some settings overridden, for forcing rare events.
 function tweak(path, value) {
@@ -475,7 +478,7 @@ test('sim code has no Phaser or unseeded randomness', () => {
 
 // --- Building and upgrading ---
 
-import { addWork, planJob, startJob } from '../src/sim/construction.js';
+import { addWork, planJob, plotList, startJob } from '../src/sim/construction.js';
 import { buildingEffect, builtOfType, freeShelter } from '../src/sim/buildings.js';
 import { craftChoice, eatFromStock, handOutTools, wearTools } from '../src/sim/items.js';
 import { tryDiscover } from '../src/sim/techs.js';
@@ -1148,4 +1151,106 @@ test('a daughter inherits as heiress: her husband is King, and only her children
   s.faith = 1000;
   s.dynasty.puppetId = suitor.id;
   assert.equal(usePower(s, data, 'decree', { kind: 'wed', aId: bySecond.id, bId: byHeiress.id }).ok, false);
+});
+
+test('standing earns rank, rank brings better meals and first claim on homes', () => {
+  const s = createSim(data, 'ranks');
+  s.tick = DAY;
+  const [a, b] = s.humans;
+  a.level = 1;
+  a.skills = {};
+  a.counters = {};
+  a.renown = 0;
+  b.renown = 700;
+  assert.equal(rankDef(s, data, a).id, 'commoner');
+  assert.equal(rankDef(s, data, b).id, 'noble');
+  updateRanks(s, data);
+  b.renown = 5000;
+  // A commoner gets the plain dish while a finer one is in stock.
+  s.stockpile.cooked_food = 1;
+  s.stockpile.hearty_stew = 1;
+  a.needs.hunger = 10;
+  eatFromStock(s, data, a);
+  assert.equal(s.stockpile.cooked_food, 0);
+  assert.equal(s.stockpile.hearty_stew, 1);
+  // Promotion spurs an ambitious friend left behind.
+  const [, , c] = s.humans;
+  c.renown = 0;
+  c.ambition = 0.9;
+  a.renown = 200;
+  changeBond(s, data, c, a, 60);
+  s.tick = 2 * DAY;
+  updateRanks(s, data);
+  assert.ok(s.history.some((e) => e.text === `${a.name} rose to be an Artisan`));
+  assert.ok(c.spurUntil > s.tick && drive(s, data, c) > drive(s, data, b));
+});
+
+test('crime: thieves are caught and sentenced by the law of the land, and repeat offenders exiled', () => {
+  const s = createSim(data, 'crime');
+  s.tick = DAY;
+  updateSettlement(s, data);
+  const thief = s.humans.find((h) => h.id !== s.settlement.leaderId);
+  s.stockpile.cooked_food = 20;
+  // Plenty of witnesses: stand everyone next to the thief.
+  for (const h of s.humans) Object.assign(h, { x: thief.x, y: thief.y, action: { type: 'idle', ticks: 5 } });
+  const d = tweak('config.crime.detectBase', 1);
+  const r = commitCrime(s, d, thief, 'theft');
+  assert.ok(r.caught);
+  assert.equal(thief.crimes, 1);
+  assert.equal(rankDef(s, d, thief).id, 'outcast');
+  assert.equal(thief.punished?.kind, 'stocks');
+  assert.ok(s.history.some((e) => e.text.startsWith(`${thief.name} was caught stealing`)));
+  // In the stocks they stand still, fed, until the sentence ends.
+  thief.needs.hunger = 5;
+  updateHuman(s, d, thief);
+  assert.equal(thief.action.type, 'punished');
+  assert.ok(thief.needs.hunger >= d.config.crime.fedAbove);
+  // A lenient law never exiles; a harsh one soon does.
+  s.law = { level: 'harsh', by: s.settlement.leaderId };
+  thief.punished = null;
+  commitCrime(s, d, thief, 'theft');
+  commitCrime(s, d, thief, 'theft');
+  assert.ok(!s.humans.includes(thief));
+  assert.equal(s.dead.find((o) => o.id === thief.id).cause, 'exile');
+  // Hunger, misery and low rank tempt; a Watch House deters.
+  const poor = s.humans.find((h) => h.id !== s.settlement.leaderId);
+  const calm = temptation(s, d, poor);
+  poor.needs.hunger = 5;
+  assert.ok(temptation(s, d, poor) > calm);
+});
+
+test('the god expands the sanctuary once it is ready: more land, plots and new buildings', () => {
+  const s = createSim(data, 'expand');
+  s.faith = 1000;
+  assert.equal(usePower(s, data, 'expand', {}).ok, false, 'not ready yet');
+  const t = nextTier(s, data);
+  // Meet every requirement.
+  while (s.humans.length < 16) s.humans.push(createHuman(s, data, 20, 20));
+  for (let i = 0; i < 5; i++) s.buildings.push({ id: 900 + i, type: 'storehouse', built: true, plot: `x:${i}` });
+  for (const g of data.goals.slice(0, 7)) s.goals[g.id] = 1;
+  const plots = plotList(data, 'plot', s).length;
+  const r = usePower(s, data, 'expand', {});
+  assert.ok(r.ok, r.error);
+  assert.equal(s.settlement.tier, 2);
+  assert.equal(s.world.width, t.width);
+  assert.equal(s.world.tiles.length, t.width * t.height);
+  assert.equal(s.world.tiles[(t.height - 1) * t.width + 5], 'wall');
+  assert.equal(s.world.tiles[20 * t.width + 39], 'grass', 'the old east wall came down');
+  assert.ok(s.world.resources.some((o) => o.x > 40));
+  assert.ok(plotList(data, 'plot', s).length > plots);
+  assert.ok(s.faith <= 1000 - t.cost);
+  // The Academy can now be planned by someone who knows how.
+  const h = s.humans[0];
+  learnTech(s, data, h, 'scholarship');
+  s.stockpile.wood = 1000;
+  s.buildings = s.buildings.filter((b) => b.id < 900);
+  let job = null;
+  for (let k = 0; k < 10 && job?.def?.id !== 'academy'; k++) {
+    job = planJob(s, data, h);
+    if (job && job.def?.id !== 'academy') { startJob(s, data, h, job); }
+  }
+  assert.equal(job?.def?.id, 'academy');
+  // The world still steps and saves.
+  run(s, DAY);
+  assert.equal(deserialize(serialize(s)).world.width, t.width);
 });

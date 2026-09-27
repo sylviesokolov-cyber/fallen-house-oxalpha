@@ -9,6 +9,7 @@ import { royalLine, takeConsort, unwed, wed } from './dynasty.js';
 //   heir  { id }        one of the ruler's children is named heir
 //   build { type }      the builders start this building (or upgrade) first
 //   focus { focus }     the whole sanctuary turns to a calling for a while
+//   law   { level }     the law is lenient, fair or harsh for this reign
 // Returns an error message, or null.
 
 const findHuman = (state, id) => state.humans.find((h) => h.id === id);
@@ -65,6 +66,14 @@ const DECREES = {
     state.decree = { build: type, until: state.tick + data.config.decrees.buildDays * data.config.time.ticksPerDay };
     const existing = state.buildings.find((b) => b.type === type && b.built);
     logEvent(state, existing ? `The ${def.name} is to be improved${by}` : `A ${def.name} is to be raised${by}`);
+    return null;
+  },
+
+  law(state, data, ruler, { level }, by) {
+    if (!data.config.crime.sentences[level]) return 'Choose a law';
+    state.law = { level, by: ruler.id };
+    const text = { lenient: 'The law shall be lenient', fair: 'The law shall be fair', harsh: 'The law shall be harsh' }[level];
+    logEvent(state, `${text}${by}`);
     return null;
   },
 

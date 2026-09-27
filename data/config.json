@@ -246,8 +246,60 @@
       10
     ]
   },
+  "crime": {
+    "baseChancePerDay": 0.0028,
+    "hungryBelow": 30,
+    "hungry": 2.5,
+    "unhappyBelow": 30,
+    "unhappy": 1.5,
+    "rankFactor": [2.5, 1.2, 0.8, 0.5, 0.3, 0.2],
+    "spurred": 0.6,
+    "traits": {"lazy": 1.5, "aggressive": 1.4, "kind": 0.4, "hardworking": 0.8},
+    "law": {"lenient": 1.4, "fair": 1, "harsh": 0.55},
+    "watch": 0.6,
+    "market": 0.8,
+    "recentPunishDays": 10,
+    "recentPunish": 0.7,
+    "rivalBelow": -25,
+    "assaultChance": 0.35,
+    "assaultDamage": [15, 30],
+    "theftMeals": [2, 4],
+    "theftFood": [5, 12],
+    "detectBase": 0.3,
+    "detectPerWitness": 0.08,
+    "witnessRadius": 6,
+    "detectWatch": 0.35,
+    "detectAssault": 0.3,
+    "detectMax": 0.95,
+    "sentences": {
+      "lenient": {"renown": -20, "stocksDays": 0, "jailDays": 0, "outcastDays": 10},
+      "fair": {"renown": -40, "stocksDays": 1, "jailDays": 0, "outcastDays": 30, "exileAfter": 5},
+      "harsh": {"renown": -60, "stocksDays": 2, "jailDays": 3, "outcastDays": 60, "flog": 15, "exileAfter": 3}
+    },
+    "harshFear": -3,
+    "fedAbove": 35
+  },
+  "rank": {
+    "perLevel": 3,
+    "perSkillLevel": 1.5,
+    "perExpedition": 4,
+    "perBoss": 25,
+    "perDiscovery": 30,
+    "driveWeight": 0.45,
+    "spurDrive": 1.8,
+    "spurDays": 12,
+    "envyBondAt": 20,
+    "envyAmbition": 0.45,
+    "envyMood": -4,
+    "inheritShare": 0.25,
+    "marketChance": 0.3,
+    "marketMood": 6,
+    "marketDays": 2,
+    "raidDefenseRenown": 10
+  },
   "leader": {
     "chaWeight": 3,
+    "standingWeight": 0.1,
     "levelWeight": 1,
     "workBonusPerCha": 0.02,
     "title": {
@@ -286,7 +338,8 @@
     "ticks": 40,
     "scoreBase": 10,
     "discoveryBoost": 6,
-    "thresholdFactor": 0.75
+    "thresholdFactor": 0.75,
+    "schoolScore": 14
   },
   "tavern": {
     "ticks": 20,
@@ -331,7 +384,8 @@
       "wed": 15,
       "heir": 10,
       "build": 20,
-      "focus": 15
+      "focus": 15,
+      "law": 20
     },
     "buildDays": 20,
     "focusDays": 10

@@ -1,3 +1,4 @@
+import { birthRenown } from './rank.js';
 import { chance, next, randInt } from './rng.js';
 import { ageInYears, dayIndexOf } from './time.js';
 import { createHuman, killHuman } from './human.js';
@@ -79,6 +80,7 @@ function giveBirth(state, data, mother) {
     parents: [mother.id, father?.id].filter((id) => id != null),
     traits: inheritTraits(state, data, mother, father),
     grade: inheritGrade(state, data, [mother, father].filter(Boolean)),
+    renown: birthRenown(data, [mother, father].filter(Boolean)),
   });
   state.humans.push(child);
   state.tribeCounters.births = (state.tribeCounters.births ?? 0) + 1;

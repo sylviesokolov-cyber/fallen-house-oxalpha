@@ -657,3 +657,20 @@ button.watch svg { width: 14px; height: 14px; }
   content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
   background: radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(5, 8, 16, 0.45) 100%);
 }
+
+/* Ranks, society and expansion. */
+.rank-line { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.rank-chip {
+  --rank: #9aa8bb; display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 900;
+  color: var(--rank); background: color-mix(in srgb, var(--rank) 16%, transparent); border: 1px solid color-mix(in srgb, var(--rank) 45%, transparent); box-shadow: none;
+}
+.rank-chip.small { min-height: 18px; padding: 0 7px; font-size: 10.5px; }
+.rank-ladder { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.expand-card { padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(255, 211, 92, 0.1), rgba(255, 255, 255, 0.03)); border: 1px solid rgba(255, 211, 92, 0.25); }
+.expand-title { font-family: Cinzel, serif; font-weight: 900; font-size: 18px; color: var(--gold); }
+.expand-req { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 8px; }
+.expand-req.ok { color: var(--good); }
+.expand-btn { margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(180deg, #ffd35c, #d99a2b); color: #2a1a05; font-weight: 900; }
+.expand-btn.locked { background: rgba(255, 255, 255, 0.06); color: var(--muted); }
+.expand-btn svg { width: 20px; height: 20px; }
+.omen-choice.chosen { border-color: var(--gold); }

@@ -143,11 +143,15 @@ export class BuildingView {
 
   // Names keep a readable size on screen at any zoom.
   scaleLabels() {
-    const s = Math.max(0.45, Math.min(1.4, 1.5 / this.scene.cameras.main.zoom));
-    if (s === this.labelScale && !this.dirty) return;
+    const zoom = this.scene.cameras.main.zoom;
+    const s = Math.max(0.45, Math.min(1.6, 1.5 / zoom));
+    // From far away only the building names show; plot markers would crowd.
+    const plots = zoom >= 0.95;
+    if (s === this.labelScale && plots === this.plotsShown && !this.dirty) return;
     this.labelScale = s;
+    this.plotsShown = plots;
     this.dirty = false;
-    for (const l of this.labels) l.setScale(s);
+    for (const l of this.labels) l.setScale(s).setVisible(plots || !l.isPlot);
   }
 
   update(sim, data) {
@@ -184,12 +188,14 @@ export class BuildingView {
     const g = this.g;
     const used = new Set(sim.buildings.map((b) => b.plot));
     g.lineStyle(1, 0xffffff, 0.35);
-    for (const [kind, list] of PLOT_KINDS.map((k) => [k, plotList(data, k)])) {
+    for (const [kind, list] of PLOT_KINDS.map((k) => [k, plotList(data, k, sim)])) {
       list.forEach((p, i) => {
         if (used.has(`${kind}:${i}`)) return;
         dashedRect(g, p.x * px + 1, p.y * px + 1, p.w * px - 2, p.h * px - 2);
         const text = kind === 'home' ? 'Home plot' : 'Empty plot';
-        this.labels.push(label(this.scene, (p.x + p.w / 2) * px, (p.y + p.h / 2 + 0.4) * px, text, '#ffffff88'));
+        const l = label(this.scene, (p.x + p.w / 2) * px, (p.y + p.h / 2 + 0.4) * px, text, '#ffffff88');
+        l.isPlot = true;
+        this.labels.push(l);
       });
     }
   }
@@ -276,7 +282,7 @@ function signature(sim, data) {
   return sim.buildings.map((b) => {
     const p = jobProgress(data, b);
     return `${b.id}:${b.built ? 1 : 0}:${b.level}:${p == null ? '' : Math.floor(p * 20)}`;
-  }).join('|') + `|${activeExpedition(sim)?.phase ?? ''}`;
+  }).join('|') + `|${activeExpedition(sim)?.phase ?? ''}|${sim.settlement.tier ?? 1}`;
 }
 
 function shade(color, f) {

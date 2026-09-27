@@ -5,7 +5,7 @@ import { iconDataUrl } from '../ui/icons.js';
 // activity bubbles over people match the rest of the game). Drawn at 2x and
 // shown at half scale so they stay crisp when zoomed.
 
-export const BUBBLE_ICONS = ['hammer', 'meal', 'sword', 'book', 'faith', 'ale', 'wood', 'potato', 'remedy', 'magic', 'heart', 'portal', 'ore', 'bulb', 'sparkle'];
+export const BUBBLE_ICONS = ['shield', 'hammer', 'meal', 'sword', 'book', 'faith', 'ale', 'wood', 'potato', 'remedy', 'magic', 'heart', 'portal', 'ore', 'bulb', 'sparkle'];
 
 // Called from BootScene.preload: the icons are SVGs, which Phaser loads.
 export function preloadIcons(scene) {

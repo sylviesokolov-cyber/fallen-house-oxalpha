@@ -54,10 +54,11 @@ export class HumanView {
     const talk = add.text(-6, -22, '…', { fontSize: '11px', fontStyle: 'bold', color: '#ffffff', stroke: '#1b1b1b', strokeThickness: 2 })
       .setResolution(3)
       .setVisible(false);
+    const yoke = add.rectangle(0, -3, 14, 3, 0x7a5230).setStrokeStyle(0.8, 0x2a1d14).setVisible(false);
     const crown = add.triangle(0, -12, -4, 2, 4, 2, 0, -4, 0xffd35c).setStrokeStyle(0.8, 0x7a5a10).setVisible(false);
     const figure = add.container(0, 0, [...feet, gear, hairBack, body, sash, head, beard, hair, bun, spikes, halo]);
-    const c = add.container(0, 0, [shadow, figure, zzz, carry, talk, crown]).setDepth(3);
-    Object.assign(c, { figure, body, head, hair, hairBack, bun, spikes, beard, sash, halo, gear, crown, zzz, carry, talk, look: null, phase: Math.random() * 6, feet });
+    const c = add.container(0, 0, [shadow, figure, yoke, zzz, carry, talk, crown]).setDepth(3);
+    Object.assign(c, { figure, body, head, hair, hairBack, bun, spikes, beard, sash, halo, gear, crown, zzz, carry, talk, look: null, phase: Math.random() * 6, feet, yoke });
     this.sprites.set(h.id, c);
     return c;
   }
@@ -112,6 +113,7 @@ export class HumanView {
       s.feet[1].setY(6.2 + Math.min(0, -step));
       if (moving && h.x !== h.prevX) s.figure.setScale(Math.abs(s.figure.scaleX) * (h.x < h.prevX ? -1 : 1), s.figure.scaleY);
       s.zzz.setVisible(asleep);
+      s.yoke.setVisible(h.action.type === 'punished' && h.punished?.kind === 'stocks');
       s.talk.setVisible(h.action.type === 'chat' || h.action.type === 'drink');
       this.restyle(s, h, lifeStage(h, sim, data), data);
       s.crown.setVisible(sim.settlement.leaderId === h.id && !h.carrying && !asleep);

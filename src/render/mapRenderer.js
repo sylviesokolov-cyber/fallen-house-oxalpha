@@ -24,15 +24,18 @@ const FLOWERS = [0xf5f0d8, 0xffd35c, 0xe98fb3, 0xb99cff, 0x9fd0ff];
 
 // Where the paths meet: every door, the store, the portal, the field and the
 // grove all connect to a hub in the middle of the sanctuary.
-function pathNodes(data) {
+// Road ends: below every building and plot, at the portal, and at the edge
+// of each grove and field (those of the tiers opened so far, too).
+function pathNodes(data, tier = 1) {
   const L = data.sanctuary;
+  const tiers = (L.tiers ?? []).filter((t) => t.level > 1 && t.level <= tier);
   const nodes = [];
   for (const b of L.buildings) nodes.push([b.x + Math.floor(b.w / 2), b.y + b.h]);
   for (const kind of ['plots', 'smallPlots', 'homePlots']) {
-    for (const p of L[kind] ?? []) nodes.push([p.x + Math.floor(p.w / 2), p.y + p.h]);
+    for (const p of [...(L[kind] ?? []), ...tiers.flatMap((t) => t[kind] ?? [])]) nodes.push([p.x + Math.floor(p.w / 2), p.y + p.h]);
   }
   nodes.push([L.portal.x + 1, L.portal.y + L.portal.h + 1]);
-  for (const z of L.zones) {
+  for (const z of [...L.zones, ...tiers.flatMap((t) => t.zones ?? [])]) {
     if (z.resource === 'tree') nodes.push([z.x + z.w, z.y + Math.floor(z.h / 2)]);
     else nodes.push([z.x + Math.floor(z.w / 2), z.y - 1]);
   }
@@ -150,9 +153,9 @@ function drawField(g, z, pal) {
 
 // Dirt paths: each node joins the hub with an L-shaped route, drawn as a wide
 // dark edge, then a lighter centre, then scattered pebbles.
-function drawPaths(g, data, pal) {
+function drawPaths(g, data, pal, tier) {
   const [hx, hy] = HUB(data);
-  const routes = pathNodes(data).map(([nx, ny]) => [[nx, ny], [nx, hy], [hx, hy]]);
+  const routes = pathNodes(data, tier).map(([nx, ny]) => [[nx, ny], [nx, hy], [hx, hy]]);
   const pass = (width, color, alpha) => {
     g.lineStyle(width, color, alpha);
     g.fillStyle(color, alpha);
@@ -268,7 +271,7 @@ function drawPortal(g, data) {
 // render every frame than thousands of shapes.
 // `variant` is 'normal' or 'winter' (snow on the ground; the ambient view
 // fades it in and out with the season).
-export function drawMap(scene, world, data, variant = 'normal') {
+export function drawMap(scene, world, data, variant = 'normal', zones = data.sanctuary.zones, tier = 1) {
   const pal = PALETTES[variant];
   const key = `${TEXTURE_KEY}-${variant}`;
   const g = scene.make.graphics({ add: false });
@@ -276,8 +279,8 @@ export function drawMap(scene, world, data, variant = 'normal') {
   for (let y = 0; y < world.height; y++) {
     for (let x = 0; x < world.width; x++) drawGrass(g, x, y, grass, pal);
   }
-  for (const z of data.sanctuary.zones) (z.resource === 'tree' ? drawGrove : drawField)(g, z, pal);
-  drawPaths(g, data, pal);
+  for (const z of zones) (z.resource === 'tree' ? drawGrove : drawField)(g, z, pal);
+  drawPaths(g, data, pal, tier);
   drawPlaza(g, data);
   for (let y = 0; y < world.height; y++) {
     for (let x = 0; x < world.width; x++) {

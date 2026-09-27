@@ -28,6 +28,7 @@ function activityIcon(sim, data, h) {
     case 'drink': return 'ale';
     case 'eat': return 'meal';
     case 'recover': return 'remedy';
+    case 'punished': return 'shield';
     case 'arcane': return 'magic';
     case 'chat': return 'heart';
     case 'toPortal':

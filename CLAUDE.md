@@ -30,6 +30,8 @@
 - Item, tech and building pictures: `src/ui/itemArt.js` draws the glyph named by each entry's `art` in the data (`"glyph"` or `"glyph:#color"`).
 - `src/sim/data.js` `DATA_FILES` lists every content file; add new ones there.
 - Battle viewer: `combat.js` `fight` also records one event `[actor, target, kind, amount]` per report line, and each report stores the `cast`. `src/ui/battleViewer.js` replays them; monsters are drawn by `src/ui/monsterArt.js` from each monster's `look` in `data/monsters.json`.
+- Society: `src/sim/rank.js` (standing from level, skills, deeds and `h.renown`; ranks from `data/ranks.json` with perks like `mealMood`, `academy`, `market`; `drive` makes the ambitious work harder, and promotions spur friends), `src/sim/crime.js` (daily temptation, theft and assault, detection, sentences under `lawLevel`; `h.punished` keeps someone in the stocks or the cells; repeat offenders are exiled via `killHuman(..., 'exile')`).
+- Expansion: `src/sim/tiers.js` grows the world east and south to the next tier in `data/sanctuary.json` `tiers` (only via the god's `expand` power, once `tierRequirements` are met). Plots from later tiers are appended to the plot lists (`plotList(data, kind, state)`), buildings and techs may name a `tier`/`tierMin`, and `WorldScene` re-bakes the map on `world-expanded`.
 - `src/sim/goals.js` (milestones from `data/goals.json`, `goalProgress` for the UI) and `src/sim/events.js` (raids, festivals, sickness `h.sick`, strangers from `data/events.json`). Raids are stored in `state.expeditions` with `raid: true`.
 - `src/sim/construction.js`: plots, construction sites, upgrades and family homes. Building effects at a level come from `effectsOf`/`buildingEffect` in `buildings.js` (base effects plus upgrades reached).
 

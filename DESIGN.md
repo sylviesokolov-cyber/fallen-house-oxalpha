@@ -217,6 +217,13 @@ J. **Male-line succession** — done.
 - Every item, tech and building has its own picture; the stores are a grid of tiles.
 - Zoom: pinches stretch a little past the limits and spring back, the wheel and double-tap ease smoothly, and building names keep a readable size.
 
+K. **Society and expansion** — done.
+- **Standing and rank:** standing comes from level, skills, expeditions, bosses and discoveries, plus renown won (defending against raids) or lost (convictions). Ranks from Outcast and Commoner up through Freeman, Artisan and Notable to Noble bring perks: finer meals, a seat at the Academy, market days, first claim on a new home. The children of the renowned start with a share of it.
+- **Ambition:** everyone has some, shaped by their nature and parents. The ambitious work, train and study harder, and when someone close rises past them they're spurred on (and a little envious).
+- **Crime:** the hungry, the unhappy, the low-ranked and the envious (and the lazy and aggressive) may steal from the stores or attack a rival. A harsh law, a Watch House, a Market and recent punishments deter them. Witnesses and the watch catch them.
+- **Justice:** the ruler's law (from his nature, or set by decree) decides the sentence: lenient (a fine and shame), fair (the stocks), harsh (flogging, the cells, and everyone lives in fear). Those who won't stop are exiled.
+- **Expansion:** only the god raises the walls, once there are enough people, buildings and milestones (and later, notables). Sanctuary → Town → City, each with more land, groves, fields, plots and homes, and new buildings: the Academy (faster study, school for children), the Watch House, the Market, the Cathedral. New techs (Law, Scholarship, Trade) are only found in a Town.
+
 I. **Visual depth** — done.
 - People look like individuals: hair styles, beards, slim or broad builds by strength, a sash in their house colour, and the weapon they carry. They swing while working and breathe while standing. The ageless wear a halo and the sick turn pale.
 - Portraits are drawn faces that match the sprite, with a crown for the ruler and a tiara for the ruler's spouses and heir.

@@ -1,3 +1,4 @@
+import { rankDef } from './rank.js';
 import { chance } from './rng.js';
 import { gainXp, skillLevel } from './skills.js';
 import { buildingEffect, builtOfType } from './buildings.js';
@@ -165,12 +166,20 @@ export function foodInStock(state, data) {
   return state.stockpile.food + mealsInStock(state, data);
 }
 
-// Eats one meal from the stockpile, the tastiest there is, else a raw potato.
-// Returns false if empty.
+// Eats one meal from the stockpile: the tastiest their rank allows (the
+// finer dishes are kept for those of standing), else the plainest there is,
+// else a raw potato. Returns false if empty.
 export function eatFromStock(state, data, h, moodScale = 1) {
   const s = state.stockpile;
+  const cap = rankDef(state, data, h)?.mealMood ?? Infinity;
   let best = null;
-  for (const def of mealsOf(data)) if (s[def.id] > 0 && (!best || def.mood > best.mood)) best = def;
+  let plainest = null;
+  for (const def of mealsOf(data)) {
+    if (!(s[def.id] > 0)) continue;
+    if (def.mood <= cap && (!best || def.mood > best.mood)) best = def;
+    if (!plainest || def.mood < plainest.mood) plainest = def;
+  }
+  best ??= plainest;
   if (best) {
     s[best.id]--;
     h.needs.hunger = Math.min(100, h.needs.hunger + best.food);

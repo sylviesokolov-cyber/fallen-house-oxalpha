@@ -10,10 +10,13 @@ const STRETCH = 0.18; // how far a pinch may overshoot the zoom limits before sp
 // Phaser's camera zooms around its center, so to keep the point under the
 // fingers fixed while zooming we convert screen <-> world by hand.
 // getInsets() returns the screen pixels covered by UI bars: { top, bottom }.
-export function setupCameraControls(scene, worldW, worldH, onTap, getInsets = () => ({ top: 0, bottom: 0 })) {
+// getSize() returns the world's { w, h } in pixels (it grows when the walls
+// move out).
+export function setupCameraControls(scene, getSize, onTap, getInsets = () => ({ top: 0, bottom: 0 })) {
   const cam = scene.cameras.main;
 
   const minZoom = () => {
+    const { w: worldW, h: worldH } = getSize();
     const { top, bottom } = getInsets();
     return Math.min(cam.width / worldW, (cam.height - top - bottom) / worldH);
   };
@@ -31,6 +34,7 @@ export function setupCameraControls(scene, worldW, worldH, onTap, getInsets = ()
   // bars, and grown symmetrically when the view is bigger than the map so it
   // stays centered.
   function updateBounds() {
+    const { w: worldW, h: worldH } = getSize();
     const z = cam.zoom;
     const { top: t, bottom: b } = getInsets();
     const top = t / z;
@@ -180,6 +184,10 @@ export function setupCameraControls(scene, worldW, worldH, onTap, getInsets = ()
     centerOn(wx, wy, zoom) {
       setZoom(zoom);
       cam.centerOn(wx, wy);
+    },
+    // After the world changes size.
+    refresh() {
+      setZoom(cam.zoom);
     },
     // Called whenever the player moves the view by hand.
     onPan(fn) {

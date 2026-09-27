@@ -2,6 +2,7 @@ import { usePower } from '../sim/godPowers.js';
 import { leaderOf, leaderTitle, rankOf } from '../sim/settlement.js';
 import { royalLine, successorOf, spousesOf, unwed } from '../sim/dynasty.js';
 import { decreeCost, puppetRuler } from '../sim/decrees.js';
+import { lawLevel } from '../sim/crime.js';
 import { nextUpgrade } from '../sim/construction.js';
 import { isFamily } from '../sim/bonds.js';
 import { lifeStage } from '../sim/lifecycle.js';
@@ -80,13 +81,28 @@ export function createThronePanel(ctx, { toast, select }) {
         const b = sim.buildings.find((o) => o.type === def.id && o.built);
         const u = b && nextUpgrade(data, b);
         if (u && known(u.tech)) rows.push([def, `Upgrade to level ${u.level}`]);
-        else if (!b && def.cost && known(def.tech) && !sim.buildings.some((o) => o.type === def.id)) rows.push([def, 'Build']);
+        else if (!b && def.cost && (def.tier ?? 1) <= (sim.settlement.tier ?? 1) && known(def.tech) && !sim.buildings.some((o) => o.type === def.id)) rows.push([def, 'Build']);
       }
       return [section('Order a building'), ...(rows.length ? rows.map(([def, what]) => {
         const r = button('bond', '', () => decree({ kind: 'build', type: def.id }, `The ${def.name} is ordered`));
         r.append(el('span', null, def.name), el('span', 'kind', what));
         return r;
       }) : [el('div', 'empty', 'Nothing new can be built yet.')]), back];
+    }
+    if (flow.kind === 'law') {
+      const LAWS = [
+        ['lenient', 'Lenient', 'Fines and shame. People are happier, but more are tempted.'],
+        ['fair', 'Fair', 'The stocks for a day; exile for those who never stop.'],
+        ['harsh', 'Harsh', 'Flogging, the cells, quick exile. Few dare, but everyone lives in fear.'],
+      ];
+      const now = lawLevel(sim, data);
+      return [section('Set the law of the land'), ...LAWS.map(([id, name, text]) => {
+        const r = button(`bond omen-choice${id === now ? ' chosen' : ''}`, '', () => decree({ kind: 'law', level: id }, `The law is now ${name.toLowerCase()}`));
+        const t = el('span', 'omen-text');
+        t.append(el('strong', null, `${name}${id === now ? ' (now)' : ''}`), el('span', 'kind', text));
+        r.append(t);
+        return r;
+      }), back];
     }
     // focus
     return [section('Proclaim a calling'), ...data.focuses.map((f) => {
@@ -100,7 +116,7 @@ export function createThronePanel(ctx, { toast, select }) {
 
   function decreeButtons() {
     const { data } = ctx;
-    const items = [['wed', 'heart', 'Arrange a marriage'], ['heir', 'crown', 'Name the heir'], ['build', 'hammer', 'Order a building'], ['focus', 'omen', 'Proclaim a calling']];
+    const items = [['wed', 'heart', 'Arrange a marriage'], ['heir', 'crown', 'Name the heir'], ['build', 'hammer', 'Order a building'], ['focus', 'omen', 'Proclaim a calling'], ['law', 'shield', 'Set the law']];
     const grid = el('div', 'decree-grid');
     for (const [kind, ic, label] of items) {
       const b = button('decree', '', () => {
