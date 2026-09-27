@@ -143,7 +143,23 @@ button.active { background: var(--accent); color: #1a1a1a; border-color: var(--a
 
 #inspect { max-height: 60vh; overflow-y: auto; }
 #log { max-height: 55vh; display: flex; flex-direction: column; }
-#tribe, #omen { max-height: 68vh; overflow-y: auto; }
+#tribe, #omen, #portal { max-height: 68vh; overflow-y: auto; }
+#portal h3 { margin: 10px 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.tabs.floors { position: static; }
+.floor-desc { font-size: 13px; color: var(--muted); margin: 2px 0 4px; }
+.person.chosen { border-color: #b99cff; background: #2a2340; }
+.person-sub .bar.hp { flex: 0 0 64px; height: 6px; align-self: center; }
+.bar.hp > div { background: #e5604f; }
+button.send { background: #b99cff; color: #1a1a1a; border-color: #b99cff; font-weight: 700; }
+button.send:disabled { opacity: 0.45; }
+.report { font-size: 12px; padding: 4px 8px 8px; border-left: 2px solid var(--line); margin: 0 0 6px 6px; }
+.report-title { font-weight: 700; margin-top: 6px; }
+.report-title.result-victory { color: var(--accent); }
+.report-title.result-lost, .report-title.result-fled { color: var(--bad); }
+.report-line { color: var(--muted); padding-left: 6px; }
+.report-loot { color: var(--good); }
+.outcome-victory { color: var(--accent) !important; }
+.outcome-lost { color: var(--bad) !important; }
 #tribe h3 { margin: 10px 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
 #tribe h3.era { text-transform: capitalize; }
 .tech-row .kind { color: var(--muted); font-weight: 400; }

@@ -1,0 +1,18 @@
+[
+  {"id": "cave_rat", "name": "Cave Rat", "hp": 14, "atk": 5, "def": 0, "agi": 7, "xp": 6, "verb": "bites", "loot": [{"item": "meat", "chance": 0.5, "min": 1, "max": 1}]},
+  {"id": "green_slime", "name": "Green Slime", "hp": 22, "atk": 4, "def": 2, "agi": 2, "xp": 7, "verb": "engulfs", "loot": [{"item": "herbs", "chance": 0.35, "min": 1, "max": 1}]},
+  {"id": "giant_rat", "name": "Giant Rat", "boss": true, "hp": 90, "atk": 9, "def": 2, "agi": 6, "xp": 40, "verb": "mauls", "loot": [{"item": "meat", "chance": 1, "min": 3, "max": 5}, {"item": "hide", "chance": 1, "min": 1, "max": 2}]},
+
+  {"id": "goblin", "name": "Goblin", "hp": 30, "atk": 10, "def": 3, "agi": 8, "xp": 12, "verb": "stabs", "loot": [{"item": "hide", "chance": 0.3, "min": 1, "max": 1}, {"item": "meat", "chance": 0.2, "min": 1, "max": 1}]},
+  {"id": "spore_creeper", "name": "Spore Creeper", "hp": 40, "atk": 8, "def": 4, "agi": 3, "xp": 12, "verb": "lashes", "loot": [{"item": "mushroom", "chance": 0.7, "min": 1, "max": 2}]},
+  {"id": "cave_boar", "name": "Cave Boar", "hp": 45, "atk": 11, "def": 3, "agi": 5, "xp": 14, "verb": "gores", "loot": [{"item": "meat", "chance": 1, "min": 2, "max": 3}, {"item": "hide", "chance": 0.5, "min": 1, "max": 1}]},
+  {"id": "goblin_chief", "name": "Goblin Chief", "boss": true, "hp": 170, "atk": 17, "def": 6, "agi": 8, "xp": 90, "verb": "cleaves", "loot": [{"item": "ore", "chance": 1, "min": 2, "max": 3}, {"item": "meat", "chance": 1, "min": 2, "max": 4}]},
+
+  {"id": "skeleton", "name": "Skeleton", "hp": 60, "atk": 18, "def": 9, "agi": 5, "xp": 20, "verb": "slashes", "loot": [{"item": "bone", "chance": 0.8, "min": 1, "max": 2}]},
+  {"id": "ghoul", "name": "Ghoul", "hp": 75, "atk": 22, "def": 4, "agi": 9, "xp": 24, "verb": "claws", "loot": [{"item": "bone", "chance": 0.4, "min": 1, "max": 1}, {"item": "mana_crystal", "chance": 0.08, "min": 1, "max": 1}]},
+  {"id": "bone_knight", "name": "Bone Knight", "boss": true, "hp": 420, "atk": 32, "def": 14, "agi": 6, "xp": 180, "verb": "smites", "loot": [{"item": "ore", "chance": 1, "min": 3, "max": 5}, {"item": "mana_crystal", "chance": 1, "min": 1, "max": 2}]},
+
+  {"id": "stone_golem", "name": "Stone Golem", "hp": 170, "atk": 30, "def": 20, "agi": 3, "xp": 40, "verb": "crushes", "loot": [{"item": "ore", "chance": 0.8, "min": 1, "max": 3}]},
+  {"id": "shade", "name": "Shade", "hp": 100, "atk": 34, "def": 6, "agi": 16, "xp": 40, "verb": "drains", "loot": [{"item": "mana_crystal", "chance": 0.25, "min": 1, "max": 1}]},
+  {"id": "deep_wyrm", "name": "Deep Wyrm", "boss": true, "hp": 900, "atk": 50, "def": 20, "agi": 10, "xp": 400, "verb": "burns", "loot": [{"item": "mana_crystal", "chance": 1, "min": 3, "max": 5}, {"item": "ore", "chance": 1, "min": 4, "max": 6}, {"item": "meat", "chance": 1, "min": 6, "max": 8}]}
+]

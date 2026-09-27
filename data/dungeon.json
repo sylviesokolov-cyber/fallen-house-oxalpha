@@ -1,0 +1,109 @@
+{
+  "roomTicks": 60,
+  "returnTicks": 60,
+  "callTimeoutTicks": 240,
+  "maxParty": 5,
+  "keepExpeditions": 6,
+  "maxRounds": 25,
+  "retreatBelow": 0.2,
+  "fleeBelow": 0.25,
+  "monsterCrit": 0.08,
+  "overkill": 0.5,
+  "carryOutBase": 0.45,
+  "carryOutPerAlly": 0.08,
+  "carriedOutHealth": 5,
+  "xpPerAttack": 3,
+  "xpPerHitTaken": 2,
+  "maxReportLines": 80,
+  "floors": [
+    {
+      "id": 1,
+      "name": "Mossy Burrows",
+      "description": "Damp tunnels full of rats and slimes. A gentle start, alone or in pairs.",
+      "rooms": 4,
+      "group": [
+        1,
+        3
+      ],
+      "monsters": [
+        {
+          "id": "cave_rat",
+          "weight": 3
+        },
+        {
+          "id": "green_slime",
+          "weight": 2
+        }
+      ],
+      "boss": "giant_rat"
+    },
+    {
+      "id": 2,
+      "name": "Fungal Caverns",
+      "description": "Glowing mushrooms, goblin war bands and wild boars. Go as a party.",
+      "rooms": 5,
+      "group": [
+        2,
+        3
+      ],
+      "monsters": [
+        {
+          "id": "goblin",
+          "weight": 3
+        },
+        {
+          "id": "spore_creeper",
+          "weight": 2
+        },
+        {
+          "id": "cave_boar",
+          "weight": 2
+        }
+      ],
+      "boss": "goblin_chief"
+    },
+    {
+      "id": 3,
+      "name": "Bone Halls",
+      "description": "Crypts where the dead still walk. Only for seasoned fighters.",
+      "rooms": 5,
+      "group": [
+        2,
+        4
+      ],
+      "monsters": [
+        {
+          "id": "skeleton",
+          "weight": 3
+        },
+        {
+          "id": "ghoul",
+          "weight": 2
+        }
+      ],
+      "boss": "bone_knight"
+    },
+    {
+      "id": 4,
+      "name": "The Deep Forge",
+      "description": "Living stone and hungry shadows guard the warmth below.",
+      "rooms": 6,
+      "group": [
+        2,
+        4
+      ],
+      "monsters": [
+        {
+          "id": "stone_golem",
+          "weight": 2
+        },
+        {
+          "id": "shade",
+          "weight": 2
+        }
+      ],
+      "boss": "deep_wyrm"
+    }
+  ],
+  "bondPerRoom": 2
+}

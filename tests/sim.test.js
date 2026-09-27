@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { prepareData } from '../src/sim/data.js';
+import { DATA_FILES, prepareData } from '../src/sim/data.js';
 import { createSim, stepSim } from '../src/sim/sim.js';
 import { serialize, deserialize } from '../src/sim/save.js';
 import { updateResources } from '../src/sim/world.js';
 import { updateNeeds } from '../src/sim/needs.js';
 import { gainXp, workTimeFactor } from '../src/sim/skills.js';
 import { traitMod } from '../src/sim/traits.js';
-import { changeBond, relationType, teach } from '../src/sim/bonds.js';
+import { bondValue, changeBond, relationType, teach } from '../src/sim/bonds.js';
 import { lifeStage, updateLifeCycle } from '../src/sim/lifecycle.js';
 import { daysPerYear, dayIndexOf } from '../src/sim/time.js';
 import { knows, learnTech, teachTech, updateDiscovery } from '../src/sim/techs.js';
@@ -34,7 +34,7 @@ function tweak(path, value) {
 }
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
-const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers', 'stats', 'grades', 'emotions', 'focuses', 'sanctuary'].map((n) => [n, load(n)])));
+const data = prepareData(Object.fromEntries(DATA_FILES.map((n) => [n, load(n)])));
 const run = (state, ticks) => { for (let i = 0; i < ticks; i++) stepSim(state, data); return state; };
 const DAY = data.config.time.ticksPerDay;
 
@@ -648,4 +648,107 @@ test('over the years the sanctuary builds itself up without famine', () => {
   const built = s.buildings.filter((b) => b.built && b.plot);
   assert.ok(built.length >= 3, `only ${built.map((b) => b.type)}`);
   assert.ok(s.buildings.some((b) => b.level >= 2), 'something was upgraded');
+});
+
+// --- The Portal ---
+
+import { activeExpedition } from '../src/sim/dungeon.js';
+import { heroFighter } from '../src/sim/combat.js';
+
+const adults = (s) => s.humans.filter((h) => lifeStage(h, s, data) !== 'child');
+
+// Makes a hero strong (or weak) for tests.
+function setFighter(h, level, skill = 'swordsmanship') {
+  for (const k of Object.keys(h.stats)) h.stats[k] = level;
+  h.skills[skill] = { level, xp: 0 };
+  h.skills.defense = { level, xp: 0 };
+  h.health = 100;
+}
+
+function runExpedition(s) {
+  for (let i = 0; i < 30 * DAY && activeExpedition(s); i++) stepSim(s, data);
+  return s.expeditions.at(-1);
+}
+
+test('the portal refuses parties it cannot send', () => {
+  const s = createSim(data, 'refuse');
+  const ids = adults(s).map((h) => h.id);
+  assert.equal(usePower(s, data, 'portal', { party: [], floor: 1 }).ok, false);
+  assert.match(usePower(s, data, 'portal', { party: ids.slice(0, 6), floor: 1 }).error, /At most 5/);
+  assert.match(usePower(s, data, 'portal', { party: ids.slice(0, 2), floor: 2 }).error, /sealed/);
+  s.humans[0].pregnantUntil = s.tick + DAY;
+  assert.match(usePower(s, data, 'portal', { party: [s.humans[0].id], floor: 1 }).error, /pregnant/);
+  assert.ok(usePower(s, data, 'portal', { party: ids.slice(1, 3), floor: 1 }).ok);
+  assert.match(usePower(s, data, 'portal', { party: ids.slice(3, 4), floor: 1 }).error, /already out/);
+});
+
+test('a strong party clears Floor 1, brings loot home and opens Floor 2', () => {
+  const s = createSim(data, 'raid');
+  const party = adults(s).slice(0, 3);
+  for (const h of party) setFighter(h, 12);
+  assert.ok(usePower(s, data, 'portal', { party: party.map((h) => h.id), floor: 1 }).ok);
+  // They walk to the portal and step through; needs are on hold inside.
+  let hungerInside = null;
+  for (let i = 0; i < 5 * DAY && party[0].away == null; i++) stepSim(s, data);
+  assert.ok(party.every((h) => h.away != null), 'everyone went in');
+  hungerInside = party[0].needs.hunger;
+  run(s, 20);
+  assert.equal(party[0].needs.hunger, hungerInside);
+  const exp = runExpedition(s);
+  assert.equal(exp.outcome, 'victory');
+  assert.equal(exp.reports.length, data.floorsById[1].rooms + 1);
+  assert.ok(exp.reports.every((r) => r.lines.length > 0));
+  assert.equal(s.dungeon.deepest, 2);
+  assert.ok(party.every((h) => h.away == null && h.counters.expeditions === 1));
+  assert.ok(party.some((h) => h.counters.kills > 0));
+  assert.ok(s.stockpile.meat > 0 || s.stockpile.herbs > 0 || s.stockpile.hide > 0, 'loot in the store');
+  assert.ok(s.history.some((e) => e.text.includes('slew the Giant Rat')));
+  assert.ok(s.history.some((e) => e.text.includes('came home from the Mossy Burrows')));
+  assert.ok(bondValue(s, party[0], party[1]) > 0, 'fought side by side');
+});
+
+test('the deep dungeon kills those who are not ready', () => {
+  let deaths = 0;
+  for (const seed of ['doom1', 'doom2', 'doom3']) {
+    const s = createSim(data, seed);
+    s.dungeon.deepest = 4;
+    const [h] = adults(s);
+    setFighter(h, 3);
+    assert.ok(usePower(s, data, 'portal', { party: [h.id], floor: 4 }).ok);
+    const exp = runExpedition(s);
+    assert.notEqual(exp.outcome, 'victory');
+    if (!s.humans.includes(h)) {
+      deaths++;
+      assert.equal(s.dead.at(-1).cause, 'dungeon');
+      assert.ok(s.history.some((e) => e.text.startsWith(h.name) && /Deep Forge/.test(e.text)));
+    }
+  }
+  assert.ok(deaths >= 2, `only ${deaths} of 3 died`);
+});
+
+test('a party can be called home, and a save mid-expedition resumes exactly', () => {
+  const s = createSim(data, 'recall');
+  const party = adults(s).slice(0, 2);
+  for (const h of party) setFighter(h, 15);
+  usePower(s, data, 'portal', { party: party.map((h) => h.id), floor: 1 });
+  for (let i = 0; i < 5 * DAY && activeExpedition(s)?.phase !== 'inside'; i++) stepSim(s, data);
+  const copy = deserialize(serialize(s));
+  run(s, DAY);
+  run(copy, DAY);
+  assert.equal(serialize(s), serialize(copy));
+  assert.ok(usePower(s, data, 'portal', { recall: true }).ok);
+  const exp = runExpedition(s);
+  assert.ok(['recalled', 'victory'].includes(exp.outcome));
+  assert.ok(exp.reports.length <= data.floorsById[1].rooms + 1);
+});
+
+test('agile heroes fight with the bow, and meat becomes roast meat', () => {
+  const s = createSim(data, 'bow');
+  const h = s.humans[0];
+  h.stats.agi = 12;
+  h.stats.str = 2;
+  assert.equal(heroFighter(h, data).style, 'archery');
+  s.stockpile.meat = 5;
+  s.stockpile.food = 100;
+  assert.equal(craftChoice(s, data, h).id, 'roast_meat');
 });

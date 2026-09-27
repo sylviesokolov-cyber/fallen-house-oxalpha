@@ -155,7 +155,7 @@ export function spoilFood(state, data) {
   if (state.tick % data.config.time.ticksPerDay !== 0) return;
   let rate = data.config.food.spoilPerDay;
   for (const b of state.buildings) rate *= buildingEffect(data, b, 'spoilage') ?? 1;
-  const keys = ['food', ...data.items.filter((d) => d.kind !== 'tool').map((d) => d.id)];
+  const keys = ['food', ...data.items.filter((d) => d.perishable || d.kind === 'meal' || d.kind === 'drink').map((d) => d.id)];
   for (const key of keys) {
     const exact = (state.stockpile[key] ?? 0) * rate;
     const lost = Math.floor(exact) + (chance(state.rng, exact % 1) ? 1 : 0);

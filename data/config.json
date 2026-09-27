@@ -228,6 +228,18 @@
     "sharedDrink": [
       8,
       1
+    ],
+    "nearDeath": [
+      -12,
+      6
+    ],
+    "dungeonVictory": [
+      15,
+      5
+    ],
+    "dungeonReturn": [
+      6,
+      3
     ]
   },
   "leader": {

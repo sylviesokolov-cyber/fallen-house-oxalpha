@@ -63,6 +63,13 @@ export class WorldScene extends Phaser.Scene {
     }
     const radius = Math.max(10, 22 / this.cameras.main.zoom);
     const id = this.humanView.humanAt(wx, wy, radius);
+    const p = this.ctx.data.sanctuary.portal;
+    const tx = Math.floor(wx / TILE_SIZE);
+    const ty = Math.floor(wy / TILE_SIZE);
+    if (id == null && tx >= p.x - 1 && tx <= p.x + p.w && ty >= p.y - 1 && ty <= p.y + p.h) {
+      this.hud.openPortal();
+      return;
+    }
     this.ctx.selectedId = id;
     this.hud.showInspect(id);
   }

@@ -1,6 +1,7 @@
 import { TILE_SIZE, hexToInt } from './constants.js';
 import { buildingEffect, isBed } from '../sim/buildings.js';
 import { jobProgress, nextUpgrade } from '../sim/construction.js';
+import { activeExpedition } from '../sim/dungeon.js';
 
 // Buildings are rooms: a floor, an outline, a name label and a few
 // furnishings so each reads at a glance. Empty plots are dashed outlines;
@@ -106,6 +107,22 @@ export class BuildingView {
     this.labels = [];
     this.drawPlots(sim, data);
     for (const b of sim.buildings) this.drawBuilding(b, data);
+    this.drawPortal(sim, data);
+  }
+
+  // The portal glows while a party is on the other side.
+  drawPortal(sim, data) {
+    const exp = activeExpedition(sim);
+    if (!exp || exp.phase === 'called') return;
+    const p = data.sanctuary.portal;
+    const cx = (p.x + p.w / 2) * px;
+    const cy = (p.y + p.h) * px;
+    this.g.fillStyle(0xb99cff, 0.25);
+    this.g.fillCircle(cx, cy, px * 2.2);
+    this.g.fillStyle(0xb99cff, 0.35);
+    this.g.fillCircle(cx, cy, px * 1.2);
+    const fl = data.floorsById[exp.floor];
+    this.labels.push(label(this.scene, cx, cy + px * 2.6, `Party in Floor ${fl.id}`, '#d9c9ff'));
   }
 
   drawPlots(sim, data) {
@@ -171,7 +188,7 @@ function signature(sim, data) {
   return sim.buildings.map((b) => {
     const p = jobProgress(data, b);
     return `${b.id}:${b.built ? 1 : 0}:${b.level}:${p == null ? '' : Math.floor(p * 20)}`;
-  }).join('|');
+  }).join('|') + `|${activeExpedition(sim)?.phase ?? ''}`;
 }
 
 function label(scene, x, y, text, color) {

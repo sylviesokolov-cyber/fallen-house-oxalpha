@@ -40,6 +40,9 @@ export class HumanView {
     for (const h of sim.humans) {
       alive.add(h.id);
       const s = this.sprites.get(h.id) ?? this.create(h);
+      // Heroes in the dungeon aren't on the map.
+      s.setVisible(h.away == null);
+      if (h.away != null) continue;
       const t = Math.min(1, Math.max(0, (sim.tick - h.stepTick + alpha) / (h.stepTicks ?? moveTicks)));
       s.setPosition((h.prevX + (h.x - h.prevX) * t + 0.5) * TILE_SIZE, (h.prevY + (h.y - h.prevY) * t + 0.5) * TILE_SIZE);
       s.zzz.setVisible(h.action.type === 'sleep');
@@ -63,7 +66,7 @@ export class HumanView {
       }
     }
     const sel = this.sprites.get(selectedId);
-    this.ring.setVisible(!!sel);
+    this.ring.setVisible(!!sel && sel.visible);
     if (sel) this.ring.setPosition(sel.x, sel.y);
   }
 
@@ -71,6 +74,7 @@ export class HumanView {
     let bestId = null;
     let bestD = radius * radius;
     for (const [id, s] of this.sprites) {
+      if (!s.visible) continue;
       const d = (s.x - wx) ** 2 + (s.y - wy) ** 2;
       if (d <= bestD) {
         bestD = d;

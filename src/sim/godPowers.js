@@ -1,5 +1,6 @@
 import { logEvent } from './history.js';
 import { addFeeling } from './mood.js';
+import { callParty, recallParty } from './dungeon.js';
 
 // The player's only way to act. usePower is called by the UI with a power id
 // and a target ({ x, y } for tiles, { humanId } for people). It spends Faith,
@@ -12,6 +13,7 @@ export function usePower(state, data, powerId, target) {
   const h = target.humanId != null ? state.humans.find((o) => o.id === target.humanId) : null;
   if (power.target === 'human' && !h) return { ok: false, error: 'Tap a person to use this power' };
   if (power.target === 'focus' && !data.focusesById[target.focus]) return { ok: false, error: 'Choose what the omen calls for' };
+  if (power.target === 'party') return portal(state, data, target);
   // An omen is seen above the settlement.
   const x = h ? h.x : target.x ?? state.stockpile.x;
   const y = h ? h.y : target.y ?? state.stockpile.y;
@@ -22,12 +24,22 @@ export function usePower(state, data, powerId, target) {
   return { ok: true, x, y };
 }
 
+// Not a miracle anyone sees: the chosen simply feel the pull of the portal.
+// target: { party: [ids], floor } to send a party, or { recall: true }.
+function portal(state, data, target) {
+  const error = target.recall ? recallParty(state) : callParty(state, data, target.party ?? [], target.floor);
+  if (error) return { ok: false, error };
+  if (target.recall) logEvent(state, 'The party in the dungeon felt a call to come home');
+  const p = data.sanctuary.portal;
+  return { ok: true, x: p.x, y: p.y };
+}
+
 // Everyone awake nearby sees it: their devotion grows, they remember it (enough
 // miracles lead to Worship), and their awe gives a little Faith back.
 function witness(state, data, x, y, awe) {
   const f = data.config.faith;
   for (const o of state.humans) {
-    if (o.action.type === 'sleep') continue;
+    if (o.action.type === 'sleep' || o.away != null) continue;
     if (Math.abs(o.x - x) > f.witnessRadius || Math.abs(o.y - y) > f.witnessRadius) continue;
     o.counters.miraclesSeen = (o.counters.miraclesSeen ?? 0) + 1;
     o.devotion = Math.min(100, o.devotion + awe);

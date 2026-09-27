@@ -19,6 +19,7 @@ import {
 } from './items.js';
 import { addWork, openJobFor, planJob, startJob } from './construction.js';
 import { tryDiscover } from './techs.js';
+import { portalYard } from './dungeon.js';
 import { changeBond } from './bonds.js';
 import { addFeeling } from './mood.js';
 
@@ -33,9 +34,19 @@ const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray', 't
 // underway isn't abandoned lightly.
 const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep', 'goSleep', 'craft', 'build']);
 
+// Called to the portal: everything else waits.
+const CALLED = new Set(['toPortal', 'atPortal']);
+
 export function updateHuman(state, data, h) {
-  if (shouldRethink(state, data, h)) chooseAction(state, data, h);
+  if (h.called != null && !CALLED.has(h.action.type)) answerCall(state, data, h);
+  else if (shouldRethink(state, data, h)) chooseAction(state, data, h);
   RUN[h.action.type](state, data, h);
+}
+
+function answerCall(state, data, h) {
+  const spot = roomSpot(state, portalYard(data), h);
+  const path = pathTo(state, data, h, spot.x, spot.y);
+  h.action = path ? { type: 'toPortal', spot, path } : { type: 'atPortal', spot };
 }
 
 function canSearchFood(state, h) {
@@ -265,7 +276,7 @@ const START = {
     let best = null;
     let bestScore = -Infinity;
     for (const o of state.humans) {
-      if (o === h || o.action.type === 'sleep' || o.action.type === 'chat') continue;
+      if (o === h || o.away != null || o.action.type === 'sleep' || o.action.type === 'chat') continue;
       const i = tileIndex(world, o.x, o.y);
       if (prev[i] === -1) continue;
       const score = bondValue(state, h, o) * 0.3 + (h.partnerId === o.id ? 30 : 0) + (isFamily(h, o) ? 15 : 0) - dist[i];
@@ -563,6 +574,15 @@ const RUN = {
   idle(state, data, h) {
     if (--h.action.ticks <= 0) h.action.done = true;
   },
+
+  toPortal(state, data, h) {
+    if (h.action.path.length) stepAlongPath(state, data, h);
+    else h.action = { type: 'atPortal', spot: h.action.spot };
+  },
+
+  // Waiting for the rest of the party; updateDungeon takes it from here.
+  atPortal() {},
+  away() {},
 
   // Prayer turns devotion into Faith.
   pray(state, data, h) {

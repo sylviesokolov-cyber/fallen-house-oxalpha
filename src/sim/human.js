@@ -65,6 +65,8 @@ export function createHuman(state, data, x, y, opts = {}) {
     status: {},
     feelings: [],
     carrying: null,
+    called: null,
+    away: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
 }
@@ -96,10 +98,11 @@ export function humanAge(h, state, data) {
 const DEATH_TEXT = {
   starvation: (name, age) => `${name} starved to death, aged ${age}`,
   'old age': (name, age) => `${name} died of old age, aged ${age}`,
-  lightning: (name, age) => `${name} was struck down by lightning, aged ${age}`,
+  dungeon: (name, age, detail) => `${name} ${detail}, aged ${age}`,
 };
 
-export function killHuman(state, data, h, cause) {
+// `detail` finishes the log line for some causes (how they died in the dungeon).
+export function killHuman(state, data, h, cause, detail) {
   const age = humanAge(h, state, data);
   state.humans = state.humans.filter((o) => o.id !== h.id);
   state.dead.push({
@@ -109,7 +112,7 @@ export function killHuman(state, data, h, cause) {
   });
   const partner = state.humans.find((o) => o.id === h.partnerId);
   if (partner) partner.partnerId = null;
-  let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age);
+  let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age, detail);
   if (partner) text += `, leaving behind ${partner.name}`;
   logEvent(state, text);
   forgetOnDeath(state, data, h);

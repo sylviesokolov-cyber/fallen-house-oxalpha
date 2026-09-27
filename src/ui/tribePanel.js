@@ -112,7 +112,7 @@ export function createTribePanel(ctx, { toast, select }) {
       const bottom = el('div', 'person-sub');
       const emo = el('span', null, e.name);
       emo.style.color = e.color;
-      bottom.append(el('span', null, heroClass(h, data)), emo);
+      bottom.append(el('span', null, h.away != null ? 'In the dungeon' : heroClass(h, data)), emo);
       b.append(top, bottom);
       return b;
     });

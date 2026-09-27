@@ -11,6 +11,7 @@ import { updateDiscovery } from './techs.js';
 import { createStartingBuildings, isWarm } from './buildings.js';
 import { handOutTools, spoilFood } from './items.js';
 import { updateHomes } from './construction.js';
+import { updateDungeon } from './dungeon.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -35,6 +36,8 @@ export function createSim(data, seed) {
     faith: data.config.faith.start,
     settlement: null,
     focus: null,
+    dungeon: { deepest: 1, cleared: [], nextId: 1 },
+    expeditions: [],
     dead: [],
     history: [],
   };
@@ -53,9 +56,11 @@ export function stepSim(state, data) {
   const winter = season === 'Winter';
   const newDay = state.tick % data.config.time.ticksPerDay === 0;
   for (const h of state.humans) {
-    updateNeeds(h, data, winter && !isWarm(state, data, h));
     expireFeelings(state, h);
     if (newDay) h.devotion = Math.max(0, h.devotion - data.config.devotion.decayPerDay);
+    // In the dungeon, needs are on hold and the fight is resolved by updateDungeon.
+    if (h.away != null) continue;
+    updateNeeds(h, data, winter && !isWarm(state, data, h));
     if (h.health <= 0) died.push(h);
     else updateHuman(state, data, h);
   }
@@ -67,6 +72,7 @@ export function stepSim(state, data) {
   updateSettlement(state, data);
   updateDiscovery(state, data);
   spoilFood(state, data);
+  updateDungeon(state, data);
   handOutTools(state, data);
   if (newDay) updateHomes(state, data);
 }

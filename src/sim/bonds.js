@@ -147,7 +147,7 @@ function maybePartner(state, data, a, b, canPartner) {
 export function updateProximity(state, data) {
   const s = data.config.social;
   if (state.tick % s.proximityEveryTicks !== 0) return;
-  const awake = state.humans.filter((h) => h.action.type !== 'sleep');
+  const awake = state.humans.filter((h) => h.action.type !== 'sleep' && h.away == null);
   const restore = data.config.needs.social.nearbyRestore;
   for (let i = 0; i < awake.length; i++) {
     for (let j = i + 1; j < awake.length; j++) {

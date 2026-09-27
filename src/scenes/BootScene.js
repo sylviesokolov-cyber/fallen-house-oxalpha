@@ -1,8 +1,6 @@
-import { prepareData } from '../sim/data.js';
+import { DATA_FILES, prepareData } from '../sim/data.js';
 import { createSim } from '../sim/sim.js';
 import { SimRunner } from '../runner.js';
-
-const DATA_FILES = ['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers', 'stats', 'grades', 'emotions', 'focuses', 'sanctuary'];
 
 // Loads JSON content, creates a fresh world, then hands off to WorldScene.
 export class BootScene extends Phaser.Scene {

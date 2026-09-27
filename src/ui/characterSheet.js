@@ -8,6 +8,7 @@ import { isBlessed, isInspired } from '../sim/status.js';
 import { emotionOf } from '../sim/emotions.js';
 import { gradeOf, heroClass, xpForLevel } from '../sim/stats.js';
 import { leaderTitle } from '../sim/settlement.js';
+import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
@@ -30,6 +31,8 @@ const ACTION_LABELS = {
   pray: 'Praying',
   train: 'Training',
   study: 'Studying in the Library',
+  toPortal: 'Answering the call to the portal',
+  atPortal: 'Waiting at the portal',
   drink: 'Having a drink at the Tavern',
 };
 const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintance: 'Acquaintance', rival: 'Rival' };
@@ -58,6 +61,10 @@ export function createCharacterSheet(ctx, { toast, select }) {
     }
     if (a.type === 'build' && place) return place.built ? `Upgrading the ${placeName}` : `Building the ${placeName}`;
     if (a.type === 'pray' && place) return `Praying in the ${placeName}`;
+    if (a.type === 'away') {
+      const exp = sim.expeditions.find((e) => e.id === h.away);
+      return exp ? `In the dungeon: Floor ${exp.floor}, ${data.floorsById[exp.floor].name}` : 'In the dungeon';
+    }
     if (a.type === 'seekFood' && a.dine) return 'Going to the Dining Hall';
     if (a.type === 'seekFood' && a.stock) return 'Going to the store for potatoes';
     if (a.type === 'eat' && a.dine) return 'Having a meal in the Dining Hall';
@@ -198,9 +205,12 @@ export function createCharacterSheet(ctx, { toast, select }) {
     $('insp-age').textContent = `Age ${humanAge(h, sim, data)}, ${lifeStage(h, sim, data)}${expecting}`;
     const carrying = h.carrying ? ` (carrying ${h.carrying.amount} ${h.carrying.type})` : '';
     $('insp-action').textContent = `${actionLabel(h)}${carrying}`;
-    $('insp-tools').textContent = Object.keys(h.tools).length
-      ? `Carries: ${Object.keys(h.tools).map((id) => data.itemsById[id].name.toLowerCase()).join(', ')}`
+    const tools = Object.keys(h.tools).length
+      ? `Carries: ${Object.keys(h.tools).map((id) => data.itemsById[id].name.toLowerCase()).join(', ')}. `
       : '';
+    const c = h.counters;
+    const trips = c.expeditions ? ` · ${c.expeditions} expedition${c.expeditions > 1 ? 's' : ''}, ${c.kills ?? 0} kills${c.bossKills ? `, ${c.bossKills} bosses` : ''}` : '';
+    $('insp-tools').textContent = `${tools}Combat power ${combatPower(h, data)}${trips}`;
     renderEmotion(h);
     renderStats(h);
     setNeed('bar-health', h.health);

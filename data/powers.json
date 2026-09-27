@@ -1,5 +1,6 @@
 [
   {"id": "bless", "name": "Bless", "cost": 30, "target": "human", "awe": 12, "description": "Restores one person fully and doubles how fast they learn for a few days.", "days": 5, "learnMultiplier": 2},
   {"id": "inspire", "name": "Inspire", "cost": 40, "target": "human", "awe": 6, "description": "A dream that makes one person far likelier to discover something new for a while.", "days": 10, "chanceMultiplier": 10, "thresholdFactor": 0.5},
-  {"id": "omen", "name": "Omen", "cost": 30, "target": "focus", "awe": 8, "description": "A sign in the sky that sets what the whole tribe focuses on for a while.", "days": 10}
+  {"id": "omen", "name": "Omen", "cost": 30, "target": "focus", "awe": 8, "description": "A sign in the sky that sets what the whole tribe focuses on for a while.", "days": 10},
+  {"id": "portal", "name": "Portal", "cost": 0, "target": "party", "awe": 0, "description": "Choose a party of up to five and a floor, and call them through the portal. Free, but the dungeon is deadly."}
 ]

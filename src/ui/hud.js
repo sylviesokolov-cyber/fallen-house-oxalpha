@@ -7,6 +7,7 @@ import { mealsInStock } from '../sim/items.js';
 import { $, el, button } from './dom.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
+import { createPortalPanel } from './portalPanel.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser. This module owns the
@@ -14,7 +15,7 @@ import { createTribePanel } from './tribePanel.js';
 
 const SAVE_KEY = 'godsim.save';
 const REFRESH_MS = 200;
-const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen'];
+const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal'];
 
 export function createHud(ctx) {
   let lastRefresh = 0;
@@ -52,6 +53,7 @@ export function createHud(ctx) {
 
   const sheet = createCharacterSheet(ctx, { toast, select: selectPerson });
   const tribe = createTribePanel(ctx, { toast, select: selectPerson });
+  const portal = createPortalPanel(ctx, { toast, select: selectPerson, close: () => showPanel(null) });
 
   // God-power toolbar. Picking a power arms it; the next tap on the map (a
   // tile, or a person for Bless/Inspire) uses it. Tap the button again to
@@ -68,12 +70,13 @@ export function createHud(ctx) {
     ...ctx.data.powers.map((p) => {
       const b = button('', '', () => {
         if (p.target === 'focus') return togglePanel('omen');
+        if (p.target === 'party') return togglePanel('portal');
         const turnOn = ctx.selectedPower !== p.id;
         if (turnOn) showPanel(null);
         selectPower(turnOn ? p.id : null);
       });
       b.dataset.power = p.id;
-      b.append(el('span', null, p.label ?? p.name), el('span', 'cost', `${p.cost} faith`));
+      b.append(el('span', null, p.label ?? p.name), el('span', 'cost', p.cost ? `${p.cost} faith` : 'dungeon'));
       return b;
     }),
   );
@@ -136,7 +139,7 @@ export function createHud(ctx) {
   });
   $('btn-tribe').addEventListener('click', () => togglePanel('tribe'));
   $('btn-menu').addEventListener('click', () => togglePanel('menu'));
-  for (const id of ['log', 'tribe', 'menu', 'omen']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
+  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
   $('inspect-close').addEventListener('click', () => {
     ctx.selectedId = null;
     showPanel(null);
@@ -166,6 +169,7 @@ export function createHud(ctx) {
     if (isOpen('inspect') && !sheet.render()) showPanel(null);
     if (isOpen('log')) renderLog();
     if (isOpen('tribe')) tribe.render();
+    if (isOpen('portal')) portal.render();
   }
 
   setSpeed(ctx.runner.speed);
@@ -174,6 +178,10 @@ export function createHud(ctx) {
     toast,
     powerUsed() {
       selectPower(null);
+    },
+    openPortal() {
+      showPanel('portal');
+      refresh();
     },
     showInspect(id) {
       if (id == null) return showPanel(null);

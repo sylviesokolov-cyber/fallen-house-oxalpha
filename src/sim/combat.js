@@ -1,0 +1,145 @@
+import { next } from './rng.js';
+import { skillLevel } from './skills.js';
+import { toolEffect } from './items.js';
+
+// Turn-based fights between a party and a group of monsters. Everyone acts
+// once a round, fastest first (with a little luck). Heroes fight with
+// whichever style suits them best: the sword (STR) or the bow (AGI, strikes
+// first, stays out of reach more). Defense skill and VIT soak damage, and
+// good defenders draw the monsters' attention. Every line of the fight goes
+// into a battle report.
+
+const HERO_VERB = { swordsmanship: 'strikes', archery: 'shoots' };
+
+export function heroFighter(h, data) {
+  const sword = (3 + h.stats.str * 0.8 + skillLevel(h, 'swordsmanship') * 1.2) * toolEffect(h, data, 'swordsmanship', 'attack');
+  const bow = 3 + h.stats.agi * 0.8 + skillLevel(h, 'archery') * 1.2;
+  const style = bow > sword ? 'archery' : 'swordsmanship';
+  const maxHp = maxHpOf(h);
+  return {
+    hero: true,
+    id: h.id,
+    name: h.name,
+    style,
+    maxHp,
+    hp: (h.health / 100) * maxHp,
+    atk: Math.max(sword, bow),
+    def: h.stats.vit * 0.4 + skillLevel(h, 'defense'),
+    agi: h.stats.agi + (style === 'archery' ? 3 : 0),
+    aggro: (style === 'archery' ? 0.6 : 1) + skillLevel(h, 'defense') * 0.3,
+    attacks: 0,
+    hitsTaken: 0,
+    kills: [],
+  };
+}
+
+export function maxHpOf(h) {
+  return Math.round(40 + h.stats.vit * 6 + h.level * 2);
+}
+
+// A rough single number for the party picker.
+export function combatPower(h, data) {
+  const f = heroFighter(h, data);
+  return Math.round(f.atk * 2 + f.def * 2 + f.maxHp / 5);
+}
+
+// Numbers duplicates: "Cave Rat 1", "Cave Rat 2".
+export function monsterFighters(data, ids) {
+  const counts = {};
+  for (const id of ids) counts[id] = (counts[id] ?? 0) + 1;
+  const seen = {};
+  return ids.map((id) => {
+    const m = data.monstersById[id];
+    seen[id] = (seen[id] ?? 0) + 1;
+    return {
+      hero: false,
+      id,
+      name: counts[id] > 1 ? `${m.name} ${seen[id]}` : m.name,
+      maxHp: m.hp,
+      hp: m.hp,
+      atk: m.atk,
+      def: m.def,
+      agi: m.agi,
+      verb: m.verb,
+    };
+  });
+}
+
+const standing = (list) => list.filter((f) => f.hp > 0);
+
+// Runs the fight. Heroes left at 0 HP are `down` (can still be carried out),
+// or `dead` if the blow went far past 0 (killed outright). When someone falls
+// or the party as a whole is badly hurt, it flees, taking a parting blow from
+// each monster.
+// Returns { won, fled, rounds }.
+export function fight(state, data, heroes, monsters, lines) {
+  const d = data.dungeon;
+  let round = 0;
+  while (standing(heroes).length && standing(monsters).length && round < d.maxRounds) {
+    round++;
+    const order = standing([...heroes, ...monsters])
+      .map((f) => ({ f, init: f.agi + next(state.rng) * 4 }))
+      .sort((a, b) => b.init - a.init)
+      .map((o) => o.f);
+    for (const a of order) {
+      if (a.hp <= 0) continue;
+      const foes = standing(a.hero ? monsters : heroes);
+      if (!foes.length) break;
+      attack(state, data, a, a.hero ? weakest(foes) : pickByAggro(state, foes), lines);
+    }
+    if (standing(heroes).length && standing(monsters).length && mustFlee(data, heroes)) {
+      lines.push('The party turns and flees!');
+      for (const m of standing(monsters)) {
+        const foes = standing(heroes);
+        if (foes.length) attack(state, data, m, pickByAggro(state, foes), lines);
+      }
+      return { won: false, fled: true, rounds: round };
+    }
+  }
+  return { won: !standing(monsters).length, fled: false, rounds: round };
+}
+
+function mustFlee(data, heroes) {
+  const hp = heroes.reduce((s, h) => s + Math.max(0, h.hp), 0);
+  const max = heroes.reduce((s, h) => s + h.maxHp, 0);
+  return heroes.some((h) => h.down || h.dead) || hp < max * data.dungeon.fleeBelow;
+}
+
+// Heroes focus the weakest foe, to thin the enemy out quickly.
+function weakest(foes) {
+  return foes.reduce((a, b) => (b.hp < a.hp ? b : a));
+}
+
+function pickByAggro(state, heroes) {
+  let r = next(state.rng) * heroes.reduce((s, h) => s + h.aggro, 0);
+  for (const h of heroes) if ((r -= h.aggro) < 0) return h;
+  return heroes[0];
+}
+
+function attack(state, data, a, t, lines) {
+  const hit = Math.max(0.4, Math.min(0.95, 0.75 + (a.agi - t.agi) * 0.015));
+  if (a.hero) a.attacks++;
+  if (next(state.rng) >= hit) {
+    lines.push(`${a.name} misses ${t.name}.`);
+    return;
+  }
+  const crit = next(state.rng) < (a.hero ? 0.05 + a.agi * 0.004 : data.dungeon.monsterCrit);
+  const dmg = Math.max(1, Math.round(a.atk * (0.8 + next(state.rng) * 0.4) * (crit ? 1.8 : 1) - t.def * 0.5));
+  t.hp -= dmg;
+  if (t.hero) t.hitsTaken++;
+  const verb = a.hero ? HERO_VERB[a.style] : a.verb;
+  lines.push(`${a.name} ${verb} ${t.name} for ${dmg}${crit ? ' (critical!)' : ''}.`);
+  if (t.hp > 0) return;
+  if (!t.hero) {
+    a.kills.push(t.id);
+    lines.push(`${t.name} is slain.`);
+  } else if (-t.hp >= t.maxHp * data.dungeon.overkill) {
+    t.dead = true;
+    t.killedBy = t.killedBy ?? data.monstersById[a.id].name;
+    lines.push(`${t.name} is killed outright!`);
+  } else {
+    t.down = true;
+    t.killedBy = data.monstersById[a.id].name;
+    lines.push(`${t.name} collapses!`);
+  }
+}
