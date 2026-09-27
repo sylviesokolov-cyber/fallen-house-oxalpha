@@ -10,6 +10,7 @@ const ctx = {
   sim: null,
   runner: null,
   selectedId: null,
+  selectedPower: null,
   events: new Phaser.Events.EventEmitter(),
 };
 

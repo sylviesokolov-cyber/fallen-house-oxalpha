@@ -11,5 +11,6 @@ export function prepareData(raw) {
     techsById: byId(raw.techs),
     buildingsById: byId(raw.buildings),
     itemsById: byId(raw.items),
+    powersById: byId(raw.powers),
   };
 }

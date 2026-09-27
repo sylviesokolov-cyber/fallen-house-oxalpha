@@ -3,6 +3,7 @@ import { traitMod } from './traits.js';
 import { gainXp, skillLevel } from './skills.js';
 import { logEvent } from './history.js';
 import { teachTech, techEffect } from './techs.js';
+import { addFeeling, moodConflictFactor } from './mood.js';
 
 // Relationships live in state.bonds, keyed "lowId-highId". Only pairs that
 // have interacted have an entry. `peak` is the highest friendship tier ever
@@ -69,7 +70,7 @@ function compatibility(a, b, data) {
 export function resolveChat(state, data, a, b, canPartner) {
   const s = data.config.social;
   const conflictOdds = s.conflictChance * traitMod(a, data, 'conflict') * traitMod(b, data, 'conflict')
-    * (bondValue(state, a, b) < 0 ? 2 : 1);
+    * moodConflictFactor(a, data) * moodConflictFactor(b, data) * (bondValue(state, a, b) < 0 ? 2 : 1);
   if (chance(state.rng, conflictOdds)) {
     changeBond(state, data, a, b, -s.conflictLoss);
   } else {
@@ -121,6 +122,9 @@ function maybePartner(state, data, a, b, canPartner) {
   if (bondValue(state, a, b) < s.partnerAt || !chance(state.rng, s.partnerChancePerChat)) return;
   a.partnerId = b.id;
   b.partnerId = a.id;
+  const m = data.config.mood;
+  addFeeling(state, data, a, `In love with ${b.name}`, m.joyValue, m.joyDays);
+  addFeeling(state, data, b, `In love with ${a.name}`, m.joyValue, m.joyDays);
   logEvent(state, `${a.name} and ${b.name} became partners`);
 }
 

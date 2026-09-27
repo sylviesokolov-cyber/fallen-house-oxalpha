@@ -11,6 +11,7 @@ import { updateDiscovery } from './techs.js';
 import { isWarm } from './buildings.js';
 import { spoilFood } from './items.js';
 import { updateWeather } from './weather.js';
+import { expireFeelings } from './mood.js';
 
 // Entry point of the simulation. `state` is plain data (saved as-is);
 // `data` is the read-only JSON content from /data.
@@ -30,6 +31,7 @@ export function createSim(data, seed) {
     nextBuildingId: 1,
     discoveries: {},
     tribeCounters: {},
+    faith: data.config.faith.start,
     dead: [],
     history: [],
   };
@@ -45,12 +47,17 @@ export function stepSim(state, data) {
   updateResources(state.world, data, season);
   const died = [];
   const winter = season === 'Winter';
+  const newDay = state.tick % data.config.time.ticksPerDay === 0;
   for (const h of state.humans) {
     updateNeeds(h, data, winter && !isWarm(state, data, h));
+    expireFeelings(state, h);
+    if (newDay) h.devotion = Math.max(0, h.devotion - data.config.devotion.decayPerDay);
     if (h.health <= 0) died.push(h);
     else updateHuman(state, data, h);
   }
   for (const h of died) killHuman(state, data, h, 'starvation');
+  // A god's power slowly returns on its own, so the player is never stuck.
+  if (newDay) state.faith = Math.min(data.config.faith.max, state.faith + data.config.faith.regenPerDay);
   updateProximity(state, data);
   updateLifeCycle(state, data);
   updateDiscovery(state, data);

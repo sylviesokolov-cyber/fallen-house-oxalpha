@@ -5,23 +5,29 @@ const TAP_SLOP = 10; // px a finger may move and still count as a tap
 // Drag to pan, pinch (or mouse wheel) to zoom, tap to select.
 // Phaser's camera zooms around its center, so to keep the point under the
 // fingers fixed while zooming we convert screen <-> world by hand.
-export function setupCameraControls(scene, worldW, worldH, onTap, getTopInset = () => 0) {
+// getInsets() returns the screen pixels covered by UI bars: { top, bottom }.
+export function setupCameraControls(scene, worldW, worldH, onTap, getInsets = () => ({ top: 0, bottom: 0 })) {
   const cam = scene.cameras.main;
 
-  const minZoom = () => Math.min(cam.width / worldW, (cam.height - getTopInset()) / worldH);
+  const minZoom = () => {
+    const { top, bottom } = getInsets();
+    return Math.min(cam.width / worldW, (cam.height - top - bottom) / worldH);
+  };
   const clampZoom = (z) => Math.max(minZoom(), Math.min(MAX_ZOOM, z));
 
-  // Bounds are padded so the map can scroll out from under the top bar, and
-  // grown symmetrically when the view is bigger than the map so it stays centered.
+  // Bounds are padded so the map can scroll out from under the top and bottom
+  // bars, and grown symmetrically when the view is bigger than the map so it
+  // stays centered.
   function updateBounds() {
     const z = cam.zoom;
-    const inset = getTopInset() / z;
+    const { top: t, bottom: b } = getInsets();
+    const top = t / z;
+    const content = worldH + top + b / z;
     const viewW = cam.width / z;
-    const viewH = cam.height / z;
     const w = Math.max(worldW, viewW);
-    const h = Math.max(worldH + inset, viewH);
+    const h = Math.max(content, cam.height / z);
     const x = (worldW - w) / 2;
-    const y = -inset - (h - worldH - inset) / 2;
+    const y = -top - (h - content) / 2;
     cam.setBounds(x, y, w, h);
   }
 

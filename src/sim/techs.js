@@ -3,6 +3,7 @@ import { logEvent } from './history.js';
 import { skillLevel } from './skills.js';
 import { tileNear } from './world.js';
 import { builtNear } from './buildings.js';
+import { isInspired } from './status.js';
 
 // Knowledge belongs to people, not the tribe: h.knows lists the techs a person
 // knows. state.discoveries records what the tribe has ever found, and whether
@@ -48,10 +49,11 @@ export function techEffect(h, data, key) {
   return m;
 }
 
+// `f` scales thresholds down for inspired people (their dream shows the way).
 const CONDITIONS = {
-  skillMin: (c, h) => skillLevel(h, c.skill) >= c.level,
-  counterMin: (c, h) => (h.counters[c.counter] ?? 0) >= c.min,
-  tribeCounterMin: (c, h, state) => (state.tribeCounters[c.counter] ?? 0) >= c.min,
+  skillMin: (c, h, state, data, f) => skillLevel(h, c.skill) >= Math.floor(c.level * f),
+  counterMin: (c, h, state, data, f) => (h.counters[c.counter] ?? 0) >= c.min * f,
+  tribeCounterMin: (c, h, state, data, f) => (state.tribeCounters[c.counter] ?? 0) >= c.min * f,
   nearTile: (c, h, state) => tileNear(state.world, h.x, h.y, c.tile, c.radius),
   nearBuilding: (c, h, state, data) => builtNear(state, data, h.x, h.y, c.building, c.radius),
   nearFeature: (c, h, state) => state.world.resources.some(
@@ -60,15 +62,19 @@ const CONDITIONS = {
 };
 
 // Every few ticks, each person rolls for each tech whose conditions they meet.
-// Curious or clever people (per the tech's traitBonus) are likelier to notice.
+// Curious or clever people (per the tech's traitBonus) are likelier to notice,
+// and the Inspire power makes it far likelier still.
 export function updateDiscovery(state, data) {
   if (state.tick % data.config.discovery.checkEveryTicks !== 0) return;
+  const inspire = data.powersById.inspire;
   for (const h of state.humans) {
+    const inspired = isInspired(h, state);
+    const f = inspired ? inspire.thresholdFactor : 1;
     for (const tech of data.techs) {
       if (!canLearn(h, data, tech.id)) continue;
       const d = tech.discovery;
-      if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data))) continue;
-      let p = d.baseChance;
+      if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data, f))) continue;
+      let p = d.baseChance * (inspired ? inspire.chanceMultiplier : 1);
       for (const t of h.traits) p *= d.traitBonus?.[t] ?? 1;
       if (chance(state.rng, p)) learnTech(state, data, h, tech.id);
     }

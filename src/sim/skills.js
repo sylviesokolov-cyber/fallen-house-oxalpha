@@ -1,5 +1,7 @@
 import { traitMod } from './traits.js';
 import { logEvent } from './history.js';
+import { moodLearnFactor } from './mood.js';
+import { isBlessed } from './status.js';
 
 // Skills are learned by doing: each finished unit of work grants XP in the
 // related skill. h.skills only holds skills the person has started learning.
@@ -16,7 +18,8 @@ export function gainXp(state, data, h, skillId, baseXp) {
   const cfg = data.config.skills;
   const s = (h.skills[skillId] ??= { level: 0, xp: 0 });
   if (s.level >= cfg.maxLevel) return;
-  s.xp += baseXp * traitMod(h, data, 'learnRate');
+  const blessing = isBlessed(h, state) ? data.powersById.bless.learnMultiplier : 1;
+  s.xp += baseXp * traitMod(h, data, 'learnRate') * moodLearnFactor(h, data) * blessing;
   while (s.level < cfg.maxLevel && s.xp >= xpToNext(s.level, cfg)) {
     s.xp -= xpToNext(s.level, cfg);
     s.level++;

@@ -15,6 +15,7 @@
 ## Layout
 - `src/sim/`: pure game logic. **No Phaser, DOM, window, localStorage, or `Math.random()`** (a test enforces this).
 - `src/render/`: Phaser drawing and camera. Reads sim state, never mutates it.
+- The player changes the sim only through `usePower` in `src/sim/godPowers.js` (called from `WorldScene` when a power is armed and the map is tapped).
 - `src/scenes/`: `BootScene` loads `/data` and creates the sim; `WorldScene` runs the clock and drives rendering.
 - `src/ui/`: HTML/CSS overlay UI (top bar, panels). Uses DOM because native text, scrolling, and buttons work better on phones.
 - `src/runner.js`: fixed-timestep loop (ticks/sec from `data/config.json`; speed 0/1/2/4).

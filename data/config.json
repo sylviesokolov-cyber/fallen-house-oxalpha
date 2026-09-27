@@ -153,5 +153,38 @@
     },
     "shortageBonus": 8,
     "surplusPenalty": 12
+  },
+  "faith": {
+    "start": 50,
+    "max": 300,
+    "perWitness": 0.5,
+    "witnessRadius": 8,
+    "regenPerDay": 3
+  },
+  "devotion": {
+    "startMax": 20,
+    "decayPerDay": 1.5,
+    "prayerGain": 4
+  },
+  "prayer": {
+    "intervalDays": 2,
+    "ticks": 15,
+    "shrineFaith": 1.2,
+    "fieldFaith": 0.4,
+    "scoreBase": 10,
+    "scorePerDevotion": 0.3
+  },
+  "mood": {
+    "griefValue": -30,
+    "griefDays": 10,
+    "joyValue": 20,
+    "joyDays": 5,
+    "blessValue": 30,
+    "inspireValue": 10,
+    "lowBelow": 30,
+    "highAbove": 70,
+    "lowLearn": 0.7,
+    "highLearn": 1.2,
+    "lowConflict": 1.5
   }
 }

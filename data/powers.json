@@ -1,0 +1,7 @@
+[
+  {"id": "rain", "name": "Rain", "cost": 20, "target": "tile", "awe": 6, "description": "Rain falls over an area: plants and crops grow, fires go out.", "radius": 5, "growth": 2},
+  {"id": "lightning", "name": "Lightning", "cost": 15, "target": "tile", "awe": 15, "description": "A bolt from the sky. Sets trees ablaze, and can hurt or kill anyone standing too close.", "radius": 1, "damage": 60},
+  {"id": "spawn_food", "name": "Food", "cost": 25, "target": "tile", "awe": 8, "description": "Berry bushes spring up from the ground.", "count": 3, "radius": 2},
+  {"id": "bless", "name": "Bless", "cost": 30, "target": "human", "awe": 12, "description": "Restores one person fully and doubles how fast they learn for a few days.", "days": 5, "learnMultiplier": 2},
+  {"id": "inspire", "name": "Inspire", "cost": 40, "target": "human", "awe": 6, "description": "A dream that makes one person far likelier to discover something new for a while.", "days": 10, "chanceMultiplier": 10, "thresholdFactor": 0.5}
+]

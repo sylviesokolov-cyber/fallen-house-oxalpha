@@ -5,6 +5,8 @@ import { serialize, deserialize } from '../sim/save.js';
 import { xpToNext } from '../sim/skills.js';
 import { bondValue, relationType } from '../sim/bonds.js';
 import { lifeStage } from '../sim/lifecycle.js';
+import { mood } from '../sim/mood.js';
+import { isBlessed, isInspired } from '../sim/status.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser.
@@ -25,6 +27,7 @@ const ACTION_LABELS = {
   goSleep: 'Heading to bed',
   build: 'Building',
   craft: 'Crafting',
+  pray: 'Praying',
 };
 
 const STAGE_LABELS = { child: 'child', adult: 'adult', elder: 'elder' };
@@ -59,7 +62,38 @@ export function createHud(ctx) {
 
   function showPanel(id) {
     for (const p of ['inspect', 'log', 'tech', 'menu']) $(p).classList.toggle('hidden', p !== id);
+    $('powers').classList.toggle('hidden', !!id);
+    if (id) selectPower(null);
   }
+
+  // God-power toolbar. Picking a power arms it; the next tap on the map (a
+  // tile, or a person for Bless/Inspire) uses it. Tap the button again to cancel.
+  function selectPower(id) {
+    ctx.selectedPower = id;
+    for (const b of $('power-buttons').children) b.classList.toggle('selected', b.dataset.power === id);
+    const power = id && ctx.data.powersById[id];
+    $('power-hint').classList.toggle('hidden', !power);
+    if (power) $('power-hint').textContent = `${power.description} Tap ${power.target === 'human' ? 'a person' : 'the map'}.`;
+  }
+
+  $('power-buttons').replaceChildren(
+    ...ctx.data.powers.map((p) => {
+      const b = document.createElement('button');
+      b.dataset.power = p.id;
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const cost = document.createElement('span');
+      cost.className = 'cost';
+      cost.textContent = `${p.cost} faith`;
+      b.append(name, cost);
+      b.addEventListener('click', () => {
+        const turnOn = ctx.selectedPower !== p.id;
+        if (turnOn) showPanel(null);
+        selectPower(turnOn ? p.id : null);
+      });
+      return b;
+    }),
+  );
 
   for (const b of document.querySelectorAll('[data-speed]')) {
     b.addEventListener('click', () => setSpeed(Number(b.dataset.speed)));
@@ -117,7 +151,10 @@ export function createHud(ctx) {
   function renderTopBar() {
     const d = dateOf(ctx.sim.tick, ctx.data.config.time);
     $('date').textContent = `Day ${d.day} · ${d.season}, Year ${d.year}`;
-    $('pop').textContent = `Pop ${ctx.sim.humans.length}`;
+    $('pop').textContent = `Faith ${Math.floor(ctx.sim.faith)} · Pop ${ctx.sim.humans.length}`;
+    for (const b of $('power-buttons').children) {
+      b.classList.toggle('poor', ctx.sim.faith < ctx.data.powersById[b.dataset.power].cost);
+    }
     const s = ctx.sim.stockpile;
     const parts = [`Wood ${s.wood}`, `Stone ${s.stone}`];
     if (s.clay) parts.push(`Clay ${s.clay}`);
@@ -160,6 +197,13 @@ export function createHud(ctx) {
     setBar('bar-hunger', h.needs.hunger);
     setBar('bar-energy', h.needs.energy);
     setBar('bar-social', h.needs.social);
+    setBar('bar-mood', mood(h));
+    $('bar-devotion').style.width = `${h.devotion}%`;
+    const states = [];
+    if (isBlessed(h, sim)) states.push('Blessed');
+    if (isInspired(h, sim)) states.push('Inspired');
+    const feelings = [...states, ...h.feelings.map((f) => f.text).filter((t) => !t.startsWith('Blessed') && !t.startsWith('Had a strange'))];
+    $('insp-feelings').textContent = feelings.join(' · ');
     renderSkills(h);
     renderBonds(h);
   }
@@ -361,6 +405,10 @@ export function createHud(ctx) {
   setSpeed(ctx.runner.speed);
 
   return {
+    toast,
+    powerUsed() {
+      selectPower(null);
+    },
     showInspect(id) {
       showPanel(id == null ? null : 'inspect');
       if (id != null) renderInspect();

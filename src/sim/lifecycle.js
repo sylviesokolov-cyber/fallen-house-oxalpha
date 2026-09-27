@@ -4,6 +4,7 @@ import { createHuman, killHuman } from './human.js';
 import { changeBond } from './bonds.js';
 import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
+import { addFeeling } from './mood.js';
 
 export function lifeStage(h, state, data) {
   const age = ageInYears(h.birthDay, state.tick, data.config.time);
@@ -67,8 +68,11 @@ function giveBirth(state, data, mother) {
   mother.pregnantUntil = null;
   mother.lastBirthDay = dayIndexOf(state.tick, data.config.time);
   const familyBond = data.config.social.familyBond;
+  const m = data.config.mood;
   for (const parent of [mother, father]) {
-    if (parent && state.humans.includes(parent)) changeBond(state, data, parent, child, familyBond);
+    if (!parent || !state.humans.includes(parent)) continue;
+    changeBond(state, data, parent, child, familyBond);
+    addFeeling(state, data, parent, `Welcomed ${child.name}`, m.joyValue, m.joyDays);
   }
   const word = child.sex === 'female' ? 'daughter' : 'son';
   logEvent(state, father

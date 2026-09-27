@@ -16,7 +16,7 @@ import {
 // Each human always has one action. An action runs over several ticks and sets
 // `done` when finished; the human then scores its options and starts a new one.
 
-const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat']);
+const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray']);
 // Work in progress: only a critical hunger cuts it short, so a job already
 // underway isn't abandoned lightly.
 const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep', 'goSleep', 'build', 'craft']);
@@ -65,6 +65,10 @@ function chooseAction(state, data, h) {
   }
   if (h.needs.social < n.social.seekBelow) {
     options.push({ type: 'socialize', score: (100 - h.needs.social) * 0.8 });
+  }
+  if (h.knows.includes('worship') && state.tick >= h.nextPrayer) {
+    const p = data.config.prayer;
+    options.push({ type: 'pray', score: p.scoreBase + h.devotion * p.scorePerDevotion });
   }
   const stage = lifeStage(h, state, data);
   if (h.carrying) {
@@ -240,6 +244,14 @@ const START = {
     return true;
   },
 
+  // Prays at the shrine if there is one to reach, otherwise where they stand.
+  pray(state, data, h) {
+    const shrine = state.buildings.find((b) => b.built && data.buildingsById[b.type].effects.worship);
+    const path = shrine ? pathTo(state, data, h, shrine.x, shrine.y) : null;
+    h.action = { type: 'pray', atShrine: !!path, path: path ?? [], ticks: data.config.prayer.ticks };
+    return true;
+  },
+
   // Makes a tool or good at its station (a campfire) or at the stockpile.
   craft(state, data, h) {
     const def = craftChoice(state, data, h);
@@ -400,6 +412,22 @@ const RUN = {
 
   idle(state, data, h) {
     if (--h.action.ticks <= 0) h.action.done = true;
+  },
+
+  // Prayer turns devotion into Faith, far more of it at a shrine.
+  pray(state, data, h) {
+    const a = h.action;
+    if (a.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    if (--a.ticks > 0) return;
+    const p = data.config.prayer;
+    const gain = (a.atShrine ? p.shrineFaith : p.fieldFaith) * (0.5 + h.devotion / 100);
+    state.faith = Math.min(data.config.faith.max, state.faith + gain);
+    h.devotion = Math.min(100, h.devotion + data.config.devotion.prayerGain);
+    h.nextPrayer = state.tick + p.intervalDays * data.config.time.ticksPerDay;
+    a.done = true;
   },
 
   // Walks toward the chosen person. People move, so on arrival the target may

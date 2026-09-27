@@ -15,6 +15,8 @@ import { knows, learnTech, teachTech, updateDiscovery } from '../src/sim/techs.j
 import { isWarm, placeSite, wantedBuilding, workOnSite } from '../src/sim/buildings.js';
 import { craftChoice, finishCraft, spoilFood, toolWorkFactor } from '../src/sim/items.js';
 import { killHuman } from '../src/sim/human.js';
+import { usePower } from '../src/sim/godPowers.js';
+import { mood } from '../src/sim/mood.js';
 
 // A copy of the content with some settings overridden, for forcing rare events.
 function tweak(path, value) {
@@ -27,7 +29,7 @@ function tweak(path, value) {
 }
 
 const load = (name) => JSON.parse(readFileSync(new URL(`../data/${name}.json`, import.meta.url), 'utf8'));
-const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items'].map((n) => [n, load(n)])));
+const data = prepareData(Object.fromEntries(['config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers'].map((n) => [n, load(n)])));
 const run = (state, ticks) => { for (let i = 0; i < ticks; i++) stepSim(state, data); return state; };
 const DAY = data.config.time.ticksPerDay;
 
@@ -343,6 +345,129 @@ test('over a few years a tribe discovers techs, builds, and stores food', () => 
   assert.ok(Object.keys(s.discoveries).length >= 5, Object.keys(s.discoveries).join());
   assert.ok(s.buildings.some((b) => b.built));
   assert.ok(storedFood);
+});
+
+test('powers cost Faith and do nothing when it runs short', () => {
+  const s = createSim(data, 'faith');
+  const { x, y } = s.stockpile;
+  s.faith = 10;
+  const bushes = s.world.resources.length;
+  assert.equal(usePower(s, data, 'spawn_food', { x, y }).ok, false);
+  assert.equal(s.world.resources.length, bushes);
+  s.faith = 100;
+  assert.ok(usePower(s, data, 'spawn_food', { x, y }).ok);
+  assert.ok(s.world.resources.length > bushes);
+  assert.ok(s.faith < 100);
+});
+
+test('rain puts out fires and makes plants grow', () => {
+  const s = createSim(data, 'rain');
+  const tree = s.world.resources.find((r) => r.type === 'tree');
+  const bush = s.world.resources.find((r) => r.type === 'berry_bush');
+  tree.burning = 100;
+  bush.amount = 0;
+  s.faith = 100;
+  usePower(s, data, 'rain', { x: tree.x, y: tree.y });
+  usePower(s, data, 'rain', { x: bush.x, y: bush.y });
+  assert.equal(tree.burning, undefined);
+  assert.ok(bush.amount > 0);
+});
+
+test('lightning sets trees ablaze and can kill, leaving family grieving', () => {
+  const s = createSim(data, 'bolt');
+  s.faith = 100;
+  const tree = s.world.resources.find((r) => r.type === 'tree' && r.amount > 0);
+  usePower(s, data, 'lightning', { x: tree.x, y: tree.y });
+  assert.ok(tree.burning > 0);
+  const [victim, child] = s.humans;
+  child.parents = [victim.id];
+  victim.health = 30;
+  usePower(s, data, 'lightning', { x: victim.x, y: victim.y });
+  assert.ok(s.dead.some((d) => d.id === victim.id && d.cause === 'lightning'));
+  assert.ok(child.feelings.some((f) => f.text === `Grieving ${victim.name}`));
+  const before = mood(child);
+  child.feelings = [];
+  assert.ok(mood(child) > before);
+});
+
+test('spawn food fails where nothing can grow', () => {
+  const s = createSim(data, 'lake');
+  s.faith = 100;
+  const i = s.world.tiles.findIndex((t, k) => t === 'water'
+    && [-2, -1, 0, 1, 2].every((dy) => [-2, -1, 0, 1, 2].every((dx) => s.world.tiles[k + dy * 64 + dx] === 'water')));
+  assert.ok(i >= 0);
+  const r = usePower(s, data, 'spawn_food', { x: i % 64, y: Math.floor(i / 64) });
+  assert.equal(r.ok, false);
+  assert.equal(s.faith, 100);
+});
+
+test('bless restores someone and doubles their learning; witnesses grow devout', () => {
+  const s = createSim(data, 'bless');
+  s.faith = 100;
+  const [h, other] = s.humans;
+  for (const p of [h, other]) {
+    p.traits = [];
+    p.skills = {};
+    p.feelings = [];
+    p.needs.hunger = 20;
+    p.action = { type: 'wander', path: [] };
+  }
+  other.x = h.x;
+  other.y = h.y;
+  const devotionBefore = other.devotion;
+  assert.ok(usePower(s, data, 'bless', { humanId: h.id }).ok);
+  assert.equal(h.needs.hunger, 100);
+  assert.ok(other.devotion > devotionBefore);
+  assert.equal(other.counters.miraclesSeen, 1);
+  other.needs.hunger = other.needs.energy = other.needs.social = other.health = 100;
+  gainXp(s, data, h, 'foraging', 5);
+  gainXp(s, data, other, 'foraging', 5);
+  assert.ok(h.skills.foraging.xp + h.skills.foraging.level * 100 > other.skills.foraging.xp + other.skills.foraging.level * 100);
+});
+
+test('inspire lets someone discover what they could not have alone', () => {
+  const s = createSim(data, 'dream');
+  s.faith = 100;
+  const [dreamer, plain] = s.humans;
+  for (const p of [dreamer, plain]) {
+    p.knows = [];
+    p.traits = [];
+    p.skills = { mining: { level: 1, xp: 0 } };
+    p.counters = { 'gather:stone': 8 };
+  }
+  usePower(s, data, 'inspire', { humanId: dreamer.id });
+  const saved = s.humans;
+  s.humans = [dreamer, plain];
+  for (let k = 1; k <= 3000 && !knows(dreamer, 'stone_tools'); k++) {
+    s.tick = k * data.config.discovery.checkEveryTicks;
+    dreamer.status.inspiredUntil = s.tick + 1;
+    updateDiscovery(s, data);
+  }
+  s.humans = saved;
+  assert.ok(knows(dreamer, 'stone_tools'));
+  assert.ok(!knows(plain, 'stone_tools'));
+});
+
+test('miracles lead to Worship, and prayer at a shrine earns Faith', () => {
+  const s = createSim(data, 'pray');
+  for (let k = 0; k < 3; k++) {
+    s.faith = 100;
+    usePower(s, data, 'rain', { x: s.stockpile.x, y: s.stockpile.y });
+  }
+  run(s, 3 * DAY);
+  assert.ok(s.humans.some((h) => knows(h, 'worship')), 'someone found Worship');
+
+  const quiet = createSim(data, 'pray');
+  const devout = createSim(data, 'pray');
+  for (const h of devout.humans) {
+    h.knows = ['worship'];
+    h.devotion = 80;
+  }
+  devout.buildings.push({ id: 99, type: 'shrine', x: devout.stockpile.x + 1, y: devout.stockpile.y, built: true, work: 0 });
+  quiet.faith = devout.faith = 0;
+  run(quiet, 5 * DAY);
+  run(devout, 5 * DAY);
+  assert.ok(devout.faith > quiet.faith + 10, `${devout.faith} vs ${quiet.faith}`);
 });
 
 test('sim code has no Phaser or unseeded randomness', () => {

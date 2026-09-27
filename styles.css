@@ -103,7 +103,7 @@ button.active { background: var(--accent); color: #1a1a1a; border-color: var(--a
 
 .need {
   display: grid;
-  grid-template-columns: 60px 1fr;
+  grid-template-columns: 72px 1fr;
   align-items: center;
   gap: 8px;
   margin: 6px 0;
@@ -150,6 +150,38 @@ button.active { background: var(--accent); color: #1a1a1a; border-color: var(--a
 .tech-row.unknown { color: var(--muted); padding: 8px 12px; border: 1px dashed var(--line); border-radius: 8px; margin: 3px 0; }
 .chip.tech { border-color: var(--accent); }
 #insp-tools { margin: -4px 0 6px; }
+#insp-feelings { font-size: 13px; margin: 4px 0; }
+.bar.devotion > div { background: #b99cff; }
+
+#powers {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  z-index: 9;
+}
+#power-buttons { display: flex; gap: 5px; }
+#power-buttons button {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+#power-buttons button { font-size: 13px; overflow: hidden; }
+#power-buttons .cost { font-size: 11px; font-weight: 500; color: #b99cff; }
+@media (max-width: 400px) {
+  #power-buttons button { font-size: 12px; }
+}
+#power-buttons button.selected { background: #b99cff; color: #1a1a1a; border-color: #b99cff; }
+#power-buttons button.selected .cost { color: #1a1a1a; }
+#power-buttons button.poor { opacity: 0.45; }
+#power-hint { text-align: center; font-size: 13px; color: var(--muted); padding: 0 0 6px; }
 button.wide { display: block; width: 100%; min-height: 44px; margin: 6px 0; }
 
 #log-list {

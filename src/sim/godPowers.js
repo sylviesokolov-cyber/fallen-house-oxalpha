@@ -1,0 +1,103 @@
+import { randInt } from './rng.js';
+import { tileIndex, addResource } from './world.js';
+import { logEvent } from './history.js';
+import { killHuman } from './human.js';
+import { addFeeling } from './mood.js';
+import { strikeTree } from './weather.js';
+
+// The player's only way to act. usePower is called by the UI with a power id
+// and a target ({ x, y } for tiles, { humanId } for people). It spends Faith,
+// applies the effect, and lets anyone nearby witness the miracle.
+// Returns { ok, error?, x, y }.
+
+export function usePower(state, data, powerId, target) {
+  const power = data.powersById[powerId];
+  if (state.faith < power.cost) return { ok: false, error: `Not enough Faith (${power.cost} needed)` };
+  const h = target.humanId != null ? state.humans.find((o) => o.id === target.humanId) : null;
+  if (power.target === 'human' && !h) return { ok: false, error: 'Tap a person to use this power' };
+  const x = h ? h.x : target.x;
+  const y = h ? h.y : target.y;
+  const error = EFFECTS[powerId](state, data, power, { x, y, h });
+  if (error) return { ok: false, error };
+  state.faith -= power.cost;
+  witness(state, data, x, y, power.awe);
+  return { ok: true, x, y };
+}
+
+// Everyone awake nearby sees it: their devotion grows, they remember it (enough
+// miracles lead to Worship), and their awe gives a little Faith back.
+function witness(state, data, x, y, awe) {
+  const f = data.config.faith;
+  for (const o of state.humans) {
+    if (o.action.type === 'sleep') continue;
+    if (Math.abs(o.x - x) > f.witnessRadius || Math.abs(o.y - y) > f.witnessRadius) continue;
+    o.counters.miraclesSeen = (o.counters.miraclesSeen ?? 0) + 1;
+    o.devotion = Math.min(100, o.devotion + awe);
+    state.faith = Math.min(f.max, state.faith + f.perWitness);
+  }
+}
+
+const within = (a, x, y, r) => Math.abs(a.x - x) <= r && Math.abs(a.y - y) <= r;
+
+// Each effect returns an error message if it can't be used there, else nothing.
+const EFFECTS = {
+  rain(state, data, p, { x, y }) {
+    for (const r of state.world.resources) {
+      if (!within(r, x, y, p.radius)) continue;
+      const def = data.resourcesById[r.type];
+      if (r.burning) delete r.burning;
+      else if (def.regrowTicks) r.amount = Math.min(def.maxAmount, r.amount + p.growth);
+    }
+    logEvent(state, 'Rain fell from a clear sky');
+  },
+
+  lightning(state, data, p, { x, y }) {
+    const tree = state.world.resources.find((r) => r.type === 'tree' && r.amount > 0 && !r.burning && within(r, x, y, p.radius));
+    if (tree) strikeTree(state, data, tree, false);
+    const hit = state.humans.filter((o) => within(o, x, y, p.radius));
+    for (const o of hit) {
+      o.health -= p.damage;
+      if (o.health <= 0) killHuman(state, data, o, 'lightning');
+      else logEvent(state, `${o.name} was struck by lightning and survived`);
+    }
+    if (!tree && !hit.length) logEvent(state, 'Lightning struck the bare ground');
+  },
+
+  spawn_food(state, data, p, { x, y }) {
+    const bush = data.resourcesById.berry_bush;
+    const { world, stockpile } = state;
+    const taken = new Set([tileIndex(world, stockpile.x, stockpile.y)]);
+    for (const r of world.resources) taken.add(tileIndex(world, r.x, r.y));
+    for (const b of state.buildings) taken.add(tileIndex(world, b.x, b.y));
+    const free = [];
+    for (let dy = -p.radius; dy <= p.radius; dy++) {
+      for (let dx = -p.radius; dx <= p.radius; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= world.width || ny >= world.height) continue;
+        const i = tileIndex(world, nx, ny);
+        if (!taken.has(i) && bush.spawnOn.includes(world.tiles[i])) free.push(i);
+      }
+    }
+    if (!free.length) return 'Nothing can grow here';
+    for (let n = 0; n < p.count && free.length; n++) {
+      const i = free.splice(randInt(state.rng, 0, free.length - 1), 1)[0];
+      addResource(world, bush.id, i % world.width, Math.floor(i / world.width), bush.maxAmount);
+    }
+    logEvent(state, 'Berry bushes sprang from the earth overnight');
+  },
+
+  bless(state, data, p, { h }) {
+    h.needs.hunger = h.needs.energy = h.needs.social = 100;
+    h.health = 100;
+    h.status.blessedUntil = state.tick + p.days * data.config.time.ticksPerDay;
+    addFeeling(state, data, h, 'Blessed by the heavens', data.config.mood.blessValue, p.days);
+    logEvent(state, `${h.name} was blessed by the heavens`);
+  },
+
+  inspire(state, data, p, { h }) {
+    h.status.inspiredUntil = state.tick + p.days * data.config.time.ticksPerDay;
+    addFeeling(state, data, h, 'Had a strange dream', data.config.mood.inspireValue, p.days);
+    logEvent(state, `${h.name} had a strange and vivid dream`);
+  },
+};

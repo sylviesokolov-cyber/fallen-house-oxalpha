@@ -23,8 +23,11 @@ export function strikeNear(state, data, x, y, radius) {
     (r) => r.type === 'tree' && r.amount > 0 && !r.burning && Math.abs(r.x - x) <= radius && Math.abs(r.y - y) <= radius,
   );
   if (!trees.length) return null;
-  const tree = trees[randInt(state.rng, 0, trees.length - 1)];
+  return strikeTree(state, data, trees[randInt(state.rng, 0, trees.length - 1)], true);
+}
+
+export function strikeTree(state, data, tree, natural) {
   tree.burning = data.config.weather.burnDays * data.config.time.ticksPerDay;
-  logEvent(state, 'Lightning set a tree ablaze near the camp');
+  logEvent(state, natural ? 'Lightning set a tree ablaze near the camp' : 'A bolt from the sky set a tree ablaze');
   return tree;
 }

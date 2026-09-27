@@ -5,6 +5,7 @@ import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
 import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
 import { forgetOnDeath } from './techs.js';
+import { addFeeling } from './mood.js';
 
 function uniqueName(state, data, sex) {
   const used = new Set(state.humans.map((h) => h.name));
@@ -59,6 +60,10 @@ export function createHuman(state, data, x, y, opts = {}) {
     knows: [],
     tools: {},
     counters: {},
+    devotion: randInt(rng, 0, data.config.devotion.startMax),
+    nextPrayer: 0,
+    status: {},
+    feelings: [],
     carrying: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
   };
@@ -99,6 +104,7 @@ export function humanAge(h, state, data) {
 const DEATH_TEXT = {
   starvation: (name, age) => `${name} starved to death, aged ${age}`,
   'old age': (name, age) => `${name} died of old age, aged ${age}`,
+  lightning: (name, age) => `${name} was struck down by lightning, aged ${age}`,
 };
 
 export function killHuman(state, data, h, cause) {
@@ -114,4 +120,11 @@ export function killHuman(state, data, h, cause) {
   if (partner) text += `, leaving behind ${partner.name}`;
   logEvent(state, text);
   forgetOnDeath(state, data, h);
+  // Partner, parents, children and siblings grieve.
+  const m = data.config.mood;
+  for (const o of state.humans) {
+    const family = o.partnerId === h.id || o.parents.includes(h.id) || h.parents.includes(o.id)
+      || o.parents.some((p) => h.parents.includes(p));
+    if (family || partner === o) addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays);
+  }
 }

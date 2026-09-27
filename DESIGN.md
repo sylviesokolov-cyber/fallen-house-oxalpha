@@ -155,7 +155,7 @@ Example tech JSON:
 3. **Traits, skills learned by doing, inspect panel details** — done
 4. **Relationships, socializing, teaching, families, births** — done
 5. **Discovery system + first 10 techs + first buildings and items** — done
-6. God powers + Faith + Shrine and worship
+6. **God powers + Faith + Shrine and worship** — done
 7. Research, eras, villages, multiple tribes, trade/conflict
 8. Polish, art, sound, save slots, Capacitor APK
 
