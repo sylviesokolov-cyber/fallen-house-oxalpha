@@ -21,6 +21,7 @@ import { addWork, openJobFor, planJob, startJob } from './construction.js';
 import { tryDiscover } from './techs.js';
 import { portalYard } from './dungeon.js';
 import { changeBond } from './bonds.js';
+import { appeal } from './appeal.js';
 import { addFeeling } from './mood.js';
 
 // Each human always has one action. An action runs over several ticks and sets
@@ -295,7 +296,10 @@ const START = {
       if (o === h || o.away != null || o.action.type === 'sleep' || o.action.type === 'chat') continue;
       const i = tileIndex(world, o.x, o.y);
       if (prev[i] === -1) continue;
-      const score = bondValue(state, h, o) * 0.3 + (h.partnerId === o.id ? 30 : 0) + (isFamily(h, o) ? 15 : 0) - dist[i];
+      const spouse = h.partnerId === o.id || o.partnerId === h.id;
+      // The single seek out those they fancy.
+      const fancy = h.partnerId == null && !spouse ? appeal(state, data, h, o) * data.config.appeal.socializeWeight : 0;
+      const score = bondValue(state, h, o) * 0.3 + (spouse ? 30 : 0) + (isFamily(h, o) ? 15 : 0) + fancy - dist[i];
       if (score > bestScore) {
         bestScore = score;
         best = o;

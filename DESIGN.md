@@ -185,6 +185,23 @@ F. **Visual and UX polish** — done.
   - Activity bubbles over people when zoomed in, the selected person's name, and floating level-ups and discoveries.
 - **Camera:** a glide after a flick, double-tap to zoom, and following the selected person.
 
+G. **Houses, the throne and the god's hand** — done.
+- **People:**
+  - Everyone has looks (1–10, which run in families) and is drawn to something: beauty, strength, standing, wit or kindness.
+  - Attraction shapes whom people seek out, how fast they warm to each other and who falls in love.
+- **Houses:** every family is a house, and the family name passes down from the father, or from the mother if she rules.
+- **The ruler:**
+  - Takes spouses: an unwed ruler courts and weds, and a wed ruler may take up to three consorts. Their first spouse feels the sting.
+  - When the ruler dies, the crown passes by blood: the named heir, then the eldest grown child, then a sibling, then the spouse. Only failing all of those do the people choose a new ruler, and a new house takes the throne.
+  - Once the crown has passed from parent to child the house is royal: Kings and Queens, Princes and Princesses, and Consorts.
+  - An aging ruler may step down for their heir.
+  - The Throne sheet shows the ruling house, the ruler and their spouses, the line of succession and the chronicle of reigns.
+- **New god powers:**
+  - **Gift:** three levels of a talent, or a piece of knowledge, even one the tribe has lost.
+  - **Eternal youth:** the person never ages or dies of age, though they can still fall in battle.
+  - **Puppet:** the ruler hears your voice. Through them you **decree** marriages (including the ruler's own consorts), the heir, a building to be raised first, and the people's calling.
+  - All of these are on each person's sheet and in the Throne sheet.
+
 ## Open Questions
 
 Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.

@@ -457,7 +457,7 @@ test('the most charismatic adult becomes Warden', () => {
   s.tick = DAY;
   updateSettlement(s, data);
   assert.equal(s.settlement.leaderId, s.humans[3].id);
-  assert.ok(s.history.some((e) => e.text === `${s.humans[3].name} became Warden of ${s.settlement.name}`));
+  assert.ok(s.history.some((e) => e.text === `${s.humans[3].name} of House ${s.humans[3].house} became Warden of ${s.settlement.name}`));
 });
 
 // --- People ---
@@ -831,9 +831,10 @@ test('mages blast through armour and mend the wounded', () => {
   const lines = [];
   fight(s, data, [f], [golem], lines);
   assert.ok(lines.some((l) => l.startsWith(`${mage.name} blasts`)));
-  const ally = { ...heroFighter(s.humans[1], data), hp: 5 };
+  const ally = { ...heroFighter(s.humans[1], data), hp: 12 };
+  const healer = { ...heroFighter(mage, data), agi: 60 }; // fresh, and acts first
   const lines2 = [];
-  fight(s, data, [f, ally], monsterFighters(data, ['cave_rat']), lines2);
+  fight(s, data, [healer, ally], monsterFighters(data, ['giant_rat']), lines2);
   assert.ok(lines2.some((l) => l.includes('mends')), 'heals the badly hurt ally');
 });
 
@@ -879,4 +880,150 @@ test('couples wait while children outnumber the grown-ups', () => {
     updateLifeCycle(s, fast);
   }
   assert.equal(mother.pregnantUntil, null);
+});
+
+// --- Houses, the throne and the new powers ---
+
+import { appeal } from '../src/sim/appeal.js';
+import { updateDynasty, takeConsort, successorOf } from '../src/sim/dynasty.js';
+import { leaderTitle } from '../src/sim/settlement.js';
+
+// Makes someone old enough to be an adult now (years back from today).
+function ageTo(s, h, years) {
+  h.birthDay = dayIndexOf(s.tick, data.config.time) - years * daysPerYear(data.config.time);
+}
+
+test('looks run in families, and each person is drawn to something', () => {
+  const s = createSim(data, 'looks');
+  for (const h of s.humans) {
+    assert.ok(h.looks >= 1 && h.looks <= 10 && h.house && data.config.appeal.preferences[h.drawnTo]);
+  }
+  const [a, b] = s.humans;
+  b.looks = 10;
+  a.drawnTo = 'looks';
+  const fair = appeal(s, data, a, b);
+  b.looks = 2;
+  assert.ok(fair > appeal(s, data, a, b) + 20, 'beauty matters to someone drawn to it');
+  a.drawnTo = 'strength';
+  const weak = appeal(s, data, a, b);
+  b.stats.str = 18;
+  assert.ok(appeal(s, data, a, b) > weak, 'strength matters to someone drawn to strength');
+});
+
+test('a ruler takes consorts, and the widowed are looked after', () => {
+  const fast = tweak('config.dynasty.consortChancePerDay', 1);
+  const s = createSim(fast, 'consorts');
+  s.tick = DAY;
+  updateSettlement(s, fast);
+  const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
+  const others = s.humans.filter((h) => h !== ruler);
+  for (const h of s.humans) h.attraction = 'both';
+  const [first, second, third] = others;
+  ruler.partnerId = first.id;
+  first.partnerId = ruler.id;
+  for (const c of [second, third]) {
+    changeBond(s, fast, ruler, c, 90);
+    c.looks = 10;
+  }
+  updateDynasty(s, fast, ruler);
+  assert.equal(ruler.consorts.length, 1);
+  const consort = s.humans.find((h) => h.id === ruler.consorts[0]);
+  assert.equal(consort.partnerId, ruler.id);
+  assert.equal(relationType(s, fast, ruler, consort), 'partner');
+  assert.ok(s.history.some((e) => / as (his|her) second (wife|husband)/.test(e.text)));
+  // The first spouse dies: the consort becomes the first spouse.
+  killHuman(s, fast, first, 'old age');
+  assert.equal(ruler.partnerId, consort.id);
+  assert.equal(ruler.consorts.length, 0);
+});
+
+test('the throne passes to the ruler\'s child, and the house becomes royal', () => {
+  const s = createSim(data, 'throne');
+  s.tick = DAY * 3;
+  updateSettlement(s, data);
+  const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
+  const child = s.humans.find((h) => h !== ruler);
+  child.parents = [ruler.id];
+  child.house = ruler.house;
+  ageTo(s, child, 20);
+  assert.equal(successorOf(s, data, ruler).ruler, child);
+  killHuman(s, data, ruler, 'old age');
+  s.tick += DAY - (s.tick % DAY);
+  updateSettlement(s, data);
+  assert.equal(s.settlement.leaderId, child.id);
+  assert.ok(s.dynasty.royal);
+  assert.equal(leaderTitle(s, data, child), data.config.leader.royalTitle[child.sex]);
+  assert.equal(s.dynasty.rulers.length, 2);
+  assert.ok(s.history.some((e) => e.text.includes(`of ${ruler.name}, became`)));
+});
+
+test('with no kin left, the people choose a ruler from another house', () => {
+  const s = createSim(data, 'newhouse');
+  s.tick = DAY;
+  updateSettlement(s, data);
+  const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
+  killHuman(s, data, ruler, 'old age');
+  s.tick += DAY;
+  updateSettlement(s, data);
+  const next = s.humans.find((h) => h.id === s.settlement.leaderId);
+  assert.ok(next && next.house !== ruler.house);
+  assert.ok(s.history.some((e) => e.text === `House ${next.house} now holds the throne of ${s.settlement.name}`));
+});
+
+test('gifts of talent and lost knowledge, and eternal youth', () => {
+  const s = createSim(data, 'gifts');
+  const h = s.humans[0];
+  s.faith = 1000;
+  const before = h.skills.smithing?.level ?? 0;
+  assert.ok(usePower(s, data, 'gift', { humanId: h.id, skill: 'smithing' }).ok);
+  assert.equal(h.skills.smithing.level, before + data.powersById.gift.levels);
+  // Knowledge the tribe lost can be given back.
+  learnTech(s, data, s.humans[1], 'carpentry');
+  killHuman(s, data, s.humans[1], 'old age');
+  assert.ok(s.discoveries.carpentry.lost);
+  assert.ok(usePower(s, data, 'gift', { humanId: h.id, tech: 'carpentry' }).ok);
+  assert.ok(knows(h, 'carpentry') && !s.discoveries.carpentry.lost);
+  assert.equal(usePower(s, data, 'gift', { humanId: h.id, tech: 'arcana' }).ok, false, 'not something never found');
+  // Eternal youth: never an elder, never dies of age.
+  assert.ok(usePower(s, data, 'eternity', { humanId: h.id }).ok);
+  ageTo(s, h, 95);
+  assert.equal(lifeStage(h, s, data), 'adult');
+  for (let d = 0; d < 60; d++) {
+    s.tick += DAY - (s.tick % DAY);
+    updateLifeCycle(s, data);
+  }
+  assert.ok(s.humans.includes(h));
+});
+
+test('a puppet ruler issues the god\'s decrees', () => {
+  const s = createSim(data, 'puppet');
+  s.tick = DAY;
+  updateSettlement(s, data);
+  s.faith = 1000;
+  const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
+  const [a, b] = s.humans.filter((h) => h !== ruler);
+  assert.equal(usePower(s, data, 'decree', { kind: 'wed', aId: a.id, bId: b.id }).ok, false, 'not yet a puppet');
+  assert.equal(usePower(s, data, 'puppet', { humanId: a.id }).ok, false, 'only the ruler');
+  assert.ok(usePower(s, data, 'puppet', { humanId: ruler.id }).ok);
+  assert.ok(usePower(s, data, 'decree', { kind: 'wed', aId: a.id, bId: b.id }).ok);
+  assert.equal(a.partnerId, b.id);
+  assert.ok(s.history.some((e) => e.text.includes('by decree of')));
+  // The ruler weds by decree, then takes a consort.
+  const [c, d] = s.humans.filter((h) => ![ruler, a, b].includes(h));
+  assert.ok(usePower(s, data, 'decree', { kind: 'wed', aId: ruler.id, bId: c.id }).ok);
+  assert.ok(usePower(s, data, 'decree', { kind: 'wed', aId: ruler.id, bId: d.id }).ok);
+  assert.equal(ruler.partnerId, c.id);
+  assert.deepEqual(ruler.consorts, [d.id]);
+  // Naming an heir: only the ruler's child.
+  assert.equal(usePower(s, data, 'decree', { kind: 'heir', id: a.id }).ok, false);
+  a.parents = [ruler.id];
+  assert.ok(usePower(s, data, 'decree', { kind: 'heir', id: a.id }).ok);
+  assert.equal(s.dynasty.heirId, a.id);
+  // A decreed building comes first for the builders.
+  learnTech(s, data, b, 'writing');
+  s.stockpile.wood = 500;
+  assert.ok(usePower(s, data, 'decree', { kind: 'build', type: 'library' }).ok);
+  assert.equal(planJob(s, data, b).def.id, 'library');
+  assert.ok(usePower(s, data, 'decree', { kind: 'focus', focus: 'train' }).ok);
+  assert.equal(s.focus.id, 'train');
 });

@@ -26,6 +26,7 @@
 - `src/ui/sound.js` (WebAudio effects and music, no audio files), `src/ui/saves.js` + `menuPanel.js` (save slots, autosave, new world). `manifest.json`, `icons/` and `sw.js` make the game an installable PWA; `sw.js` is network-first, so Pages updates show up right away.
 - UI building blocks: `src/ui/icons.js` (the SVG icon set; use `icon(name)` or `<i data-icon="name">`, never platform emoji), `topBar.js`, `sheets.js` (open/close/swipe, `haptic`), `titleScreen.js`, `portrait.js`. Panels rebuild only when their keyed content changes, so taps aren't lost.
 - World rendering: `mapRenderer.js` bakes the map at 2x (normal and winter variants), `textures.js` bakes trees, crops, particles and loads the icons for Phaser, `fxView.js` (particles, clouds), `bubbleView.js` (activity icons, floating text). All cosmetic randomness there may use `Math.random`.
+- People and the throne: `src/sim/appeal.js` (looks, what people are drawn to, `appeal`), `src/sim/dynasty.js` (houses, spouses and consorts via `partnerId` + `consorts`, widowing, succession, `crown`), `src/sim/decrees.js` (what a puppet ruler can be made to do). A consort's `partnerId` is the ruler; use `isSpouse`/`spousesOf`, not `a.partnerId === b.id` alone.
 - `src/sim/data.js` `DATA_FILES` lists every content file; add new ones there.
 - `src/sim/construction.js`: plots, construction sites, upgrades and family homes. Building effects at a level come from `effectsOf`/`buildingEffect` in `buildings.js` (base effects plus upgrades reached).
 

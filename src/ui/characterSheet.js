@@ -8,7 +8,9 @@ import { mood } from '../sim/mood.js';
 import { isBlessed, isInspired } from '../sim/status.js';
 import { emotionOf } from '../sim/emotions.js';
 import { gradeOf, heroClass, xpForLevel } from '../sim/stats.js';
-import { leaderTitle } from '../sim/settlement.js';
+import { rankOf } from '../sim/settlement.js';
+import { looksLabel } from '../sim/appeal.js';
+import { createDivineActions } from './divineActions.js';
 import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait } from './portrait.js';
@@ -43,6 +45,7 @@ const TIER_LABELS = { closeFriend: 'Close friend', friend: 'Friend', acquaintanc
 const MAX_BONDS_SHOWN = 7;
 
 export function createCharacterSheet(ctx, { toast, select }) {
+  const divine = createDivineActions(ctx, { toast });
   // Tabs: Status, Skills, People, Story.
   for (const b of document.querySelectorAll('.sheet-tabs button')) {
     b.addEventListener('click', () => {
@@ -95,8 +98,13 @@ export function createCharacterSheet(ctx, { toast, select }) {
       stars(who.grade, grade),
       el('span', 'hero-meta', ` ${grade.name} · Lv ${who.level}${cls ? ` · ${cls}` : ''}`),
     ]);
-    const isLeader = alive && sim.settlement.leaderId === who.id;
-    $('insp-leader').textContent = isLeader ? `${leaderTitle(sim, data, who)} of ${sim.settlement.name}` : '';
+    const rank = alive ? rankOf(sim, data, who) : null;
+    const puppet = alive && sim.dynasty.puppetId === who.id && sim.settlement.leaderId === who.id;
+    $('insp-leader').textContent = rank ? `${rank}${puppet ? ' · your puppet' : ''}` : '';
+    const drawn = alive && who.drawnTo ? ` · drawn to ${data.config.appeal.preferences[who.drawnTo].toLowerCase()}` : '';
+    $('insp-house').textContent = who.house
+      ? `House ${who.house} · ${looksLabel(who)}${drawn}${who.eternal ? ' · ageless' : ''}`
+      : '';
     const stage = alive ? lifeStage(who, sim, data) : 'adult';
     const look = appearance(who, stage === 'elder');
     renderKeyed($('insp-portrait'), `${who.id}|${look.tunic}|${look.hair}|${stage}|${alive}`, () => [portrait(look, who, stage, alive, data)]);
@@ -242,6 +250,7 @@ export function createCharacterSheet(ctx, { toast, select }) {
     const trips = c.expeditions ? ` · ${c.expeditions} expedition${c.expeditions > 1 ? 's' : ''}, ${c.kills ?? 0} kills${c.bossKills ? `, ${c.bossKills} bosses` : ''}` : '';
     $('insp-tools').textContent = `${tools}Combat power ${combatPower(h, data)}${trips}`;
     renderEmotion(h);
+    divine.render(h);
     renderStats(h);
     setNeed('bar-health', h.health);
     setNeed('bar-hunger', h.needs.hunger);

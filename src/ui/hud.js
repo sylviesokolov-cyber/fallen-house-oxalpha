@@ -10,13 +10,14 @@ import { createMenuPanel } from './menuPanel.js';
 import { createTopBar } from './topBar.js';
 import { createSheets, haptic } from './sheets.js';
 import { createTitleScreen } from './titleScreen.js';
+import { createThronePanel } from './thronePanel.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser. This module wires the
 // pieces together: top bar, power dock, sheets, news banners, title screen.
 
 const REFRESH_MS = 200;
-const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal', 'help'];
+const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal', 'help', 'throne'];
 
 // [pattern, icon, sound, vibration]
 const NEWS = [
@@ -74,6 +75,7 @@ export function createHud(ctx, sound) {
   const sheet = createCharacterSheet(ctx, { toast, select: selectPerson });
   const tribe = createTribePanel(ctx, { toast, select: selectPerson });
   const portal = createPortalPanel(ctx, { toast, select: selectPerson, close: () => showPanel(null) });
+  const throne = createThronePanel(ctx, { toast, select: selectPerson });
 
   // God-power dock. Picking Bless or Inspire arms it; the next tap on a
   // person uses it (tap the button again to cancel). Omen and Portal open
@@ -86,8 +88,19 @@ export function createHud(ctx, sound) {
     if (power) $('power-hint').textContent = `${power.description} Tap ${power.target === 'human' ? 'a person' : 'the map'}.`;
   }
 
+  // The Throne sits in the dock beside the powers.
+  const throneButton = button('power', '', () => {
+    haptic();
+    throne.reset();
+    togglePanel('throne');
+  });
+  throneButton.dataset.power = 'throne';
+  const throneOrb = el('span', 'power-orb');
+  throneOrb.append(icon('crown'));
+  throneButton.append(throneOrb, el('span', 'power-name', 'Throne'), el('span', 'cost', 'decrees'));
+
   $('power-buttons').replaceChildren(
-    ...ctx.data.powers.map((p) => {
+    ...ctx.data.powers.filter((p) => p.dock).map((p) => {
       const b = button('power', '', () => {
         haptic();
         if (p.target === 'focus') return togglePanel('omen');
@@ -103,6 +116,7 @@ export function createHud(ctx, sound) {
       if (p.cost) b.lastChild.prepend(icon('faith', 'cost-icon'));
       return b;
     }),
+    throneButton,
   );
 
   $('omen-list').replaceChildren(
@@ -154,7 +168,7 @@ export function createHud(ctx, sound) {
     menu.render();
     togglePanel('menu');
   });
-  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal', 'help', 'inspect']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
+  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal', 'help', 'inspect', 'throne']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
 
   function renderLog() {
     const hist = ctx.sim.history;
@@ -209,12 +223,13 @@ export function createHud(ctx, sound) {
 
   function refresh() {
     top.render();
-    for (const b of $('power-buttons').children) b.classList.toggle('poor', ctx.sim.faith < ctx.data.powersById[b.dataset.power].cost);
+    for (const b of $('power-buttons').children) b.classList.toggle('poor', ctx.sim.faith < (ctx.data.powersById[b.dataset.power]?.cost ?? 0));
     renderNews();
     if (isOpen('inspect') && !sheet.render()) showPanel(null);
     if (isOpen('log')) renderLog();
     if (isOpen('tribe')) tribe.render();
     if (isOpen('portal')) portal.render();
+    if (isOpen('throne')) throne.render();
   }
 
   createTitleScreen(ctx, {

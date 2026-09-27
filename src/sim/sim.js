@@ -12,6 +12,7 @@ import { createStartingBuildings, isWarm } from './buildings.js';
 import { handOutTools, spoilFood } from './items.js';
 import { updateHomes } from './construction.js';
 import { updateDungeon } from './dungeon.js';
+import { newDynasty } from './dynasty.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -38,6 +39,7 @@ export function createSim(data, seed) {
     focus: null,
     dungeon: { deepest: 1, cleared: [], nextId: 1 },
     expeditions: [],
+    dynasty: newDynasty(),
     dead: [],
     history: [],
   };

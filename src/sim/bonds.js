@@ -6,6 +6,7 @@ import { teachTech, techEffect } from './techs.js';
 import { addFeeling, feel } from './mood.js';
 import { emotionEffect } from './emotions.js';
 import { statFactor } from './stats.js';
+import { appeal } from './appeal.js';
 
 // Relationships live in state.bonds, keyed "lowId-highId". Only pairs that
 // have interacted have an entry. `peak` is the highest friendship tier ever
@@ -25,8 +26,10 @@ export function isFamily(a, b) {
 }
 
 // The label shown in the UI and used for decisions.
+const married = (a, b) => a.partnerId === b.id || b.partnerId === a.id;
+
 export function relationType(state, data, a, b) {
-  if (a.partnerId === b.id) return 'partner';
+  if (married(a, b)) return 'partner';
   if (isFamily(a, b)) return 'family';
   const v = bondValue(state, a, b);
   const t = data.config.social.tiers;
@@ -41,7 +44,7 @@ export function changeBond(state, data, a, b, delta) {
   const key = pairKey(a, b);
   const bond = (state.bonds[key] ??= { value: 0, peak: -1, rival: false });
   bond.value = Math.max(-100, Math.min(100, bond.value + delta));
-  if (isFamily(a, b) || a.partnerId === b.id) return;
+  if (isFamily(a, b) || married(a, b)) return;
 
   const t = data.config.social.tiers;
   const tier = TIER_ORDER.findLastIndex((name) => bond.value >= t[name]);
@@ -86,7 +89,9 @@ export function resolveChat(state, data, a, b, canPartner) {
   } else {
     const friendliness = (traitMod(a, data, 'friendliness') + traitMod(b, data, 'friendliness')) / 2;
     const charm = (statFactor(a, data, 'cha') + statFactor(b, data, 'cha')) / 2;
-    changeBond(state, data, a, b, s.chatGain * friendliness * charm * (0.5 + next(state.rng)) + compatibility(a, b, data));
+    // People warm faster to those they find attractive.
+    const fancy = 1 + ((appeal(state, data, a, b) + appeal(state, data, b, a)) / 2 - 50) * data.config.appeal.chatBonus / 10;
+    changeBond(state, data, a, b, s.chatGain * friendliness * charm * fancy * (0.5 + next(state.rng)) + compatibility(a, b, data));
     feel(state, data, a, 'niceChat', 'Had a good talk');
     feel(state, data, b, 'niceChat', 'Had a good talk');
     teach(state, data, a, b);
@@ -123,16 +128,20 @@ export function teach(state, data, teacher, student) {
   if (best || taughtTech) gainXp(state, data, teacher, 'teaching', data.skillsById.teaching.xpPerAction);
 }
 
-function attractedTo(a, b) {
+export function attractedTo(a, b) {
   if (a.attraction === 'both') return true;
   return (a.sex === b.sex) === (a.attraction === 'same');
 }
 
 function maybePartner(state, data, a, b, canPartner) {
   const s = data.config.social;
-  if (a.partnerId || b.partnerId || !canPartner(a) || !canPartner(b) || isFamily(a, b)) return;
+  if (a.partnerId || b.partnerId || a.consorts?.length || b.consorts?.length) return;
+  if (!canPartner(a) || !canPartner(b) || isFamily(a, b)) return;
   if (!attractedTo(a, b) || !attractedTo(b, a)) return;
-  if (bondValue(state, a, b) < s.partnerAt || !chance(state.rng, s.partnerChancePerChat)) return;
+  // Mutual attraction lowers the bar and raises the odds.
+  const fancy = (appeal(state, data, a, b) + appeal(state, data, b, a)) / 2;
+  const bar = s.partnerAt - (fancy - 50) * data.config.appeal.partnerBondDiscount;
+  if (bondValue(state, a, b) < bar || !chance(state.rng, s.partnerChancePerChat * (fancy / 50))) return;
   a.partnerId = b.id;
   b.partnerId = a.id;
   const m = data.config.mood;

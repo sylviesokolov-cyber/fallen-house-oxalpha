@@ -52,6 +52,7 @@ const ICONS = {
   swords: `<path d="M4 4l10 10M20 4L10 14" stroke="#dfe6ee" stroke-width="2.6" stroke-linecap="round"/><path d="M4 4l10 10M20 4L10 14" stroke="${O}" stroke-width="0.8" stroke-linecap="round" opacity=".5"/><path d="M11 17l-4 4M13 17l4 4" stroke="#8a5a2b" stroke-width="2.6" stroke-linecap="round"/><path d="M9 14l3 3M15 14l-3 3" stroke="#ffd35c" stroke-width="2.4" stroke-linecap="round"/>`,
   help: `<circle cx="12" cy="12" r="9" fill="#3b82b6" ${S}/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="#fff"/>`,
   moon: `<path d="M15 3a9 9 0 1 0 6 12.5A7 7 0 0 1 15 3z" fill="#e4eeff" ${S}/><circle cx="10" cy="14" r="1.2" fill="#b8c6e0"/><circle cx="13" cy="18" r=".8" fill="#b8c6e0"/>`,
+  infinity: `<path d="M12 12c-2-3-4-4.5-6-4.5a4.5 4.5 0 0 0 0 9c2 0 4-1.5 6-4.5zm0 0c2 3 4 4.5 6 4.5a4.5 4.5 0 0 0 0-9c-2 0-4 1.5-6 4.5z" fill="none" stroke="#b99cff" stroke-width="2.6" stroke-linecap="round"/><path d="M12 12c-2-3-4-4.5-6-4.5a4.5 4.5 0 0 0 0 9c2 0 4-1.5 6-4.5z" fill="none" stroke="#fff0a8" stroke-width="1" opacity=".7"/>`,
   sparkle: `<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" fill="#ffd35c" ${S}/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="#fff0a8"/>`,
 };
 

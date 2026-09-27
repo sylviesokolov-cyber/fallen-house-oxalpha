@@ -43,6 +43,15 @@ export function createTribePanel(ctx, { toast, select }) {
       nodes.push(section('Leader'), lb);
     }
 
+    // Houses, largest first; the ruling house is marked.
+    const houses = {};
+    for (const h of sim.humans) houses[h.house] = (houses[h.house] ?? 0) + 1;
+    nodes.push(section('Houses'));
+    for (const [house, n] of Object.entries(houses).sort((a, b) => b[1] - a[1]).slice(0, 6)) {
+      const ruling = house === sim.dynasty.house;
+      nodes.push(row(`House ${house}${ruling ? (sim.dynasty.royal ? ' (royal)' : ' (ruling)') : ''}`, `${n} ${n === 1 ? 'member' : 'members'}`, ruling ? 'ruling' : ''));
+    }
+
     nodes.push(section('Divine will'));
     const f = sim.focus && sim.focus.until > sim.tick ? sim.focus : null;
     if (f) {

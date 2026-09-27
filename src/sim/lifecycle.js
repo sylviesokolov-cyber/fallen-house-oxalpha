@@ -14,7 +14,8 @@ export function lifeStage(h, state, data) {
   const age = ageInYears(h.birthDay, state.tick, data.config.time);
   const l = data.config.lifecycle;
   if (age < l.adultAge) return 'child';
-  if (age >= l.elderAge) return 'elder';
+  // The gods' gift of eternal youth: they never grow old.
+  if (age >= l.elderAge && !h.eternal) return 'elder';
   return 'adult';
 }
 
@@ -37,7 +38,7 @@ export function updateLifeCycle(state, data) {
     else if (canConceive(state, data, h) && chance(state.rng, l.birthChancePerDay * focusValue(state, data, 'birth'))) {
       h.pregnantUntil = today + l.gestationDays;
     }
-    if (age >= l.oldAgeStart && chance(state.rng, oldAgeRisk(age, l) / (cfg.time.daysPerSeason * cfg.time.seasons.length))) {
+    if (!h.eternal && age >= l.oldAgeStart && chance(state.rng, oldAgeRisk(age, l) / (cfg.time.daysPerSeason * cfg.time.seasons.length))) {
       killHuman(state, data, h, 'old age');
     }
   }
@@ -68,8 +69,12 @@ function canConceive(state, data, h) {
 
 function giveBirth(state, data, mother) {
   const father = state.humans.find((h) => h.id === mother.partnerId) ?? state.dead.find((h) => h.id === mother.partnerId);
+  // Children take their father's house, unless their mother rules.
+  const rulesHouse = state.settlement.leaderId === mother.id;
   const child = createHuman(state, data, mother.x, mother.y, {
     ageYears: 0,
+    house: rulesHouse ? mother.house : father?.house ?? mother.house,
+    parentsList: [mother, father].filter(Boolean),
     parents: [mother.id, father?.id].filter((id) => id != null),
     traits: inheritTraits(state, data, mother, father),
     grade: inheritGrade(state, data, [mother, father].filter(Boolean)),

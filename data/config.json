@@ -241,6 +241,14 @@
     "dungeonReturn": [
       6,
       3
+    ],
+    "gifted": [
+      12,
+      5
+    ],
+    "heavenlyVoice": [
+      8,
+      10
     ]
   },
   "leader": {
@@ -250,6 +258,18 @@
     "title": {
       "female": "Warden",
       "male": "Warden"
+    },
+    "royalTitle": {
+      "female": "Queen",
+      "male": "King"
+    },
+    "heirTitle": {
+      "female": "Princess",
+      "male": "Prince"
+    },
+    "consortTitle": {
+      "female": "Queen Consort",
+      "male": "Prince Consort"
     }
   },
   "training": {
@@ -286,5 +306,38 @@
     "ticks": 30,
     "scoreBase": 12
   },
-  "gearUrgency": 15
+  "gearUrgency": 15,
+  "appeal": {
+    "preferences": {
+      "looks": "Beauty",
+      "strength": "Strength",
+      "status": "Standing",
+      "wit": "Wit",
+      "kindness": "Kindness"
+    },
+    "looksWeight": 5,
+    "preferenceWeight": 4,
+    "partnerBondDiscount": 0.4,
+    "chatBonus": 0.04,
+    "socializeWeight": 0.05
+  },
+  "dynasty": {
+    "maxConsorts": 3,
+    "consortBondAt": 25,
+    "consortAppealAt": 45,
+    "consortChancePerDay": 0.06,
+    "jealousyValue": -5,
+    "jealousyDays": 10,
+    "abdicateChancePerDay": 0.01
+  },
+  "decrees": {
+    "cost": {
+      "wed": 15,
+      "heir": 10,
+      "build": 20,
+      "focus": 15
+    },
+    "buildDays": 20,
+    "focusDays": 10
+  }
 }

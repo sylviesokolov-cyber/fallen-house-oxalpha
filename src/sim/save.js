@@ -1,6 +1,6 @@
 // The sim state is plain JSON data, so saving is just stringify/parse.
 // Bump SAVE_VERSION whenever the state shape changes incompatibly.
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 
 export function serialize(state) {
   return JSON.stringify(state);

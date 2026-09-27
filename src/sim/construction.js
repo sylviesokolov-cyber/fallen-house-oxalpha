@@ -80,6 +80,8 @@ export function openJobFor(state, data, h) {
 // or else an upgrade. Starting buildings come first, in data order.
 export function planJob(state, data, h) {
   if (!h.knows.includes('construction')) return null;
+  const decreed = decreedJob(state, data, h);
+  if (decreed) return decreed;
   for (const def of data.buildings) {
     if (!def.cost || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost)) continue;
     if (wantsBuilding(state, def) && freePlot(state, data, def)) return { def };
@@ -89,6 +91,20 @@ export function planJob(state, data, h) {
     if (u && knowsTech(h, u.tech) && affordable(state.stockpile, u.cost) && wantsUpgrade(state, data, u)) return { b, u };
   }
   return null;
+}
+
+// A building the ruler has decreed comes before anything else, wanted or not.
+function decreedJob(state, data, h) {
+  const d = state.decree;
+  if (!d?.build || state.tick >= d.until) return null;
+  const def = data.buildingsById[d.build];
+  const built = state.buildings.find((b) => b.type === def.id);
+  if (built) {
+    const u = built.built && !built.upgrade && nextUpgrade(data, built);
+    return u && knowsTech(h, u.tech) && affordable(state.stockpile, u.cost) ? { b: built, u } : null;
+  }
+  if (!def.cost || !knowsTech(h, def.tech) || !affordable(state.stockpile, def.cost) || !freePlot(state, data, def)) return null;
+  return { def };
 }
 
 function pay(state, cost) {

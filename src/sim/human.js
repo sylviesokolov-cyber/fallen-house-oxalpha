@@ -5,6 +5,8 @@ import { rollTraits } from './traits.js';
 import { forgetOnDeath } from './techs.js';
 import { addFeeling } from './mood.js';
 import { newHeroFields } from './stats.js';
+import { rollLooks, rollPreference } from './appeal.js';
+import { widow } from './dynasty.js';
 
 function uniqueName(state, data, sex) {
   const used = new Set(state.humans.map((h) => h.name));
@@ -42,6 +44,11 @@ export function createHuman(state, data, x, y, opts = {}) {
     attraction: rollAttraction(rng, cfg.attraction),
     parents: opts.parents ?? [],
     partnerId: null,
+    consorts: [],
+    house: opts.house ?? null,
+    looks: rollLooks(state, opts.parentsList ?? []),
+    drawnTo: rollPreference(state, data),
+    eternal: false,
     pregnantUntil: null,
     lastBirthDay: null,
     x,
@@ -85,11 +92,18 @@ export function spawnInitialHumans(state, data) {
   for (let n = 0; n < cfg.startCount; n++) {
     const x = randInt(state.rng, hall.rx, hall.rx + hall.w - 1);
     const y = randInt(state.rng, hall.ry, hall.ry + hall.h - 1);
-    const h = createHuman(state, data, x, y);
+    const h = createHuman(state, data, x, y, { house: freshHouse(state, data) });
     h.knows = [...basics];
     state.humans.push(h);
     logEvent(state, `${h.name} awoke in ${state.settlement.name}`);
   }
+}
+
+// A family name nobody living has yet.
+function freshHouse(state, data) {
+  const used = new Set(state.humans.map((h) => h.house));
+  const free = data.names.houses.filter((n) => !used.has(n));
+  return pick(state.rng, free.length ? free : data.names.houses);
 }
 
 export function humanAge(h, state, data) {
@@ -110,22 +124,23 @@ export function killHuman(state, data, h, cause, detail) {
     id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, parents: h.parents, partnerId: h.partnerId,
     grade: h.grade, level: h.level, stats: h.stats,
     traits: h.traits, skills: h.skills, knows: h.knows, deathTick: state.tick, cause, story: h.story,
+    house: h.house, looks: h.looks, consorts: h.consorts,
   });
   const record = state.dead.at(-1);
-  const partner = state.humans.find((o) => o.id === h.partnerId);
-  if (partner) partner.partnerId = null;
+  const spouses = widow(state, h);
+  const partner = spouses[0] ?? null;
   let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age, detail);
-  if (partner) text += `, leaving behind ${partner.name}`;
+  if (spouses.length) text += `, leaving behind ${spouses.map((o) => o.name).join(' and ')}`;
   logEvent(state, text);
   addStory(record, { tick: state.tick, text });
   forgetOnDeath(state, data, h);
   // Partner, parents, children and siblings grieve.
   const m = data.config.mood;
   for (const o of state.humans) {
-    const family = o.partnerId === h.id || o.parents.includes(h.id) || h.parents.includes(o.id)
+    const family = spouses.includes(o) || o.parents.includes(h.id) || h.parents.includes(o.id)
       || o.parents.some((p) => h.parents.includes(p));
-    if (!family && partner !== o) continue;
+    if (!family) continue;
     addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays, 'grief');
-    if (partner !== o) addStory(o, { tick: state.tick, text: `Mourned ${h.name}` });
+    if (!spouses.includes(o)) addStory(o, { tick: state.tick, text: `Mourned ${h.name}` });
   }
 }
