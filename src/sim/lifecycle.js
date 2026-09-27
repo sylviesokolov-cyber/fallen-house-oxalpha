@@ -80,6 +80,7 @@ function giveBirth(state, data, mother) {
     grade: inheritGrade(state, data, [mother, father].filter(Boolean)),
   });
   state.humans.push(child);
+  state.tribeCounters.births = (state.tribeCounters.births ?? 0) + 1;
   mother.pregnantUntil = null;
   mother.lastBirthDay = dayIndexOf(state.tick, data.config.time);
   const familyBond = data.config.social.familyBond;

@@ -180,7 +180,7 @@ function nextRoom(state, data, exp, members) {
     report.result = 'victory';
     exp.outcome = 'victory';
     logEvent(state, `${listNames(up.map((f) => f.name))} slew the ${monsters[0].name} in ${where}!`);
-    unlockNext(state, data, exp.floor);
+    unlockNext(state, data, exp.floor, up.map((f) => f.name));
   }
   // The fallen are carried; the more hands, the better their chances, and a
   // remedy better still.
@@ -230,8 +230,15 @@ function rollLoot(state, data, exp, monster) {
   }
 }
 
-function unlockNext(state, data, floorId) {
-  if (!state.dungeon.cleared.includes(floorId)) state.dungeon.cleared.push(floorId);
+function unlockNext(state, data, floorId, names = []) {
+  const first = !state.dungeon.cleared.includes(floorId);
+  if (first) state.dungeon.cleared.push(floorId);
+  // The last floor: the dungeon is conquered.
+  if (first && !data.floorsById[floorId + 1]) {
+    state.dungeon.conquered = state.tick;
+    const boss = data.monstersById[data.floorsById[floorId].boss].name;
+    logEvent(state, `The ${boss} has fallen! ${listNames(names)} conquered the dungeon beneath ${state.settlement.name}, and songs of it will be sung for ever`);
+  }
   const nextFloor = data.floorsById[floorId + 1];
   if (nextFloor && state.dungeon.deepest === floorId) {
     state.dungeon.deepest = floorId + 1;

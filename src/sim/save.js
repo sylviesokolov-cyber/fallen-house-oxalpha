@@ -11,5 +11,6 @@ export function deserialize(json) {
   if (state?.version !== SAVE_VERSION) {
     throw new Error(`Save is from an incompatible version (${state?.version})`);
   }
+  state.goals ??= {}; // added without a version bump; older saves start with none reached
   return state;
 }

@@ -20,5 +20,5 @@ export function updateNeeds(h, data, cold) {
   }
 
   if (h.needs.hunger <= 0) h.health = clamp(h.health - cfg.health.starveDamage / vit);
-  else if (h.needs.hunger > cfg.health.regenAboveHunger) h.health = clamp(h.health + cfg.health.regen);
+  else if (h.needs.hunger > cfg.health.regenAboveHunger && !h.sick) h.health = clamp(h.health + cfg.health.regen);
 }

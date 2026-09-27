@@ -202,6 +202,15 @@ G. **Houses, the throne and the god's hand** — done.
   - **Puppet:** the ruler hears your voice. Through them you **decree** marriages (including the ruler's own consorts), the heir, a building to be raised first, and the people's calling.
   - All of these are on each person's sheet and in the Throne sheet.
 
+H. **Goals, events and the deep floors** — done.
+- **Goals:** milestones in five chapters (`data/goals.json`), from full stores and the first child to the Fallen King. Each is logged once and rewards Faith. The Tribe sheet's **Goals** tab shows the current chapter with progress bars; later chapters stay veiled.
+- **Events** (`data/events.json`, rolled daily):
+  - **Raids:** monsters from the opened floors burst out of the portal. The four strongest at home fight them, and the fight is kept as a battle report. A lost raid costs a quarter of the food.
+  - **Harvest festival:** once each autumn when the stores are full; lifts moods and draws everyone closer.
+  - **Sickness:** a few fall ill and weaken daily until it passes. A herbal remedy cures it and an Infirmary slows it.
+  - **Strangers:** a newcomer of a fresh house steps out of the portal when there's room.
+- **Floors 5–8:** the Sunken Library, the Crystal Hollows, the Ashen Throne and the Fallen Court. The deep floors yield **mithril**, which Mithril Smithing turns into the best swords and armour. Slaying the Fallen King conquers the dungeon.
+
 ## Open Questions
 
 Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.

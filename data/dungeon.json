@@ -107,6 +107,94 @@
       ],
       "boss": "deep_wyrm",
       "power": 150
+    },
+    {
+      "id": 5,
+      "name": "Sunken Library",
+      "description": "Drowned shelves where the dead still read, and the books bite back.",
+      "rooms": 6,
+      "group": [
+        2,
+        4
+      ],
+      "monsters": [
+        {
+          "id": "wraith",
+          "weight": 2
+        },
+        {
+          "id": "tome_mimic",
+          "weight": 2
+        }
+      ],
+      "boss": "archivist_lich",
+      "power": 175
+    },
+    {
+      "id": 6,
+      "name": "Crystal Hollows",
+      "description": "Caves of singing crystal. The first veins of mithril glint in the walls.",
+      "rooms": 6,
+      "group": [
+        2,
+        4
+      ],
+      "monsters": [
+        {
+          "id": "crystal_crawler",
+          "weight": 3
+        },
+        {
+          "id": "gem_bat",
+          "weight": 2
+        }
+      ],
+      "boss": "crystal_serpent",
+      "power": 200
+    },
+    {
+      "id": 7,
+      "name": "The Ashen Throne",
+      "description": "A burning court of hounds and knights that serve a queen of fire.",
+      "rooms": 7,
+      "group": [
+        3,
+        4
+      ],
+      "monsters": [
+        {
+          "id": "ash_hound",
+          "weight": 3
+        },
+        {
+          "id": "cinder_knight",
+          "weight": 2
+        }
+      ],
+      "boss": "ember_queen",
+      "power": 230
+    },
+    {
+      "id": 8,
+      "name": "The Fallen Court",
+      "description": "The last hall. Whoever ruled the world above before your people waits here.",
+      "rooms": 7,
+      "group": [
+        3,
+        5
+      ],
+      "monsters": [
+        {
+          "id": "fallen_guard",
+          "weight": 3
+        },
+        {
+          "id": "court_wraith",
+          "weight": 2
+        }
+      ],
+      "boss": "the_fallen_king",
+      "power": 260
     }
   ],
   "bondPerRoom": 2,

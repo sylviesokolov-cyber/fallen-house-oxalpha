@@ -49,6 +49,7 @@ export function createHuman(state, data, x, y, opts = {}) {
     looks: rollLooks(state, opts.parentsList ?? []),
     drawnTo: rollPreference(state, data),
     eternal: false,
+    sick: null,
     pregnantUntil: null,
     lastBirthDay: null,
     x,
@@ -100,7 +101,7 @@ export function spawnInitialHumans(state, data) {
 }
 
 // A family name nobody living has yet.
-function freshHouse(state, data) {
+export function freshHouse(state, data) {
   const used = new Set(state.humans.map((h) => h.house));
   const free = data.names.houses.filter((n) => !used.has(n));
   return pick(state.rng, free.length ? free : data.names.houses);
@@ -114,6 +115,8 @@ const DEATH_TEXT = {
   starvation: (name, age) => `${name} starved to death, aged ${age}`,
   'old age': (name, age) => `${name} died of old age, aged ${age}`,
   dungeon: (name, age, detail) => `${name} ${detail}, aged ${age}`,
+  raid: (name, age, detail) => `${name} ${detail}, aged ${age}`,
+  sickness: (name, age) => `${name} died of the sickness, aged ${age}`,
 };
 
 // `detail` finishes the log line for some causes (how they died in the dungeon).

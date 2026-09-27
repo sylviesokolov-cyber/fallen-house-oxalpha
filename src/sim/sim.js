@@ -13,6 +13,8 @@ import { handOutTools, spoilFood } from './items.js';
 import { updateHomes } from './construction.js';
 import { updateDungeon } from './dungeon.js';
 import { newDynasty } from './dynasty.js';
+import { updateGoals } from './goals.js';
+import { updateEvents } from './events.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
 
@@ -40,6 +42,7 @@ export function createSim(data, seed) {
     dungeon: { deepest: 1, cleared: [], nextId: 1 },
     expeditions: [],
     dynasty: newDynasty(),
+    goals: {},
     dead: [],
     history: [],
   };
@@ -75,6 +78,8 @@ export function stepSim(state, data) {
   updateDiscovery(state, data);
   spoilFood(state, data);
   updateDungeon(state, data);
+  updateGoals(state, data);
+  updateEvents(state, data);
   handOutTools(state, data);
   if (newDay) updateHomes(state, data);
 }

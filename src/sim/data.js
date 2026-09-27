@@ -1,7 +1,7 @@
 // Every content file in /data, loaded by BootScene (and the tests).
 export const DATA_FILES = [
   'config', 'tiles', 'resources', 'names', 'traits', 'skills', 'techs', 'buildings', 'items', 'powers', 'stats', 'grades',
-  'emotions', 'focuses', 'sanctuary', 'monsters', 'dungeon',
+  'emotions', 'focuses', 'sanctuary', 'monsters', 'dungeon', 'goals', 'events',
 ];
 
 // Adds id lookup tables to the raw JSON content. Content is read-only and is

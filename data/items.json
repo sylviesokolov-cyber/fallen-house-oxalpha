@@ -25,5 +25,8 @@
   {"id": "hide", "name": "Hide", "kind": "material", "description": "Tough skin from dungeon beasts."},
   {"id": "bone", "name": "Bone", "kind": "material", "description": "Old, hard bone."},
   {"id": "ore", "name": "Iron ore", "kind": "material", "description": "Needs a smith to be of any use."},
-  {"id": "mana_crystal", "name": "Mana crystal", "kind": "material", "description": "Hums with a strange power."}
+  {"id": "mana_crystal", "name": "Mana crystal", "kind": "material", "description": "Hums with a strange power."},
+  {"id": "mithril_sword", "name": "Mithril sword", "tech": "mithril_smithing", "kind": "tool", "cost": {"mithril": 2, "wood": 1}, "craftTicks": 40, "skill": "smithing", "station": "blacksmith", "durability": 200, "forSkills": ["swordsmanship"], "slot": "sword", "tier": 3, "effects": {"attack": 2.0, "trainingXp": 1.4}, "forAdventurers": true},
+  {"id": "mithril_armor", "name": "Mithril armour", "tech": "mithril_smithing", "kind": "tool", "cost": {"mithril": 3, "hide": 2}, "craftTicks": 48, "skill": "smithing", "station": "blacksmith", "durability": 200, "forSkills": ["defense"], "slot": "armor", "tier": 3, "effects": {"armor": 14}, "forAdventurers": true},
+  {"id": "mithril", "name": "Mithril", "kind": "material", "description": "Silver-light metal from the deep floors."}
 ]

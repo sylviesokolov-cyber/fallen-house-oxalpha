@@ -3,13 +3,14 @@ import { emotionOf } from '../sim/emotions.js';
 import { gradeOf, heroClass } from '../sim/stats.js';
 import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
-import { $, el, button, stars, renderKeyed } from './dom.js';
+import { $, el, button, bar, stars, renderKeyed } from './dom.js';
 import { portrait } from './portrait.js';
 import { appearance } from '../render/appearance.js';
 import { lifeStage } from '../sim/lifecycle.js';
+import { currentChapter, goalProgress } from '../sim/goals.js';
 
 // The Tribe tab: an overview of the settlement's progress, a roster of every
-// person, the tribe's inventory, and its knowledge.
+// person, the tribe's inventory, its knowledge, and the milestones to reach.
 
 export function createTribePanel(ctx, { toast, select }) {
   let tab = 'overview';
@@ -175,7 +176,34 @@ export function createTribePanel(ctx, { toast, select }) {
     return nodes;
   }
 
-  const TABS = { overview, people, items, tech };
+  // Milestones by chapter. Chapters past the current one stay veiled.
+  function goals() {
+    const { sim, data } = ctx;
+    const nodes = [];
+    const current = currentChapter(sim, data);
+    const chapters = [...new Set(data.goals.map((g) => g.chapter))];
+    const reached = current == null ? chapters.length : chapters.indexOf(current);
+    chapters.forEach((ch, i) => {
+      if (i > reached) {
+        if (i === reached + 1) nodes.push(el('h3', 'era', `Chapter ${i + 1}`), el('div', 'empty', 'Finish this chapter to see what comes next.'));
+        return;
+      }
+      nodes.push(el('h3', 'era', `Chapter ${i + 1}: ${ch}`));
+      for (const g of data.goals.filter((o) => o.chapter === ch)) {
+        const p = goalProgress(sim, data, g);
+        const r = el('div', `goal${p.done ? ' done' : ''}`);
+        const top = el('div', 'goal-top');
+        top.append(el('span', 'goal-name', `${p.done ? '✓ ' : ''}${g.name}`), el('span', 'kind', p.done ? 'Reached' : `+${g.reward} Faith`));
+        r.append(top, el('div', 'goal-desc', g.description));
+        if (!p.done && p.need > 1) r.append(el('div', 'goal-count', `${p.have} / ${p.need}`), bar(p.have / p.need, 'goal-bar'));
+        nodes.push(r);
+      }
+    });
+    if (current == null) nodes.push(el('div', 'empty', 'Every milestone is reached. The sanctuary’s legend is complete.'));
+    return nodes;
+  }
+
+  const TABS = { overview, people, items, tech, goals };
 
   // Built fresh each refresh, but only swapped in when something visible
   // changed, so taps on rows aren't lost.

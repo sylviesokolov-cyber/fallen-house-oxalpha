@@ -1,0 +1,26 @@
+[
+  {"id": "first_harvest", "chapter": "A home for all", "name": "Full stores", "description": "Store 150 potatoes.", "check": {"type": "stock", "item": "food", "min": 150}, "reward": 20},
+  {"id": "first_building", "chapter": "A home for all", "name": "Raise a new building", "description": "Finish a building on one of the plots.", "check": {"type": "plotBuildings", "min": 1}, "reward": 25},
+  {"id": "first_child", "chapter": "A home for all", "name": "The first child", "description": "Welcome a baby into the sanctuary.", "check": {"type": "births", "min": 1}, "reward": 30},
+  {"id": "pop_12", "chapter": "A home for all", "name": "A growing people", "description": "Reach 12 people.", "check": {"type": "population", "min": 12}, "reward": 30},
+
+  {"id": "floor_1", "chapter": "Beyond the portal", "name": "The Mossy Burrows", "description": "Slay the Giant Rat.", "check": {"type": "cleared", "floor": 1}, "reward": 30},
+  {"id": "workshop", "chapter": "Beyond the portal", "name": "Tools of the trade", "description": "Build a Carpentry Workshop.", "check": {"type": "built", "building": "carpentry_workshop"}, "reward": 25},
+  {"id": "floor_2", "chapter": "Beyond the portal", "name": "The Fungal Caverns", "description": "Slay the Goblin Chief.", "check": {"type": "cleared", "floor": 2}, "reward": 50},
+  {"id": "family_home", "chapter": "Beyond the portal", "name": "A home of their own", "description": "A couple moves into a family house.", "check": {"type": "built", "building": "family_house"}, "reward": 25},
+
+  {"id": "smithing", "chapter": "Iron and blood", "name": "The first forge", "description": "Build a Blacksmith.", "check": {"type": "built", "building": "blacksmith"}, "reward": 40},
+  {"id": "royal", "chapter": "Iron and blood", "name": "A royal house", "description": "Let the crown pass from parent to child.", "check": {"type": "royal"}, "reward": 60},
+  {"id": "floor_3", "chapter": "Iron and blood", "name": "The Bone Halls", "description": "Slay the Bone Knight.", "check": {"type": "cleared", "floor": 3}, "reward": 70},
+  {"id": "hero_20", "chapter": "Iron and blood", "name": "A true hero", "description": "Someone reaches level 20.", "check": {"type": "maxLevel", "min": 20}, "reward": 40},
+
+  {"id": "magic", "chapter": "The deep", "name": "Arcane arts", "description": "Build a Mage Tower.", "check": {"type": "built", "building": "mage_tower"}, "reward": 50},
+  {"id": "floor_4", "chapter": "The deep", "name": "The Deep Forge", "description": "Slay the Deep Wyrm.", "check": {"type": "cleared", "floor": 4}, "reward": 100},
+  {"id": "floor_5", "chapter": "The deep", "name": "The Sunken Library", "description": "Slay the Archivist Lich.", "check": {"type": "cleared", "floor": 5}, "reward": 110},
+  {"id": "pop_20", "chapter": "The deep", "name": "A thriving sanctuary", "description": "Reach 20 people.", "check": {"type": "population", "min": 20}, "reward": 60},
+  {"id": "floor_6", "chapter": "The deep", "name": "The Crystal Hollows", "description": "Slay the Crystal Serpent.", "check": {"type": "cleared", "floor": 6}, "reward": 120},
+
+  {"id": "great_house", "chapter": "The fallen house", "name": "A great house", "description": "One house counts 12 living members.", "check": {"type": "houseSize", "min": 12}, "reward": 80},
+  {"id": "floor_7", "chapter": "The fallen house", "name": "The Ashen Throne", "description": "Slay the Ember Queen.", "check": {"type": "cleared", "floor": 7}, "reward": 150},
+  {"id": "floor_8", "chapter": "The fallen house", "name": "The Fallen King", "description": "End the Fallen King's reign in the deepest hall.", "check": {"type": "cleared", "floor": 8}, "reward": 300}
+]

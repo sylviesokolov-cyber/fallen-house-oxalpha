@@ -22,6 +22,8 @@ import { emotionOf } from '../src/sim/emotions.js';
 import { populationCap, updateSettlement } from '../src/sim/settlement.js';
 import { carryCapacity } from '../src/sim/items.js';
 import { updateHuman } from '../src/sim/ai.js';
+import { currentChapter, goalProgress, updateGoals } from '../src/sim/goals.js';
+import { updateEvents } from '../src/sim/events.js';
 
 // A copy of the content with some settings overridden, for forcing rare events.
 function tweak(path, value) {
@@ -1026,4 +1028,64 @@ test('a puppet ruler issues the god\'s decrees', () => {
   assert.equal(planJob(s, data, b).def.id, 'library');
   assert.ok(usePower(s, data, 'decree', { kind: 'focus', focus: 'train' }).ok);
   assert.equal(s.focus.id, 'train');
+});
+
+test('milestones are reached once and reward Faith', () => {
+  const s = createSim(data, 'goals');
+  s.faith = 0;
+  s.stockpile.food = 1000;
+  s.tick = DAY;
+  updateGoals(s, data);
+  assert.ok(s.goals.first_harvest != null);
+  assert.equal(s.faith, data.goals.find((g) => g.id === 'first_harvest').reward);
+  assert.ok(s.history.some((e) => e.text === 'Milestone reached: Full stores'));
+  s.tick = 2 * DAY;
+  updateGoals(s, data);
+  assert.equal(s.history.filter((e) => e.text.startsWith('Milestone reached: Full')).length, 1);
+  assert.equal(currentChapter(s, data), 'A home for all');
+  assert.deepEqual(goalProgress(s, data, data.goals.find((g) => g.id === 'pop_12')), { have: s.humans.length, need: 12, done: false });
+});
+
+test('raids are fought off at home and recorded like expeditions', () => {
+  const d = tweak('events', data.events.map((e) => ({ ...e, chancePerDay: e.id === 'raid' ? 1 : 0, minYear: 0 })));
+  const s = createSim(d, 'raid');
+  s.dungeon.deepest = 2;
+  s.tick = DAY;
+  updateEvents(s, d);
+  const raid = s.expeditions.find((e) => e.raid);
+  assert.ok(raid, 'a raid happened');
+  assert.ok(['repelled', 'overrun'].includes(raid.outcome));
+  assert.ok(raid.reports[0].lines.length > 0);
+  assert.ok(s.history.some((e) => e.text.includes('burst out of the portal')));
+});
+
+test('the sick weaken until cured by a remedy', () => {
+  const d = tweak('events', data.events.map((e) => ({ ...e, chancePerDay: e.id === 'plague' ? 1 : 0, minYear: 0 })));
+  const s = createSim(d, 'plague');
+  s.tick = DAY;
+  updateEvents(s, d);
+  const sick = s.humans.filter((h) => h.sick);
+  assert.ok(sick.length >= 1);
+  const h = sick[0];
+  const before = h.health;
+  d.events.find((e) => e.id === 'plague').chancePerDay = 0;
+  s.tick = 2 * DAY;
+  updateEvents(s, d);
+  assert.ok(h.health < before);
+  s.stockpile.herbal_remedy = 5;
+  s.tick = 3 * DAY;
+  updateEvents(s, d);
+  assert.equal(h.sick, null);
+  assert.ok(s.history.some((e) => e.text === `${h.name} was cured with a herbal remedy`));
+});
+
+test('all eight floors, their monsters and the mithril tier are wired up', () => {
+  const last = data.dungeon.floors.at(-1);
+  assert.equal(last.id, 8);
+  for (const f of data.dungeon.floors) {
+    assert.ok(data.monstersById[f.boss]?.boss, `floor ${f.id} boss`);
+    for (const m of f.monsters) assert.ok(data.monstersById[m.id], m.id);
+  }
+  assert.ok(data.itemsById.mithril && data.itemsById.mithril_sword.tech === 'mithril_smithing');
+  assert.ok(data.techs.some((t) => t.id === 'mithril_smithing'));
 });

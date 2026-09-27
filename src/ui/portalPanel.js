@@ -10,6 +10,7 @@ import { $, el, button, bar, stars, renderKeyed } from './dom.js';
 const PHASE = { called: 'Gathering at the portal', inside: 'In the dungeon', returning: 'On the way home' };
 const OUTCOME = {
   victory: 'Victory', retreated: 'Turned back', recalled: 'Called home', lost: 'Lost', cancelled: 'Never set out', returned: 'Came home',
+  repelled: 'Repelled', overrun: 'Overrun',
 };
 const STYLE = { swordsmanship: '⚔️ Sword', archery: '🏹 Bow', magic: '🔮 Magic' };
 
@@ -107,7 +108,7 @@ export function createPortalPanel(ctx, { toast, select, close }) {
     const { data } = ctx;
     const done = ctx.sim.expeditions.filter((e) => e.reports.length).slice().reverse();
     const nodes = [section('Battle reports')];
-    if (!done.length) nodes.push(el('div', 'empty', 'No expeditions yet.'));
+    if (!done.length) nodes.push(el('div', 'empty', 'No expeditions or raids yet.'));
     for (const exp of done) {
       const fl = data.floorsById[exp.floor];
       const head = button('bond', '', () => {
@@ -115,7 +116,7 @@ export function createPortalPanel(ctx, { toast, select, close }) {
         render(true);
       });
       const label = exp.phase === 'done' ? OUTCOME[exp.outcome] ?? exp.outcome : 'Under way';
-      head.append(el('span', null, `#${exp.id} Floor ${fl.id}: ${fl.name}`), el('span', `kind outcome-${exp.outcome}`, label));
+      head.append(el('span', null, exp.raid ? `#${exp.id} Raid on the sanctuary` : `#${exp.id} Floor ${fl.id}: ${fl.name}`), el('span', `kind outcome-${exp.outcome}`, label));
       nodes.push(head);
       if (openReport !== exp.id) continue;
       const box = el('div', 'report');

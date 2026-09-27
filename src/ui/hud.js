@@ -21,6 +21,12 @@ const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal', 'help', 'th
 
 // [pattern, icon, sound, vibration]
 const NEWS = [
+  [/^Milestone reached/, 'star', 'discover', [15, 30, 15]],
+  [/has fallen!/, 'crown', 'victory', [30, 40, 30, 40, 60]],
+  [/burst out of the portal/, 'swords', 'death', [40, 30, 40]],
+  [/sickness struck/, 'remedy', 'death'],
+  [/harvest festival/, 'ale', 'love'],
+  [/stranger/, 'people', 'birth'],
   [/ had a /, 'baby', 'birth', [10, 40, 10]],
   [/died|starved|slain|struck down|fell to|never came back/, 'candle', 'death', [60]],
   [/discovered/, 'bulb', 'discover'],

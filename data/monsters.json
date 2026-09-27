@@ -14,5 +14,21 @@
 
   {"id": "stone_golem", "name": "Stone Golem", "hp": 170, "atk": 30, "def": 20, "agi": 3, "xp": 40, "verb": "crushes", "loot": [{"item": "ore", "chance": 0.8, "min": 1, "max": 3}]},
   {"id": "shade", "name": "Shade", "hp": 100, "atk": 34, "def": 6, "agi": 16, "xp": 40, "verb": "drains", "loot": [{"item": "mana_crystal", "chance": 0.25, "min": 1, "max": 1}]},
-  {"id": "deep_wyrm", "name": "Deep Wyrm", "boss": true, "hp": 900, "atk": 50, "def": 20, "agi": 10, "xp": 400, "verb": "burns", "loot": [{"item": "mana_crystal", "chance": 1, "min": 3, "max": 5}, {"item": "ore", "chance": 1, "min": 4, "max": 6}, {"item": "meat", "chance": 1, "min": 6, "max": 8}]}
+  {"id": "deep_wyrm", "name": "Deep Wyrm", "boss": true, "hp": 900, "atk": 50, "def": 20, "agi": 10, "xp": 400, "verb": "burns", "loot": [{"item": "mana_crystal", "chance": 1, "min": 3, "max": 5}, {"item": "ore", "chance": 1, "min": 4, "max": 6}, {"item": "meat", "chance": 1, "min": 6, "max": 8}]},
+
+  {"id": "wraith", "name": "Wraith", "hp": 130, "atk": 38, "def": 8, "agi": 15, "xp": 48, "verb": "chills", "loot": [{"item": "mana_crystal", "chance": 0.3, "min": 1, "max": 1}]},
+  {"id": "tome_mimic", "name": "Tome Mimic", "hp": 160, "atk": 34, "def": 16, "agi": 6, "xp": 48, "verb": "snaps at", "loot": [{"item": "bone", "chance": 0.5, "min": 1, "max": 2}, {"item": "herbs", "chance": 0.4, "min": 1, "max": 2}]},
+  {"id": "archivist_lich", "name": "Archivist Lich", "boss": true, "hp": 1100, "atk": 56, "def": 22, "agi": 10, "xp": 480, "verb": "curses", "loot": [{"item": "mana_crystal", "chance": 1, "min": 4, "max": 6}, {"item": "bone", "chance": 1, "min": 3, "max": 5}]},
+
+  {"id": "crystal_crawler", "name": "Crystal Crawler", "hp": 190, "atk": 40, "def": 24, "agi": 8, "xp": 56, "verb": "pierces", "loot": [{"item": "mithril", "chance": 0.3, "min": 1, "max": 1}, {"item": "mana_crystal", "chance": 0.3, "min": 1, "max": 1}]},
+  {"id": "gem_bat", "name": "Gem Bat", "hp": 110, "atk": 42, "def": 6, "agi": 20, "xp": 52, "verb": "slices", "loot": [{"item": "mana_crystal", "chance": 0.2, "min": 1, "max": 1}]},
+  {"id": "crystal_serpent", "name": "Crystal Serpent", "boss": true, "hp": 1350, "atk": 62, "def": 26, "agi": 12, "xp": 560, "verb": "crushes", "loot": [{"item": "mithril", "chance": 1, "min": 2, "max": 4}, {"item": "mana_crystal", "chance": 1, "min": 3, "max": 5}]},
+
+  {"id": "ash_hound", "name": "Ash Hound", "hp": 170, "atk": 48, "def": 10, "agi": 18, "xp": 62, "verb": "savages", "loot": [{"item": "meat", "chance": 0.8, "min": 1, "max": 2}, {"item": "hide", "chance": 0.6, "min": 1, "max": 2}]},
+  {"id": "cinder_knight", "name": "Cinder Knight", "hp": 240, "atk": 46, "def": 28, "agi": 7, "xp": 66, "verb": "scorches", "loot": [{"item": "ore", "chance": 0.8, "min": 1, "max": 3}, {"item": "mithril", "chance": 0.2, "min": 1, "max": 1}]},
+  {"id": "ember_queen", "name": "Ember Queen", "boss": true, "hp": 1600, "atk": 70, "def": 28, "agi": 14, "xp": 650, "verb": "engulfs", "loot": [{"item": "mithril", "chance": 1, "min": 3, "max": 5}, {"item": "ore", "chance": 1, "min": 5, "max": 8}]},
+
+  {"id": "fallen_guard", "name": "Fallen Guard", "hp": 270, "atk": 54, "def": 30, "agi": 9, "xp": 74, "verb": "hews", "loot": [{"item": "mithril", "chance": 0.3, "min": 1, "max": 1}, {"item": "ore", "chance": 0.6, "min": 1, "max": 2}]},
+  {"id": "court_wraith", "name": "Court Wraith", "hp": 200, "atk": 58, "def": 12, "agi": 20, "xp": 74, "verb": "wails at", "loot": [{"item": "mana_crystal", "chance": 0.4, "min": 1, "max": 2}]},
+  {"id": "the_fallen_king", "name": "Fallen King", "boss": true, "hp": 2000, "atk": 80, "def": 32, "agi": 14, "xp": 900, "verb": "strikes", "loot": [{"item": "mithril", "chance": 1, "min": 5, "max": 8}, {"item": "mana_crystal", "chance": 1, "min": 6, "max": 10}]}
 ]
