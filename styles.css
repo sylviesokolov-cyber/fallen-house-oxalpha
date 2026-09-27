@@ -221,7 +221,7 @@ button.active { background: var(--accent); color: #1a1a1a; border-color: var(--a
 
 #inspect { max-height: 60vh; overflow-y: auto; }
 #log { max-height: 55vh; display: flex; flex-direction: column; }
-#tribe, #omen, #portal { max-height: 68vh; overflow-y: auto; }
+#tribe, #omen, #portal, #menu, #help { max-height: 70vh; overflow-y: auto; }
 #portal h3 { margin: 10px 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .tabs.floors { position: static; }
 .floor-desc { font-size: 13px; color: var(--muted); margin: 2px 0 4px; }
@@ -346,3 +346,13 @@ button.wide { display: block; width: 100%; min-height: 44px; margin: 6px 0; }
 .power-check.ready { color: var(--good); }
 .power-check.risky { color: var(--accent); }
 .power-check.deadly { color: var(--bad); }
+
+#menu h3, #help h3 { margin: 12px 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.slot { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.slot-text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 13px; }
+.slot-text .kind { color: var(--muted); font-size: 12px; }
+.slot-actions { display: flex; gap: 6px; }
+.slot-actions button:disabled { opacity: 0.35; }
+button.toggle.on { border-color: var(--good); color: var(--good); }
+button.danger { background: #5a2323; border-color: var(--bad); }
+.help-body p { margin: 4px 0 8px; font-size: 14px; line-height: 1.45; color: #d7dee8; }

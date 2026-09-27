@@ -1,6 +1,5 @@
 import { dateOf } from '../sim/time.js';
 import { formatEntry } from '../sim/history.js';
-import { serialize, deserialize } from '../sim/save.js';
 import { usePower } from '../sim/godPowers.js';
 import { populationCap } from '../sim/settlement.js';
 import { mealsInStock } from '../sim/items.js';
@@ -8,29 +7,30 @@ import { $, el, button } from './dom.js';
 import { createCharacterSheet } from './characterSheet.js';
 import { createTribePanel } from './tribePanel.js';
 import { createPortalPanel } from './portalPanel.js';
+import { createMenuPanel } from './menuPanel.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
 // work better on phones than drawing UI inside Phaser. This module owns the
 // top bar, power toolbar, panel switching, save/load and the history log.
 
-const SAVE_KEY = 'godsim.save';
 const REFRESH_MS = 200;
-const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal'];
+const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal', 'help'];
 
 const SEASON_ICON = { Spring: '🌱', Summer: '☀️', Autumn: '🍂', Winter: '❄️' };
+// [pattern, icon, sound]
 const NEWS = [
-  [/ had a /, '👶'],
-  [/died|starved|slain|struck down|fell to|never came back/, '🕯️'],
-  [/discovered/, '💡'],
-  [/was finished|was upgraded/, '🏠'],
-  [/slew|lies open/, '⚔️'],
-  [/came home from/, '🌀'],
-  [/became partners/, '💞'],
-  [/moved into/, '🏡'],
-  [/became Warden/, '👑'],
+  [/ had a /, '👶', 'birth'],
+  [/died|starved|slain|struck down|fell to|never came back/, '🕯️', 'death'],
+  [/discovered/, '💡', 'discover'],
+  [/was finished|was upgraded/, '🏠', 'build'],
+  [/slew|lies open/, '⚔️', 'victory'],
+  [/came home from/, '🌀', 'portal'],
+  [/became partners/, '💞', 'love'],
+  [/moved into/, '🏡', 'love'],
+  [/became Warden/, '👑', 'discover'],
 ];
 
-export function createHud(ctx) {
+export function createHud(ctx, sound) {
   let lastRefresh = 0;
   let newsSeen = null;
   let logKey = null;
@@ -120,31 +120,24 @@ export function createHud(ctx) {
     for (const b of document.querySelectorAll('[data-speed]')) b.classList.toggle('active', Number(b.dataset.speed) === speed);
   }
 
-  $('btn-save').addEventListener('click', () => {
-    try {
-      localStorage.setItem(SAVE_KEY, serialize(ctx.sim));
-      showPanel(null);
-      toast(`Saved (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
-    } catch (e) {
-      toast(`Save failed: ${e.message}`);
-    }
-  });
+  // Swaps in a loaded or brand-new world and redraws everything.
+  function replaceSim(sim, message) {
+    ctx.sim = sim;
+    ctx.selectedId = null;
+    ctx.runner.reset();
+    logKey = null;
+    newsSeen = null;
+    for (const n of document.querySelectorAll('[data-key]')) n.dataset.key = '';
+    showPanel(null);
+    ctx.events.emit('sim-replaced');
+    toast(`${message} (Year ${dateOf(sim.tick, ctx.data.config.time).year}, Day ${dateOf(sim.tick, ctx.data.config.time).day})`);
+  }
 
-  $('btn-load').addEventListener('click', () => {
-    const json = localStorage.getItem(SAVE_KEY);
-    if (!json) return toast('No save found');
-    try {
-      ctx.sim = deserialize(json);
-      ctx.selectedId = null;
-      ctx.runner.reset();
-      logKey = null;
-      for (const n of document.querySelectorAll('[data-key]')) n.dataset.key = '';
-      showPanel(null);
-      ctx.events.emit('sim-replaced');
-      toast(`Loaded (Day ${dateOf(ctx.sim.tick, ctx.data.config.time).day})`);
-    } catch (e) {
-      toast(`Load failed: ${e.message}`);
-    }
+  const menu = createMenuPanel(ctx, { toast, replaceSim, showPanel, sound });
+  ctx.events.on('power-used', ({ powerId }) => sound.play(powerId));
+  // A soft click for every button.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('button')) sound.play('tap');
   });
 
   $('btn-log').addEventListener('click', () => {
@@ -152,8 +145,11 @@ export function createHud(ctx) {
     togglePanel('log');
   });
   $('btn-tribe').addEventListener('click', () => togglePanel('tribe'));
-  $('btn-menu').addEventListener('click', () => togglePanel('menu'));
-  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
+  $('btn-menu').addEventListener('click', () => {
+    menu.render();
+    togglePanel('menu');
+  });
+  for (const id of ['log', 'tribe', 'menu', 'omen', 'portal', 'help']) $(`${id}-close`).addEventListener('click', () => showPanel(null));
   $('inspect-close').addEventListener('click', () => {
     ctx.selectedId = null;
     showPanel(null);
@@ -192,6 +188,7 @@ export function createHud(ctx) {
     newsSeen.entry = last;
     const news = hist.slice(start).map((e) => [NEWS.find(([re]) => re.test(e.text)), e]).filter(([kind]) => kind);
     for (const [kind, e] of news.slice(-2)) showNews(kind[1], e.text);
+    if (news.length) sound.play(news.at(-1)[0][2]);
   }
 
   function showNews(icon, text) {
@@ -221,6 +218,16 @@ export function createHud(ctx) {
 
   setSpeed(ctx.runner.speed);
 
+  // First time here: explain the basics.
+  try {
+    if (!localStorage.getItem('godsim.seenHelp')) {
+      localStorage.setItem('godsim.seenHelp', '1');
+      showPanel('help');
+    }
+  } catch {
+    // No storage: skip the intro.
+  }
+
   return {
     toast,
     powerUsed() {
@@ -238,6 +245,7 @@ export function createHud(ctx) {
       if (now - lastRefresh < REFRESH_MS) return;
       lastRefresh = now;
       refresh();
+      menu.autosave(now);
     },
   };
 }

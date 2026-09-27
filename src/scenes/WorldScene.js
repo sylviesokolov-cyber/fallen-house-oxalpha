@@ -24,11 +24,11 @@ export class WorldScene extends Phaser.Scene {
         bottom: document.getElementById('powers').offsetHeight,
       }),
     );
-    this.hud = createHud(this.ctx);
+    this.hud = createHud(this.ctx, this.ctx.sound);
     this.effects = new Effects(this);
     this.buildViews();
     this.ctx.events.on('sim-replaced', () => this.buildViews());
-    this.ctx.events.on('power-used', ({ powerId, x, y }) => this.effects.play(powerId, x, y));
+    this.ctx.events.on('power-used', ({ powerId, x, y, radius }) => this.effects.play(powerId, x, y, radius));
     this.ctx.events.on('focus-human', (id) => {
       const h = this.ctx.sim.humans.find((o) => o.id === id);
       if (h) this.cameras.main.pan((h.x + 0.5) * TILE_SIZE, (h.y + 0.5) * TILE_SIZE, 300);
@@ -94,7 +94,7 @@ export class WorldScene extends Phaser.Scene {
     }
     const result = usePower(sim, data, powerId, target);
     if (!result.ok) return this.hud.toast(result.error);
-    this.effects.play(powerId, result.x, result.y, power.radius ?? 1);
+    this.ctx.events.emit('power-used', { powerId, x: result.x, y: result.y, radius: power.radius ?? 1 });
     this.hud.powerUsed();
   }
 

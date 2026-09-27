@@ -1,11 +1,17 @@
 import { BootScene } from './scenes/BootScene.js';
 import { WorldScene } from './scenes/WorldScene.js';
+import { createSound } from './ui/sound.js';
+import { migrateOldSave } from './ui/saves.js';
 
 // Shared app context passed to scenes and UI. `sim` is the only saved part.
-// Add ?seed=abc to the URL to replay a specific world.
+// Add ?seed=abc to the URL to replay a specific world; without it, the game
+// carries on from the autosave if there is one.
 const params = new URLSearchParams(location.search);
+migrateOldSave();
 const ctx = {
   seed: params.get('seed') || String(Date.now() % 1e9),
+  resume: !params.get('seed'),
+  sound: createSound(),
   data: null,
   sim: null,
   runner: null,
@@ -26,3 +32,8 @@ ctx.game = new Phaser.Game({
   input: { activePointers: 3 },
   scene: [new BootScene(ctx), new WorldScene(ctx)],
 });
+
+// Installable, and playable offline after the first visit.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}

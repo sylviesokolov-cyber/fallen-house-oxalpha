@@ -1,6 +1,16 @@
 import { DATA_FILES, prepareData } from '../sim/data.js';
 import { createSim } from '../sim/sim.js';
 import { SimRunner } from '../runner.js';
+import { loadFrom } from '../ui/saves.js';
+
+// The autosave, or null if there's none (or it's from an older version).
+function resumeAutosave() {
+  try {
+    return loadFrom('auto');
+  } catch {
+    return null;
+  }
+}
 
 // Loads JSON content, creates a fresh world, then hands off to WorldScene.
 export class BootScene extends Phaser.Scene {
@@ -17,7 +27,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     const raw = Object.fromEntries(DATA_FILES.map((n) => [n, this.cache.json.get(n)]));
     this.ctx.data = prepareData(raw);
-    this.ctx.sim = createSim(this.ctx.data, this.ctx.seed);
+    this.ctx.sim = (this.ctx.resume && resumeAutosave()) || createSim(this.ctx.data, this.ctx.seed);
     this.ctx.runner = new SimRunner(this.ctx);
     this.scene.start('World');
   }

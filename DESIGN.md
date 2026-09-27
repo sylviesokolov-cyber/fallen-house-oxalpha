@@ -159,7 +159,12 @@ D. **Depth from the dungeon** — done.
   - Map: people are drawn as little figures (tunic by specialty, grade outline, hair, walking bob, lying down to sleep), with leafy trees, potato plants and stockpile piles. Buildings have shadows, walls and doors, and there are grass tufts and flowers.
   - Atmosphere: day and night, seasonal tints, warm windows after dark, and a swirling portal.
   - UI: icons in the top bar and on the powers, news banners for big life events, portraits on the character sheet, and panel polish.
-E. **Polish.** Art, sound, save slots, Capacitor APK.
+E. **Polish** — done.
+- **Sound:** effects synthesised in the browser (taps, each power, births, deaths, discoveries, buildings, victories, love) and a soft generative music bed. Both can be switched off in the menu.
+- **Saves:** three save slots and an autosave (every minute and whenever the page is left). The game resumes from the autosave on the next visit, and the menu has New world.
+- **How to play:** shown on first launch, and from the menu.
+- **Installable web app (PWA):** a manifest and icons, so Chrome can add the game to the Android home screen. A network-first service worker makes it playable offline after the first visit.
+- Still to come when wanted: packaging as a Capacitor APK (possible from the phone by building it with GitHub Actions).
 
 ## Open Questions
 

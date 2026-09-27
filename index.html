@@ -6,6 +6,10 @@
   <meta name="theme-color" content="#141b26">
   <title>God Sim</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
 </head>
 <body>
@@ -124,8 +128,25 @@
       <h2>Game</h2>
       <button id="menu-close" aria-label="Close">✕</button>
     </div>
-    <button id="btn-save" class="wide">Save game</button>
-    <button id="btn-load" class="wide">Load saved game</button>
+    <div id="menu-body"></div>
+  </section>
+
+  <section id="help" class="panel hidden">
+    <div class="panel-head">
+      <h2>How to play</h2>
+      <button id="help-close" aria-label="Close">✕</button>
+    </div>
+    <div class="help-body">
+      <p>You are the unseen god of a small walled sanctuary. Its people live their own lives: they eat, sleep, work, train, fall in love, raise children, discover new things and build their home up, building by building. Every one of them has a story.</p>
+      <h3>Watch</h3>
+      <p>Drag to look around, pinch to zoom. Tap anyone to see their character sheet, thoughts, relationships and life story. <b>Tribe</b> shows the whole sanctuary, <b>Log</b> everything that has happened.</p>
+      <h3>Act</h3>
+      <p><b>✨ Bless</b> heals someone and doubles how fast they learn. <b>💡 Inspire</b> sends a dream that leads to discoveries. <b>🌠 Omen</b> sets what the whole tribe focuses on. Miracles that people see grow their faith, and the faithful pray, which gives you more Faith.</p>
+      <h3>The Portal</h3>
+      <p>Tap <b>🌀 Portal</b> (or the portal in the north wall) to send up to five heroes into the dungeon for meat, herbs, ore and mana crystals. Match the floor's recommended power. Death in the dungeon is real, but what they bring back lets your people forge iron, brew remedies and learn magic.</p>
+      <h3>Time</h3>
+      <p>Pause or speed up with the buttons at the top. The game autosaves every minute and when you leave; the ☰ menu has save slots and a new world.</p>
+    </div>
   </section>
 
   <div id="news"></div>
