@@ -211,6 +211,12 @@ H. **Goals, events and the deep floors** — done.
   - **Strangers:** a newcomer of a fresh house steps out of the portal when there's room.
 - **Floors 5–8:** the Sunken Library, the Crystal Hollows, the Ashen Throne and the Fallen Court. The deep floors yield **mithril**, which Mithril Smithing turns into the best swords and armour. Slaying the Fallen King conquers the dungeon.
 
+J. **Male-line succession** — done.
+- Only men rule, and only a man and a woman may marry.
+- The crown goes to the named heir, then the eldest grown son, then the eldest grown daughter as **heiress**. She holds the throne as Princess until she weds; her husband then rules as King in her right, and only her children (not his by other wives) follow. A widowed heiress keeps the crown for her line. Then brothers (or sisters, as heiresses), and failing all kin the people choose a man of another house.
+- Every item, tech and building has its own picture; the stores are a grid of tiles.
+- Zoom: pinches stretch a little past the limits and spring back, the wheel and double-tap ease smoothly, and building names keep a readable size.
+
 I. **Visual depth** — done.
 - People look like individuals: hair styles, beards, slim or broad builds by strength, a sash in their house colour, and the weapon they carry. They swing while working and breathe while standing. The ageless wear a halo and the sick turn pale.
 - Portraits are drawn faces that match the sprite, with a crown for the ruler and a tiara for the ruler's spouses and heir.

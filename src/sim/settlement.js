@@ -3,10 +3,10 @@ import { logEvent } from './history.js';
 import { lifeStage } from './lifecycle.js';
 import { statFactor } from './stats.js';
 import { sleepCapacity } from './buildings.js';
-import { crown, successorOf, updateDynasty } from './dynasty.js';
+import { royalLine, rulerTitle, seat, successorOf, updateDynasty } from './dynasty.js';
 
-// The sanctuary as a community: its name, its ruler (a Warden, or a King or
-// Queen once the throne passes by blood; see dynasty.js), and how many
+// The sanctuary as a community: its name, its ruler (a Warden, or a King
+// once the throne passes by blood; see dynasty.js), and how many
 // people it has room for (one per bed).
 
 export function createSettlement(state, data) {
@@ -21,10 +21,7 @@ export function leaderOf(state) {
   return state.humans.find((h) => h.id === state.settlement.leaderId) ?? null;
 }
 
-export function leaderTitle(state, data, h) {
-  const l = data.config.leader;
-  return (state.dynasty?.royal ? l.royalTitle : l.title)[h.sex];
-}
+export const leaderTitle = rulerTitle;
 
 // A person's rank, if any: the ruler, their spouses, the heir, and (in a
 // royal house) the ruler's children.
@@ -32,10 +29,15 @@ export function rankOf(state, data, h) {
   const ruler = leaderOf(state);
   if (!ruler) return null;
   const l = data.config.leader;
+  const royal = state.dynasty.royal;
   if (h === ruler) return `${leaderTitle(state, data, h)} of ${state.settlement.name}`;
-  if (h.partnerId === ruler.id || ruler.partnerId === h.id) return state.dynasty.royal ? l.consortTitle[h.sex] : `Spouse of the ${leaderTitle(state, data, ruler)}`;
+  if (ruler.partnerId === h.id) {
+    if (royal) return `${l.queenTitle} of ${state.settlement.name}`;
+    return `${h.id === state.dynasty.heiressId ? 'Heiress and wife' : 'Wife'} of the ${leaderTitle(state, data, ruler)}`;
+  }
+  if (h.partnerId === ruler.id) return royal ? l.consortTitle[h.sex] : `Wife of the ${leaderTitle(state, data, ruler)}`;
   if (state.dynasty.heirId === h.id) return `Heir to the throne`;
-  if (state.dynasty.royal && h.parents.includes(ruler.id)) return l.heirTitle[h.sex];
+  if (royal && h.parents.includes(royalLine(state, ruler).id)) return l.heirTitle[h.sex];
   return null;
 }
 
@@ -45,12 +47,15 @@ export function leaderWorkBonus(state, data) {
   return leader ? 1 + (leader.stats.cha - data.config.stats.base) * data.config.leader.workBonusPerCha : 1;
 }
 
+// The people choose the most admired grown man (a woman only if there's no
+// man at all, and then as an heiress whose husband will rule).
 function chooseLeader(state, data) {
   const l = data.config.leader;
+  const adults = state.humans.filter((h) => lifeStage(h, state, data) !== 'child');
+  const men = adults.filter((h) => h.sex === 'male');
   let best = null;
   let bestScore = -Infinity;
-  for (const h of state.humans) {
-    if (lifeStage(h, state, data) === 'child') continue;
+  for (const h of men.length ? men : adults) {
     const score = h.stats.cha * l.chaWeight * statFactor(h, data, 'cha') + h.level * l.levelWeight;
     if (score > bestScore) {
       bestScore = score;
@@ -71,7 +76,11 @@ export function updateSettlement(state, data) {
   }
   const last = state.dynasty.rulers.at(-1);
   const prev = last && (state.humans.find((h) => h.id === last.id) ?? state.dead.find((h) => h.id === last.id));
-  const next = successorOf(state, data, prev) ?? { ruler: chooseLeader(state, data), how: 'chosen' };
-  state.settlement.leaderId = next.ruler?.id ?? null;
-  if (next.ruler) crown(state, data, next.ruler, next.how, prev, leaderTitle);
+  let next = successorOf(state, data, prev);
+  if (!next) {
+    const chosen = chooseLeader(state, data);
+    if (!chosen) return;
+    next = { ruler: chosen, how: 'chosen', heiress: chosen.sex === 'female' ? chosen : null };
+  }
+  seat(state, data, next, prev);
 }

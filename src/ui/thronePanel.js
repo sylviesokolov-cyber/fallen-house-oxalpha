@@ -1,6 +1,6 @@
 import { usePower } from '../sim/godPowers.js';
 import { leaderOf, leaderTitle, rankOf } from '../sim/settlement.js';
-import { successorOf, spousesOf, unwed } from '../sim/dynasty.js';
+import { royalLine, successorOf, spousesOf, unwed } from '../sim/dynasty.js';
 import { decreeCost, puppetRuler } from '../sim/decrees.js';
 import { nextUpgrade } from '../sim/construction.js';
 import { isFamily } from '../sim/bonds.js';
@@ -56,20 +56,22 @@ export function createThronePanel(ctx, { toast, select }) {
       render(true);
     });
     if (flow.kind === 'wed' && !flow.a) {
-      const pool = adults.filter((h) => h === ruler || unwed(sim, data, h));
-      return [section('Arrange a marriage: first, who?'), ...pool.map((h) => personRow(h, h === ruler ? 'The ruler (may take another spouse)' : `${looksLabel(h)} · House ${h.house}`, () => {
+      const pool = adults.filter((h) => (h === ruler && (h.sex === 'male' || h.partnerId == null)) || unwed(sim, data, h));
+      const rulerNote = ruler.sex === 'male' ? 'The ruler (may take another wife)' : 'The heiress (her husband will be King)';
+      return [section('Arrange a marriage: first, who?'), ...pool.map((h) => personRow(h, h === ruler ? rulerNote : `${looksLabel(h)} · House ${h.house}`, () => {
         flow.a = h;
         render(true);
       })), back];
     }
     if (flow.kind === 'wed') {
       const a = flow.a;
-      const pool = adults.filter((h) => h !== a && unwed(sim, data, h) && !isFamily(a, h));
+      const pool = adults.filter((h) => h !== a && h.sex !== a.sex && unwed(sim, data, h) && !isFamily(a, h));
       return [section(`Wed ${a.name} to…`), ...pool.map((h) => personRow(h, `${looksLabel(h)} · House ${h.house}`, () => decree({ kind: 'wed', aId: a.id, bId: h.id }, 'A marriage is decreed'))), back];
     }
     if (flow.kind === 'heir') {
-      const kids = sim.humans.filter((h) => h.parents.includes(ruler.id));
-      return [section('Name the heir'), ...(kids.length ? kids.map((h) => personRow(h, null, () => decree({ kind: 'heir', id: h.id }, `${h.name} is the heir`))) : [el('div', 'empty', 'The ruler has no children yet.')]), back];
+      const line = royalLine(sim, ruler);
+      const kids = sim.humans.filter((h) => h.parents.includes(line.id));
+      return [section(`Name the heir among the children of ${line.name}`), ...(kids.length ? kids.map((h) => personRow(h, null, () => decree({ kind: 'heir', id: h.id }, `${h.name} is the heir`))) : [el('div', 'empty', 'The royal line has no children yet.')]), back];
     }
     if (flow.kind === 'build') {
       const known = (tech) => !tech || sim.humans.some((h) => h.knows.includes(tech));
@@ -125,12 +127,20 @@ export function createThronePanel(ctx, { toast, select }) {
       nodes.push(section(spouses.length > 1 ? 'Spouses' : 'Spouse'));
       nodes.push(...spouses.map((h) => personRow(h)));
     }
-    const next = successorOf(sim, data, ruler, false);
+    const next = successorOf(sim, data, ruler);
     nodes.push(section('Next in line'));
-    nodes.push(next ? personRow(next.ruler, next.how === 'heir' ? 'Named heir' : next.how === 'child' ? 'Eldest child' : 'Sibling') : el('div', 'empty', 'No heir of the blood. The people would choose.'));
-    const kids = sim.humans.filter((h) => h.parents.includes(ruler.id) && h !== next?.ruler);
+    const HOW = { heir: 'Named heir', child: 'Eldest son', sibling: 'Brother', widow: 'The heiress herself' };
+    if (!next) nodes.push(el('div', 'empty', 'No heir of the blood. The people would choose.'));
+    else if (next.heiress && next.ruler !== next.heiress) {
+      nodes.push(personRow(next.heiress, `Heiress (${next.via === 'sibling' ? 'sister' : next.via === 'widow' ? 'the widowed heiress' : 'eldest daughter'})`));
+      nodes.push(personRow(next.ruler, 'Her husband, who would be King'));
+    } else if (next.heiress) nodes.push(personRow(next.ruler, next.how === 'widow' ? 'The widowed heiress, until she weds' : 'Heiress: would hold the throne until she weds'));
+    else nodes.push(personRow(next.ruler, HOW[next.how] ?? 'Next in line'));
+    const line = royalLine(sim, ruler);
+    const kids = sim.humans.filter((h) => h.parents.includes(line.id) && h !== next?.ruler && h !== next?.heiress);
+    if (line !== ruler) nodes.push(el('div', 'sub', `The crown runs through ${line.name}: only her children may inherit.`));
     if (kids.length) {
-      nodes.push(section('Children of the ruler'));
+      nodes.push(section(line === ruler ? 'Children of the ruler' : `Children of ${line.name}`));
       nodes.push(...kids.map((h) => personRow(h)));
     }
     // The god's hand.

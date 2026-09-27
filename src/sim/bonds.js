@@ -128,9 +128,9 @@ export function teach(state, data, teacher, student) {
   if (best || taughtTech) gainXp(state, data, teacher, 'teaching', data.skillsById.teaching.xpPerAction);
 }
 
+// Only men and women pair up.
 export function attractedTo(a, b) {
-  if (a.attraction === 'both') return true;
-  return (a.sex === b.sex) === (a.attraction === 'same');
+  return a.sex !== b.sex;
 }
 
 function maybePartner(state, data, a, b, canPartner) {

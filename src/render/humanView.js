@@ -36,6 +36,7 @@ export class HumanView {
   create(h) {
     const add = this.scene.add;
     const shadow = add.ellipse(0, 6, 10, 4, 0x000000, 0.28);
+    const feet = [add.ellipse(-2.2, 6.2, 3, 2.2, 0x3a2a20), add.ellipse(2.2, 6.2, 3, 2.2, 0x3a2a20)];
     const hairBack = add.ellipse(0, -2.5, 8.6, 8, 0x000000);
     const body = add.ellipse(0, 2, 10, 10, 0xffffff);
     const head = add.circle(0, -4, 3.6, 0xffffff).setStrokeStyle(0.8, 0x1b1b1b, 0.6);
@@ -54,9 +55,9 @@ export class HumanView {
       .setResolution(3)
       .setVisible(false);
     const crown = add.triangle(0, -12, -4, 2, 4, 2, 0, -4, 0xffd35c).setStrokeStyle(0.8, 0x7a5a10).setVisible(false);
-    const figure = add.container(0, 0, [gear, hairBack, body, sash, head, beard, hair, bun, spikes, halo]);
+    const figure = add.container(0, 0, [...feet, gear, hairBack, body, sash, head, beard, hair, bun, spikes, halo]);
     const c = add.container(0, 0, [shadow, figure, zzz, carry, talk, crown]).setDepth(3);
-    Object.assign(c, { figure, body, head, hair, hairBack, bun, spikes, beard, sash, halo, gear, crown, zzz, carry, talk, look: null, phase: Math.random() * 6 });
+    Object.assign(c, { figure, body, head, hair, hairBack, bun, spikes, beard, sash, halo, gear, crown, zzz, carry, talk, look: null, phase: Math.random() * 6, feet });
     this.sprites.set(h.id, c);
     return c;
   }
@@ -105,6 +106,10 @@ export class HumanView {
       s.gear.setAngle(swing * 2);
       s.figure.setY(bob + (working ? -Math.abs(Math.sin(now * 9)) * 1 : 0)).setAngle(asleep ? 90 : swing * 0.3);
       if (!moving && !asleep) s.body.scaleY = 1 + Math.sin(now * 2.2) * 0.04;
+      // Little steps while walking.
+      const step = moving ? Math.sin(t * Math.PI * 2) * 1.6 : 0;
+      s.feet[0].setY(6.2 + Math.min(0, step));
+      s.feet[1].setY(6.2 + Math.min(0, -step));
       if (moving && h.x !== h.prevX) s.figure.setScale(Math.abs(s.figure.scaleX) * (h.x < h.prevX ? -1 : 1), s.figure.scaleY);
       s.zzz.setVisible(asleep);
       s.talk.setVisible(h.action.type === 'chat' || h.action.type === 'drink');
@@ -121,7 +126,10 @@ export class HumanView {
     }
     const sel = this.sprites.get(selectedId);
     this.ring.setVisible(!!sel && sel.visible);
-    if (sel) this.ring.setPosition(sel.x, sel.y + 5);
+    if (sel) {
+      const pulse = 1 + Math.sin(this.scene.time.now / 220) * 0.12;
+      this.ring.setPosition(sel.x, sel.y + 5).setScale(pulse).setAlpha(1.1 - pulse * 0.4);
+    }
   }
 
   humanAt(wx, wy, radius) {

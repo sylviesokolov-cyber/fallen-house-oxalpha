@@ -1,6 +1,7 @@
 import { usePower } from '../sim/godPowers.js';
 import { $, el, button, renderKeyed } from './dom.js';
 import { icon } from './icons.js';
+import { artIcon } from './itemArt.js';
 
 // The god's hand on one person, from their character sheet: Bless, Inspire,
 // Gift (a talent or knowledge, chosen from a list), Eternal youth, and, for
@@ -51,8 +52,8 @@ export function createDivineActions(ctx, { toast }) {
     const techs = data.techs.filter((t) => sim.discoveries[t.id] && !h.knows.includes(t.id));
     const known = el('div', 'gift-grid');
     for (const t of techs) {
-      const b = button(`chip tech${sim.discoveries[t.id].lost ? ' lost' : ''}`, sim.discoveries[t.id].lost ? `${t.name} (lost)` : t.name,
-        () => use('gift', { humanId: h.id, tech: t.id }));
+      const b = button(`chip tech with-icon${sim.discoveries[t.id].lost ? ' lost' : ''}`, '', () => use('gift', { humanId: h.id, tech: t.id }));
+      b.append(artIcon(t, 'art-icon small'), el('span', null, sim.discoveries[t.id].lost ? `${t.name} (lost)` : t.name));
       known.append(b);
     }
     nodes.push(techs.length ? known : el('div', 'empty', 'They know everything the tribe has found.'));

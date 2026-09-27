@@ -18,14 +18,6 @@ function uniqueName(state, data, sex) {
 }
 
 // Who someone can fall for: 'opposite', 'same' or 'both', weighted by config.
-function rollAttraction(rng, weights) {
-  let r = next(rng);
-  for (const [kind, w] of Object.entries(weights)) {
-    if ((r -= w) < 0) return kind;
-  }
-  return 'opposite';
-}
-
 // opts.ageYears: 0 for a newborn (born today); omitted for a random starting adult.
 export function createHuman(state, data, x, y, opts = {}) {
   const { rng } = state;
@@ -41,7 +33,6 @@ export function createHuman(state, data, x, y, opts = {}) {
     name: uniqueName(state, data, sex),
     sex,
     birthDay,
-    attraction: rollAttraction(rng, cfg.attraction),
     parents: opts.parents ?? [],
     partnerId: null,
     consorts: [],

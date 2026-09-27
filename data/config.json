@@ -23,11 +23,6 @@
     "resourceSearchCooldown": 40,
     "traitsMin": 1,
     "traitsMax": 3,
-    "attraction": {
-      "opposite": 0.85,
-      "same": 0.05,
-      "both": 0.1
-    },
     "foodSearchCooldown": 20,
     "eatUntil": 90
   },
@@ -260,15 +255,16 @@
       "male": "Warden"
     },
     "royalTitle": {
-      "female": "Queen",
+      "female": "Princess",
       "male": "King"
     },
+    "queenTitle": "Queen",
     "heirTitle": {
       "female": "Princess",
       "male": "Prince"
     },
     "consortTitle": {
-      "female": "Queen Consort",
+      "female": "Royal Consort",
       "male": "Prince Consort"
     }
   },

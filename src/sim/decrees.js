@@ -1,7 +1,7 @@
 import { logEvent } from './history.js';
 import { isFamily } from './bonds.js';
 import { lifeStage } from './lifecycle.js';
-import { takeConsort, unwed, wed } from './dynasty.js';
+import { royalLine, takeConsort, unwed, wed } from './dynasty.js';
 
 // Once the ruler is the god's puppet, the god rules through them. Each
 // decree is announced in the ruler's name, and the people obey:
@@ -33,12 +33,14 @@ const DECREES = {
     const b = findHuman(state, bId);
     if (!a || !b || a === b) return 'Choose two people';
     if (isFamily(a, b)) return 'They are family';
+    if (a.sex === b.sex) return 'Only a man and a woman may wed';
     if (lifeStage(a, state, data) === 'child' || lifeStage(b, state, data) === 'child') return 'Children cannot wed';
     // The ruler may take another spouse; anyone else must be free.
     const [r, other] = a === ruler ? [a, b] : b === ruler ? [b, a] : [null, null];
     if (r) {
       if (!unwed(state, data, other)) return `${other.name} is already wed`;
       if (r.partnerId == null) wed(state, data, r, other, by);
+      else if (r.sex === 'female') return 'She already has a husband';
       else if ((r.consorts?.length ?? 0) >= data.config.dynasty.maxConsorts) return 'The ruler has as many consorts as the law allows';
       else takeConsort(state, data, r, other, by);
       return null;
@@ -50,7 +52,8 @@ const DECREES = {
 
   heir(state, data, ruler, { id }, by) {
     const h = findHuman(state, id);
-    if (!h || !h.parents.includes(ruler.id)) return 'The heir must be the ruler’s child';
+    const line = royalLine(state, ruler);
+    if (!h || !h.parents.includes(line.id)) return `The heir must be a child of ${line.name}`;
     state.dynasty.heirId = h.id;
     logEvent(state, `${h.name} was named heir to the throne${by}`);
     return null;

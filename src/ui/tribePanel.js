@@ -4,6 +4,7 @@ import { gradeOf, heroClass } from '../sim/stats.js';
 import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, bar, stars, renderKeyed } from './dom.js';
+import { artIcon } from './itemArt.js';
 import { portrait, royalMarks } from './portrait.js';
 import { appearance } from '../render/appearance.js';
 import { lifeStage } from '../sim/lifecycle.js';
@@ -65,8 +66,10 @@ export function createTribePanel(ctx, { toast, select }) {
     nodes.push(section('The sanctuary'));
     for (const b of sim.buildings) {
       const def = data.buildingsById[b.type];
-      const r = button('bond', '', () => toast(buildingInfo(b)));
-      r.append(el('span', null, def.name), el('span', 'kind', buildingStatus(b)));
+      const r = button('bond with-art', '', () => toast(buildingInfo(b)));
+      const name = el('span', 'art-name');
+      name.append(artIcon(def), el('span', null, def.name));
+      r.append(name, el('span', 'kind', buildingStatus(b)));
       nodes.push(r);
     }
     nodes.push(row('Empty plots', `${freePlotCount(sim, data)} large · ${freePlotCount(sim, data, 'small')} small · ${freePlotCount(sim, data, 'home')} home`));
@@ -136,20 +139,28 @@ export function createTribePanel(ctx, { toast, select }) {
     });
   }
 
+  // A tile per thing in the stores: picture, count and name.
+  function tile(def, n, onTap) {
+    const t = button('item-tile', '', onTap);
+    t.append(artIcon(def), el('span', 'item-count', `${n}`), el('span', 'item-name', def.name));
+    return t;
+  }
+
   function items() {
     const { sim, data } = ctx;
-    const nodes = [section('Stockpile')];
-    nodes.push(row('Wood', `${sim.stockpile.wood}`), row('Potatoes', `${sim.stockpile.food}`));
+    const info = (def) => () => toast(def.description ?? `${def.name}${def.kind ? ` (${def.kind})` : ''}`);
+    const stock = el('div', 'item-grid');
+    const basics = [{ id: 'wood', name: 'Wood', art: 'log', description: 'From the grove.' }, { id: 'food', name: 'Potatoes', art: 'potato', description: 'From the field.' }];
+    for (const def of basics) stock.append(tile(def, sim.stockpile[def.id], info(def)));
     for (const def of data.items) {
       const n = sim.stockpile[def.id] ?? 0;
-      if (n > 0 || (def.kind !== 'tool' && sim.discoveries[def.tech])) nodes.push(row(def.name, `${n}`));
+      if (n > 0 || (def.kind !== 'tool' && sim.discoveries[def.tech])) stock.append(tile(def, n, info(def)));
     }
-    nodes.push(section('Tools in use'));
     const tools = {};
     for (const h of sim.humans) for (const id of Object.keys(h.tools)) tools[id] = (tools[id] ?? 0) + 1;
-    const toolRows = Object.entries(tools).map(([id, n]) => row(data.itemsById[id].name, `${n}`));
-    nodes.push(...(toolRows.length ? toolRows : [el('div', 'empty', 'None yet')]));
-    return nodes;
+    const used = el('div', 'item-grid');
+    for (const [id, n] of Object.entries(tools)) used.append(tile(data.itemsById[id], n, info(data.itemsById[id])));
+    return [section('Stockpile'), stock, section('Tools in use'), Object.keys(tools).length ? used : el('div', 'empty', 'None yet')];
   }
 
   // Discovered techs with how many living people know them (or "Lost");
@@ -169,8 +180,10 @@ export function createTribePanel(ctx, { toast, select }) {
         continue;
       }
       const n = sim.humans.filter((h) => h.knows.includes(t.id)).length;
-      const r = button(`tech-row${n ? '' : ' lost'}`, '', () => toast(`${t.description} First found by ${record.by}.`));
-      r.append(el('span', null, t.name), el('span', 'kind', n ? `Known by ${n}` : 'Lost'));
+      const r = button(`tech-row with-art${n ? '' : ' lost'}`, '', () => toast(`${t.description} First found by ${record.by}.`));
+      const name = el('span', 'art-name');
+      name.append(artIcon(t), el('span', null, t.name));
+      r.append(name, el('span', 'kind', n ? `Known by ${n}` : 'Lost'));
       nodes.push(r);
     }
     return nodes;

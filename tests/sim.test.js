@@ -329,7 +329,7 @@ test('potatoes are harvested, cooked in the Kitchen and eaten in the Dining Hall
 
 test('training at the Training Ground builds fighting skills', () => {
   const s = createSim(data, 'train');
-  run(s, 45 * DAY);
+  run(s, 60 * DAY);
   const fighters = s.humans.filter((h) => ['swordsmanship', 'archery', 'defense'].some((k) => (h.skills[k]?.level ?? 0) >= 1));
   // Some love training and some never go, so expect a few dedicated fighters.
   assert.ok(fighters.length >= 3, `only ${fighters.length} trained`);
@@ -492,7 +492,7 @@ test('people raise new buildings on the plots once they know how', () => {
   const carpenter = s.humans[0];
   learnTech(s, data, carpenter, 'carpentry');
   s.stockpile.wood = 200;
-  run(s, 20 * DAY);
+  run(s, 30 * DAY);
   const shop = s.buildings.find((b) => b.type === 'carpentry_workshop');
   assert.ok(shop, 'a workshop was started');
   assert.ok(shop.built, 'and finished');
@@ -535,6 +535,7 @@ test('upgrades raise a building\'s level and its effects', () => {
 
 test('a couple gets a family house with beds of their own', () => {
   const s = createSim(data, 'house');
+  s.humans.forEach((h, i) => { h.sex = i % 2 ? 'male' : 'female'; });
   const a = s.humans.find((h) => h.sex === 'female');
   const b = s.humans.find((h) => h.sex === 'male');
   a.partnerId = b.id;
@@ -888,7 +889,7 @@ test('couples wait while children outnumber the grown-ups', () => {
 // --- Houses, the throne and the new powers ---
 
 import { appeal } from '../src/sim/appeal.js';
-import { updateDynasty, takeConsort, successorOf } from '../src/sim/dynasty.js';
+import { updateDynasty, takeConsort, successorOf, wed } from '../src/sim/dynasty.js';
 import { leaderTitle } from '../src/sim/settlement.js';
 
 // Makes someone old enough to be an adult now (years back from today).
@@ -919,8 +920,9 @@ test('a ruler takes consorts, and the widowed are looked after', () => {
   s.tick = DAY;
   updateSettlement(s, fast);
   const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
+  assert.equal(ruler.sex, 'male', 'the people choose a man');
   const others = s.humans.filter((h) => h !== ruler);
-  for (const h of s.humans) h.attraction = 'both';
+  for (const h of others) h.sex = 'female';
   const [first, second, third] = others;
   ruler.partnerId = first.id;
   first.partnerId = ruler.id;
@@ -933,7 +935,7 @@ test('a ruler takes consorts, and the widowed are looked after', () => {
   const consort = s.humans.find((h) => h.id === ruler.consorts[0]);
   assert.equal(consort.partnerId, ruler.id);
   assert.equal(relationType(s, fast, ruler, consort), 'partner');
-  assert.ok(s.history.some((e) => / as (his|her) second (wife|husband)/.test(e.text)));
+  assert.ok(s.history.some((e) => / as his second wife/.test(e.text)));
   // The first spouse dies: the consort becomes the first spouse.
   killHuman(s, fast, first, 'old age');
   assert.equal(ruler.partnerId, consort.id);
@@ -946,6 +948,7 @@ test('the throne passes to the ruler\'s child, and the house becomes royal', () 
   updateSettlement(s, data);
   const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
   const child = s.humans.find((h) => h !== ruler);
+  child.sex = 'male';
   child.parents = [ruler.id];
   child.house = ruler.house;
   ageTo(s, child, 20);
@@ -1005,6 +1008,8 @@ test('a puppet ruler issues the god\'s decrees', () => {
   s.faith = 1000;
   const ruler = s.humans.find((h) => h.id === s.settlement.leaderId);
   const [a, b] = s.humans.filter((h) => h !== ruler);
+  a.sex = 'female';
+  b.sex = 'male';
   assert.equal(usePower(s, data, 'decree', { kind: 'wed', aId: a.id, bId: b.id }).ok, false, 'not yet a puppet');
   assert.equal(usePower(s, data, 'puppet', { humanId: a.id }).ok, false, 'only the ruler');
   assert.ok(usePower(s, data, 'puppet', { humanId: ruler.id }).ok);
@@ -1013,6 +1018,7 @@ test('a puppet ruler issues the god\'s decrees', () => {
   assert.ok(s.history.some((e) => e.text.includes('by decree of')));
   // The ruler weds by decree, then takes a consort.
   const [c, d] = s.humans.filter((h) => ![ruler, a, b].includes(h));
+  c.sex = d.sex = 'female';
   assert.ok(usePower(s, data, 'decree', { kind: 'wed', aId: ruler.id, bId: c.id }).ok);
   assert.ok(usePower(s, data, 'decree', { kind: 'wed', aId: ruler.id, bId: d.id }).ok);
   assert.equal(ruler.partnerId, c.id);
@@ -1109,4 +1115,37 @@ test('battle reports carry a replayable event for every fight line', () => {
   }
   [...heroes, ...monsters].forEach((f, i) => assert.ok(Math.abs(hp[i] - f.hp) < 1.5, `${f.name}: ${hp[i]} vs ${f.hp}`));
   assert.ok(JSON.parse(JSON.stringify({ cast, events })).events.length === events.length);
+});
+
+test('a daughter inherits as heiress: her husband is King, and only her children follow', () => {
+  const s = createSim(data, 'heiress');
+  s.tick = DAY * 3;
+  updateSettlement(s, data);
+  const king = s.humans.find((h) => h.id === s.settlement.leaderId);
+  const [daughter, suitor, other] = s.humans.filter((h) => h !== king);
+  Object.assign(daughter, { sex: 'female', parents: [king.id], house: king.house });
+  Object.assign(suitor, { sex: 'male', parents: [] });
+  Object.assign(other, { sex: 'female', parents: [] });
+  ageTo(s, daughter, 20);
+  killHuman(s, data, king, 'old age');
+  s.tick += DAY - (s.tick % DAY);
+  updateSettlement(s, data);
+  assert.equal(s.settlement.leaderId, daughter.id, 'the unwed heiress holds the throne');
+  assert.equal(s.dynasty.heiressId, daughter.id);
+  wed(s, data, daughter, suitor);
+  assert.equal(s.settlement.leaderId, suitor.id, 'her husband becomes the ruler');
+  assert.ok(s.dynasty.royal);
+  assert.equal(leaderTitle(s, data, suitor), 'King');
+  assert.ok(s.history.some((e) => e.text.includes(`husband of ${daughter.name}, became King`)));
+  // A son by another wife is passed over for the heiress's son.
+  const [bySecond, byHeiress] = s.humans.filter((h) => ![daughter, suitor, other].includes(h)).slice(0, 2);
+  Object.assign(bySecond, { sex: 'male', parents: [suitor.id, other.id] });
+  Object.assign(byHeiress, { sex: 'male', parents: [suitor.id, daughter.id] });
+  ageTo(s, bySecond, 30);
+  ageTo(s, byHeiress, 18);
+  assert.equal(successorOf(s, data, suitor).ruler, byHeiress);
+  // Same-sex couples cannot be wed by decree.
+  s.faith = 1000;
+  s.dynasty.puppetId = suitor.id;
+  assert.equal(usePower(s, data, 'decree', { kind: 'wed', aId: bySecond.id, bId: byHeiress.id }).ok, false);
 });

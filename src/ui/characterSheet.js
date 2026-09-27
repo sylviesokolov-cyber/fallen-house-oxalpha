@@ -14,6 +14,7 @@ import { createDivineActions } from './divineActions.js';
 import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait, royalMarks } from './portrait.js';
+import { artIcon } from './itemArt.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
 // emotion, stats, needs, thoughts, relationships, skills and knowledge.
@@ -217,7 +218,11 @@ export function createCharacterSheet(ctx, { toast, select }) {
   function renderChips(containerId, ids, byId, className) {
     renderKeyed($(containerId), ids.join(), () => {
       if (!ids.length) return [el('div', 'empty', 'Nothing yet')];
-      return ids.map((id) => button(className, byId[id].name, () => toast(byId[id].description)));
+      return ids.map((id) => {
+        const b = button(`${className} with-icon`, '', () => toast(byId[id].description));
+        b.append(artIcon(byId[id], 'art-icon small'), el('span', null, byId[id].name));
+        return b;
+      });
     });
   }
 

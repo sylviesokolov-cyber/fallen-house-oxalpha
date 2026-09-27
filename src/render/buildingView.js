@@ -141,7 +141,17 @@ export class BuildingView {
     this.update(sim, data);
   }
 
+  // Names keep a readable size on screen at any zoom.
+  scaleLabels() {
+    const s = Math.max(0.45, Math.min(1.4, 1.5 / this.scene.cameras.main.zoom));
+    if (s === this.labelScale && !this.dirty) return;
+    this.labelScale = s;
+    this.dirty = false;
+    for (const l of this.labels) l.setScale(s);
+  }
+
   update(sim, data) {
+    this.scaleLabels();
     const key = signature(sim, data);
     if (key === this.key) return;
     this.key = key;
@@ -151,6 +161,8 @@ export class BuildingView {
     this.drawPlots(sim, data);
     for (const b of sim.buildings) this.drawBuilding(b, data);
     this.drawPortal(sim, data);
+    this.dirty = true;
+    this.scaleLabels();
   }
 
   // The portal glows while a party is on the other side.
@@ -272,11 +284,17 @@ function shade(color, f) {
   return (c((color >> 16) & 255) << 16) | (c((color >> 8) & 255) << 8) | c(color & 255);
 }
 
+// A name plate: the text on a dark rounded pill, anchored at its bottom.
 function label(scene, x, y, text, color) {
-  return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: '9px', fontStyle: '900', color, stroke: '#0b0f18', strokeThickness: 3 })
+  const t = scene.add.text(0, -1, text, { fontFamily: FONT, fontSize: '9px', fontStyle: '900', color })
     .setOrigin(0.5, 1)
-    .setResolution(3)
-    .setDepth(4);
+    .setResolution(3);
+  const w = t.width + 10;
+  const h = t.height + 2;
+  const bg = scene.add.graphics();
+  bg.fillStyle(0x0b0f18, 0.72).fillRoundedRect(-w / 2, -h, w, h, h / 2);
+  bg.lineStyle(1, 0xffffff, 0.12).strokeRoundedRect(-w / 2, -h, w, h, h / 2);
+  return scene.add.container(x, y - 2, [bg, t]).setDepth(4);
 }
 
 function dashedRect(g, x, y, w, h) {

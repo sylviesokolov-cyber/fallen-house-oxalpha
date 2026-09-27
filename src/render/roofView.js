@@ -62,7 +62,7 @@ export class RoofView {
       let r = this.roofs.get(b.id);
       const key = `${b.rx},${b.ry},${b.w},${b.h},${b.level}`;
       if (!r) {
-        r = { g: this.scene.add.graphics().setDepth(3.6), key: null };
+        r = { g: this.scene.add.graphics().setDepth(3.3), key: null }; // under the night shade and window lights
         this.roofs.set(b.id, r);
       }
       if (r.key !== key) {

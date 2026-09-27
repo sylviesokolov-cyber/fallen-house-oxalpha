@@ -69,8 +69,9 @@ function canConceive(state, data, h) {
 
 function giveBirth(state, data, mother) {
   const father = state.humans.find((h) => h.id === mother.partnerId) ?? state.dead.find((h) => h.id === mother.partnerId);
-  // Children take their father's house, unless their mother rules.
-  const rulesHouse = state.settlement.leaderId === mother.id;
+  // Children take their father's house, unless their mother is the heiress
+  // the crown runs through.
+  const rulesHouse = state.settlement.leaderId === mother.id || state.dynasty.heiressId === mother.id;
   const child = createHuman(state, data, mother.x, mother.y, {
     ageYears: 0,
     house: rulesHouse ? mother.house : father?.house ?? mother.house,
