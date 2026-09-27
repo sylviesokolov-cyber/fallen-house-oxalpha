@@ -11,7 +11,7 @@ const PHASE = { called: 'Gathering at the portal', inside: 'In the dungeon', ret
 const OUTCOME = {
   victory: 'Victory', retreated: 'Turned back', recalled: 'Called home', lost: 'Lost', cancelled: 'Never set out', returned: 'Came home',
 };
-const STYLE = { swordsmanship: 'Sword', archery: 'Bow' };
+const STYLE = { swordsmanship: '⚔️ Sword', archery: '🏹 Bow', magic: '🔮 Magic' };
 
 export function createPortalPanel(ctx, { toast, select, close }) {
   const chosen = new Set();
@@ -79,6 +79,12 @@ export function createPortalPanel(ctx, { toast, select, close }) {
     }
     const fl = data.floorsById[floor];
     nodes.push(floors, el('div', 'floor-desc', `${fl.name}: ${fl.description} ${fl.rooms} rooms, then the ${data.monstersById[fl.boss].name}.`));
+    // Average power of the chosen party against what the floor calls for.
+    const party = [...chosen].map((id) => sim.humans.find((h) => h.id === id)).filter(Boolean);
+    const power = party.length ? Math.round(party.reduce((t, h) => t + combatPower(h, data), 0) / party.length) : 0;
+    const odds = !party.length ? '' : power >= fl.power ? ' ready' : power >= fl.power * 0.8 ? ' risky' : ' deadly';
+    const verdict = { ' ready': 'Ready', ' risky': 'Risky', ' deadly': 'Deadly' }[odds] ?? '';
+    nodes.push(el('div', `power-check${odds}`, `Recommended power ${fl.power}${party.length ? ` · party ${power} · ${verdict}` : ''}`));
     nodes.push(section(`Party (${chosen.size}/${data.dungeon.maxParty})`));
     const ready = sim.humans.filter((h) => !cannotGo(sim, data, h)).sort((a, b) => combatPower(b, data) - combatPower(a, data));
     for (const id of [...chosen]) if (!ready.some((h) => h.id === id)) chosen.delete(id);

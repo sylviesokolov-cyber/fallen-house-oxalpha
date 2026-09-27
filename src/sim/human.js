@@ -1,6 +1,6 @@
 import { chance, next, pick, randInt } from './rng.js';
 import { ageInYears, dayIndexOf, daysPerYear } from './time.js';
-import { logEvent } from './history.js';
+import { addStory, logEvent } from './history.js';
 import { rollTraits } from './traits.js';
 import { forgetOnDeath } from './techs.js';
 import { addFeeling } from './mood.js';
@@ -65,6 +65,7 @@ export function createHuman(state, data, x, y, opts = {}) {
     status: {},
     feelings: [],
     carrying: null,
+    story: [],
     called: null,
     away: null,
     action: { type: 'idle', ticks: randInt(rng, 1, 8) },
@@ -108,19 +109,23 @@ export function killHuman(state, data, h, cause, detail) {
   state.dead.push({
     id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, parents: h.parents, partnerId: h.partnerId,
     grade: h.grade, level: h.level, stats: h.stats,
-    traits: h.traits, skills: h.skills, knows: h.knows, deathTick: state.tick, cause,
+    traits: h.traits, skills: h.skills, knows: h.knows, deathTick: state.tick, cause, story: h.story,
   });
+  const record = state.dead.at(-1);
   const partner = state.humans.find((o) => o.id === h.partnerId);
   if (partner) partner.partnerId = null;
   let text = (DEATH_TEXT[cause] ?? ((n, a) => `${n} died (${cause}), aged ${a}`))(h.name, age, detail);
   if (partner) text += `, leaving behind ${partner.name}`;
   logEvent(state, text);
+  addStory(record, { tick: state.tick, text });
   forgetOnDeath(state, data, h);
   // Partner, parents, children and siblings grieve.
   const m = data.config.mood;
   for (const o of state.humans) {
     const family = o.partnerId === h.id || o.parents.includes(h.id) || h.parents.includes(o.id)
       || o.parents.some((p) => h.parents.includes(p));
-    if (family || partner === o) addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays, 'grief');
+    if (!family && partner !== o) continue;
+    addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays, 'grief');
+    if (partner !== o) addStory(o, { tick: state.tick, text: `Mourned ${h.name}` });
   }
 }

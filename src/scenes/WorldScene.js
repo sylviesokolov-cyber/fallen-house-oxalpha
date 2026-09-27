@@ -3,6 +3,7 @@ import { drawMap } from '../render/mapRenderer.js';
 import { ResourceView } from '../render/resourceView.js';
 import { HumanView } from '../render/humanView.js';
 import { BuildingView } from '../render/buildingView.js';
+import { AmbientView } from '../render/ambientView.js';
 import { setupCameraControls } from '../render/cameraControls.js';
 import { Effects } from '../render/effects.js';
 import { createHud } from '../ui/hud.js';
@@ -39,11 +40,13 @@ export class WorldScene extends Phaser.Scene {
     this.resourceView?.destroy();
     this.buildingView?.destroy();
     this.humanView?.destroy();
+    this.ambientView?.destroy();
     const { sim, data } = this.ctx;
     this.mapImage = drawMap(this, sim.world, data);
     this.resourceView = new ResourceView(this);
     this.buildingView = new BuildingView(this, sim, data);
     this.humanView = new HumanView(this);
+    this.ambientView = new AmbientView(this, sim, data);
     this.focusOnTribe();
   }
 
@@ -102,6 +105,7 @@ export class WorldScene extends Phaser.Scene {
     this.buildingView.update(sim, data);
 
     this.humanView.update(sim, data, runner.alpha, selectedId);
+    this.ambientView.update(sim, data, runner.alpha, time);
     this.effects.update(time);
     this.hud.update(time);
   }

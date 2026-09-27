@@ -1,6 +1,7 @@
 import { next, randInt, chance } from './rng.js';
 import { logEvent } from './history.js';
-import { gainXp } from './skills.js';
+import { gainXp, skillLevel } from './skills.js';
+import { wearTools } from './items.js';
 import { feel } from './mood.js';
 import { lifeStage } from './lifecycle.js';
 import { killHuman } from './human.js';
@@ -111,6 +112,9 @@ function updateCalled(state, data, exp, members) {
     h.action = { type: 'away' };
     h.counters.expeditions = (h.counters.expeditions ?? 0) + 1;
   }
+  // They take what remedies the store can spare, one each.
+  exp.remedies = Math.min(state.stockpile.herbal_remedy ?? 0, ready.length);
+  if (exp.remedies) state.stockpile.herbal_remedy -= exp.remedies;
   exp.phase = 'inside';
   exp.nextTick = state.tick + d(data).roomTicks;
   logEvent(state, `${listNames(ready.map((h) => h.name))} stepped through the portal into ${floorName(data, exp.floor)}`);
@@ -150,6 +154,8 @@ function nextRoom(state, data, exp, members) {
     if (f.hitsTaken) gainXp(state, data, h, 'defense', f.hitsTaken * cfg.xpPerHitTaken);
     h.counters.kills = (h.counters.kills ?? 0) + f.kills.length;
     if (boss && won) h.counters.bossKills = (h.counters.bossKills ?? 0) + 1;
+    wearTools(h, data, f.style);
+    if (f.hitsTaken) wearTools(h, data, 'defense');
   }
   for (const m of monsters) if (m.hp <= 0) rollLoot(state, data, exp, data.monstersById[m.id]);
   // Fighting side by side draws people together.
@@ -176,10 +182,13 @@ function nextRoom(state, data, exp, members) {
     logEvent(state, `${listNames(up.map((f) => f.name))} slew the ${monsters[0].name} in ${where}!`);
     unlockNext(state, data, exp.floor);
   }
-  // The fallen are carried; the more hands, the better their chances.
+  // The fallen are carried; the more hands, the better their chances, and a
+  // remedy better still.
+  const healer = up.map((f) => findHuman(state, f.id)).sort((a, b) => skillLevel(b, 'healing') - skillLevel(a, 'healing'))[0];
   for (const f of down) {
-    const p = Math.min(0.85, cfg.carryOutBase + cfg.carryOutPerAlly * (up.length - 1));
+    let p = Math.min(0.9, cfg.carryOutBase + cfg.carryOutPerAlly * (up.length - 1));
     const h = findHuman(state, f.id);
+    if (useRemedy(state, data, exp, healer, h, report)) p += cfg.remedySave;
     if (chance(state.rng, p)) {
       h.health = cfg.carriedOutHealth;
       h.carried = true;
@@ -187,6 +196,13 @@ function nextRoom(state, data, exp, members) {
     } else {
       report.lines.push(`${f.name} bleeds out before they reach the portal.`);
       killHuman(state, data, h, 'dungeon', `was struck down by a ${f.killedBy} and died before reaching home`);
+    }
+  }
+  for (const f of up) {
+    const h = findHuman(state, f.id);
+    if (h.health < cfg.remedyBelow * 100 && useRemedy(state, data, exp, healer, h, report)) {
+      h.health = Math.min(100, h.health + cfg.remedyHeal);
+      f.hp = (h.health / 100) * f.maxHp;
     }
   }
   const hurt = up.some((f) => f.hp < f.maxHp * cfg.retreatBelow);
@@ -197,6 +213,14 @@ function nextRoom(state, data, exp, members) {
     return;
   }
   exp.nextTick = state.tick + cfg.roomTicks;
+}
+
+function useRemedy(state, data, exp, healer, patient, report) {
+  if (!exp.remedies) return false;
+  exp.remedies--;
+  report.lines.push(healer === patient ? `${patient.name} takes a herbal remedy.` : `${healer.name} gives ${patient.name} a herbal remedy.`);
+  gainXp(state, data, healer, 'healing', data.skillsById.healing.xpPerAction);
+  return true;
 }
 
 function rollLoot(state, data, exp, monster) {
@@ -228,7 +252,12 @@ function comeHome(state, data, exp, members) {
     else feel(state, data, h, 'dungeonReturn', 'Came home from the dungeon');
     delete h.carried;
   });
-  for (const [item, n] of Object.entries(exp.loot)) state.stockpile[item] = (state.stockpile[item] ?? 0) + n;
+  for (const [item, n] of Object.entries(exp.loot)) {
+    state.stockpile[item] = (state.stockpile[item] ?? 0) + n;
+    state.tribeCounters[`loot:${item}`] = (state.tribeCounters[`loot:${item}`] ?? 0) + n;
+  }
+  if (exp.remedies) state.stockpile.herbal_remedy += exp.remedies;
+  exp.remedies = 0;
   const loot = Object.entries(exp.loot).map(([item, n]) => `${n} ${data.itemsById[item].name.toLowerCase()}`);
   logEvent(state, `${listNames(members.map((h) => h.name))} came home from ${floorName(data, exp.floor)}${loot.length ? ` with ${listNames(loot)}` : ''}`);
   finish(state, data, exp, exp.outcome ?? 'returned');
@@ -253,7 +282,8 @@ function finish(state, data, exp, outcome) {
 }
 
 export function floorName(data, id) {
-  return `the ${data.floorsById[id].name}`;
+  const name = data.floorsById[id].name;
+  return name.startsWith('The ') ? `the ${name.slice(4)}` : `the ${name}`;
 }
 
 export function listNames(names) {

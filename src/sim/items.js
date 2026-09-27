@@ -1,5 +1,5 @@
 import { chance } from './rng.js';
-import { gainXp } from './skills.js';
+import { gainXp, skillLevel } from './skills.js';
 import { buildingEffect, builtOfType } from './buildings.js';
 import { addFeeling } from './mood.js';
 
@@ -63,11 +63,32 @@ export function mealsInStock(state, data) {
   return mealsOf(data).reduce((n, d) => n + (state.stockpile[d.id] ?? 0), 0);
 }
 
-// Whether someone would use this tool: they've started one of its skills.
-const usesTool = (h, def) => def.forSkills.some((s) => h.skills[s]);
+// Whether someone would use this tool: they've started one of its skills
+// (and, for fighting gear, have been through the portal).
+const usesTool = (h, def) => def.forSkills.some((s) => h.skills[s]) && (!def.forAdventurers || h.counters.expeditions > 0);
 
-function toolUsers(state, def) {
-  return state.humans.filter((o) => !hasTool(o, def.id) && usesTool(o, def)).length;
+// Gear has slots (sword, bow, armor): a person carries one per slot, the
+// highest tier they have.
+function slotFilled(h, data, def) {
+  return def.slot && Object.keys(h.tools).some((id) => {
+    const o = data.itemsById[id];
+    return o.slot === def.slot && o.tier >= def.tier;
+  });
+}
+
+function wantsTool(h, data, def) {
+  return !hasTool(h, def.id) && usesTool(h, def) && !slotFilled(h, data, def);
+}
+
+function toolUsers(state, data, def) {
+  return state.humans.filter((o) => wantsTool(o, data, def)).length;
+}
+
+// Additive bonus from everything carried, e.g. armour.
+export function toolSum(h, data, key) {
+  let sum = 0;
+  for (const id of Object.keys(h.tools)) sum += data.itemsById[id].effects[key] ?? 0;
+  return sum;
 }
 
 // The building an item is made in, if it's built and good enough.
@@ -77,25 +98,37 @@ export function stationFor(state, data, def) {
   return b;
 }
 
-// Something this person knows how to make, that is wanted, and that the
-// stockpile has materials for. Cooks make the best meal they can.
+// How much something is worth making: medicine first, then better gear,
+// meals, simple tools and drink; people favour what they're skilled at.
+const KIND_PRIORITY = { medicine: 45, meal: 20, tool: 10, drink: 5 };
+const craftRank = (h, def) => KIND_PRIORITY[def.kind] + (def.tier ?? 0) * 10 + skillLevel(h, def.skill) * 0.5;
+
+// The most worthwhile thing this person knows how to make, that is wanted,
+// and that the stockpile has materials for. Cooks make the best meal they can.
 export function craftChoice(state, data, h) {
   const pop = state.humans.length;
   let meal = null;
+  let best = null;
+  const consider = (def) => {
+    if (!best || craftRank(h, def) > craftRank(h, best)) best = def;
+  };
   for (const def of data.items) {
     if (!h.knows.includes(def.tech) || !affordable(state.stockpile, def.cost) || !stationFor(state, data, def)) continue;
     const stock = state.stockpile[def.id] ?? 0;
     if (def.kind === 'tool') {
-      if (toolUsers(state, def) > stock) return def;
+      if (toolUsers(state, data, def) > stock) consider(def);
+    } else if (def.kind === 'medicine') {
+      if (stock < def.want.count) consider(def);
     } else if (def.kind === 'drink') {
       // Brewing eats potatoes, so only from a surplus.
       const spare = state.stockpile.food >= foodReserveWanted(state, data) / 2;
-      if (spare && stock < Math.ceil(pop * def.want.perPerson)) return def;
+      if (spare && stock < Math.ceil(pop * def.want.perPerson)) consider(def);
     } else if (def.kind === 'meal' && (!meal || def.food > meal.food)) {
       meal = def;
     }
   }
-  return meal && mealsInStock(state, data) < pop * data.config.food.mealsPerPerson ? meal : null;
+  if (meal && mealsInStock(state, data) < pop * data.config.food.mealsPerPerson) consider(meal);
+  return best;
 }
 
 // Materials are taken when the work is finished, so an interrupted crafter
@@ -113,11 +146,16 @@ export function finishCraft(state, data, h, def) {
 export function handOutTools(state, data) {
   if (state.tick % data.config.time.ticksPerDay !== 0) return;
   for (const def of data.items) {
-    if (def.kind !== 'tool') continue;
-    for (const h of state.humans) {
+    if (def.kind !== 'tool' || !state.stockpile[def.id]) continue;
+    // The most skilled get the best gear first.
+    const best = (h) => Math.max(...def.forSkills.map((s) => h.skills[s]?.level ?? 0));
+    const takers = state.humans.filter((h) => wantsTool(h, data, def)).sort((a, b) => best(b) - best(a));
+    for (const h of takers) {
       if (!state.stockpile[def.id]) break;
-      if (hasTool(h, def.id) || !usesTool(h, def)) continue;
       state.stockpile[def.id]--;
+      if (def.slot) {
+        for (const id of Object.keys(h.tools)) if (data.itemsById[id].slot === def.slot) delete h.tools[id];
+      }
       h.tools[def.id] = def.durability;
     }
   }

@@ -56,7 +56,7 @@ export function createTribePanel(ctx, { toast, select }) {
       r.append(el('span', null, def.name), el('span', 'kind', buildingStatus(b)));
       nodes.push(r);
     }
-    nodes.push(row('Empty plots', `${freePlotCount(sim, data)} · home plots ${freePlotCount(sim, data, 'home')}`));
+    nodes.push(row('Empty plots', `${freePlotCount(sim, data)} large · ${freePlotCount(sim, data, 'small')} small · ${freePlotCount(sim, data, 'home')} home`));
 
     const people = sim.humans;
     const avgLevel = people.length ? people.reduce((s, h) => s + h.level, 0) / people.length : 0;

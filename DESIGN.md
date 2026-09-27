@@ -144,7 +144,21 @@ Replaced: the open noise-generated world, berry bushes, stone and clay deposits,
 A. **The Sanctuary** — done. The walled map with zones and plots, the four starting buildings, potatoes and trees, eating in the Dining Hall, sleeping in the Great Hall, training at the Training Ground, auto-healing inside the walls, starting knowledge. Old world systems removed.
 B. **Building and upgrading** — done. People start buildings on the plots when they know how and the wood is there. Materials are paid up front, and the site is finished by work that teaches Building. Upgrades work the same way. New discoveries lead to new buildings (listed below). Family houses on home plots go to couples, and are passed on when the owners die. Recipes go from boiled to mashed potatoes, then to bread once the Kitchen is Lv2, plus potato ale. The Carpentry Workshop makes tools that people pick up and wear out. The Library lets people study to discover techs. The Tavern lets people drink together. The Build omen is back. Births wait for food security.
 C. **The Portal** — done. The player picks a party of 1–5 and an open floor from the Portal button (or by tapping the portal). The party walks to the portal and steps through together. They clear one room every half day, and each floor ends with a boss. Fights are turn-based and use stats, sword or bow, defense and wooden swords, and every blow goes into a battle report. Inside the dungeon, needs pause and wounds don't heal. The party flees when someone falls or the whole party is badly hurt, and turns back between rooms when anyone is below 20% HP. A hero is killed outright by a big enough blow. A fallen hero may be carried home but can bleed out on the way, and a party with nobody left standing is lost. Loot (meat, herbs, mushrooms, hide, bone, ore, mana crystals) goes to the stockpile, and dungeon food becomes new recipes: roast meat, mushroom soup and hearty stew. Beating a floor's boss opens the next floor. Floors: Mossy Burrows, Fungal Caverns, Bone Halls, The Deep Forge (a wall until there's real gear). The player can call a party home. Fighting side by side builds bonds.
-D. **Depth from the dungeon.** Smithing and gear, recipes with dungeon ingredients, herbalism, magic and the Mage Tower.
+D. **Depth from the dungeon** — done.
+- Loot drives new discoveries:
+  - **Smithing** from ore: a Blacksmith, iron swords, iron armour and iron axes.
+  - **Herbalism** from herbs: an Infirmary where the wounded heal 3× faster, and herbal remedies that parties carry. A remedy heals the badly hurt and helps save the fallen.
+  - **Arcane Arts** from mana crystals: a Mage Tower to practise **Magic**, a third fighting style (INT). Spells ignore armour, a practised mage mends allies, and crystals make mage staffs.
+  - **Dungeon Cuisine**: meat pie and glowcap skewers. Bone broth uses up bone.
+- Gear has slots (sword, bow, armour, staff). People keep their best, and fighting gear goes to those who have been through the portal, the most skilled first.
+- Crafting ranks what is most worth making: medicine, then better gear, meals, simple tools and drink.
+- Each floor has a recommended power, and the Portal panel rates the chosen party against it (ready, risky, deadly).
+- Every person has a **life story**. Each log line that names someone becomes a chapter, and the story is kept after death.
+- Balance: a hungry person eats before answering the portal's call, and couples wait while children outnumber the adults.
+- Graphics and UI pass:
+  - Map: people are drawn as little figures (tunic by specialty, grade outline, hair, walking bob, lying down to sleep), with leafy trees, potato plants and stockpile piles. Buildings have shadows, walls and doors, and there are grass tufts and flowers.
+  - Atmosphere: day and night, seasonal tints, warm windows after dark, and a swirling portal.
+  - UI: icons in the top bar and on the powers, news banners for big life events, portraits on the character sheet, and panel polish.
 E. **Polish.** Art, sound, save slots, Capacitor APK.
 
 ## Open Questions

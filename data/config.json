@@ -109,7 +109,8 @@
     "oldAgeGrowth": 1.25,
     "elderWorkWeight": 0.5,
     "childWanderRadius": 4,
-    "foodSecureFraction": 0.5
+    "foodSecureFraction": 0.5,
+    "childrenPerAdult": 0.8
   },
   "food": {
     "rawValue": 25,
@@ -275,5 +276,15 @@
     "ticks": 20,
     "socialBelow": 70,
     "bondGain": 2
-  }
+  },
+  "infirmary": {
+    "seekBelow": 60,
+    "leaveAt": 95,
+    "score": 55
+  },
+  "arcane": {
+    "ticks": 30,
+    "scoreBase": 12
+  },
+  "gearUrgency": 15
 }

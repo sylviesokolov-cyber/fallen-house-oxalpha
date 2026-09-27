@@ -21,6 +21,8 @@
 - `src/runner.js`: fixed-timestep loop (ticks/sec from `data/config.json`; speed 0/1/2/4).
 - `data/*.json`: content and tuning. New content or balance changes should mean editing JSON, not code. `data/sanctuary.json` is the map layout (walls, portal, zones, starting buildings, plots, home plots).
 - `src/sim/dungeon.js` (expeditions: calling, rooms, retreat, death, loot) and `src/sim/combat.js` (turn-based fights and battle report lines). Monsters and floors are in `data/monsters.json` and `data/dungeon.json`. People in the dungeon have `h.away` set: skip them in anything that assumes a person is on the map.
+- `logEvent` also files each entry into the life story (`h.story`) of every living person it names, so write log lines with people's names in them.
+- `src/render/appearance.js` (pure) decides how a person looks; the map sprite (`humanView.js`) and the sheet portrait both use it. `ambientView.js` draws day/night, season tints and the portal swirl (cosmetic only).
 - `src/sim/data.js` `DATA_FILES` lists every content file; add new ones there.
 - `src/sim/construction.js`: plots, construction sites, upgrades and family homes. Building effects at a level come from `effectsOf`/`buildingEffect` in `buildings.js` (base effects plus upgrades reached).
 

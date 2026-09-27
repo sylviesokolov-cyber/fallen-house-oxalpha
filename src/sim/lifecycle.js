@@ -52,8 +52,11 @@ function canConceive(state, data, h) {
   const l = data.config.lifecycle;
   if (h.sex !== 'female' || h.pregnantUntil != null || !h.partnerId) return false;
   if (state.humans.length >= populationCap(state, data)) return false;
-  // Nobody starts a family while the stores are nearly bare.
+  // Nobody starts a family while the stores are nearly bare, or while there
+  // are already more children than grown-ups to feed them.
   if (foodInStock(state, data) < foodReserveWanted(state, data) * l.foodSecureFraction) return false;
+  const kids = state.humans.filter((o) => lifeStage(o, state, data) === 'child').length;
+  if (kids >= (state.humans.length - kids) * l.childrenPerAdult) return false;
   const partner = findHuman(state, h.partnerId);
   if (!partner || partner.sex !== 'male') return false;
   const today = dayIndexOf(state.tick, data.config.time);

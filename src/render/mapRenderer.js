@@ -17,7 +17,24 @@ function shade(color, factor) {
 }
 
 // Per-tile texture so each ground type reads at a glance.
+const FLOWERS = [0xf5f0d8, 0xffd35c, 0xe98fb3, 0xb99cff];
+
 const DECOR = {
+  // Tufts of grass on some tiles, a wildflower on a few.
+  grass(g, px, py, ts, base, n, x, y) {
+    if (n < 0.4) {
+      g.fillStyle(shade(base, 0.78));
+      const tx = px + 3 + n * 20;
+      const ty = py + 4 + ((x * 3 + y) % 7);
+      g.fillRect(tx, ty, 1, 3);
+      g.fillRect(tx + 2, ty - 1, 1, 4);
+      g.fillRect(tx + 4, ty + 1, 1, 2);
+    }
+    if (n > 0.9) {
+      g.fillStyle(FLOWERS[(x + y * 3) % FLOWERS.length]);
+      g.fillCircle(px + 4 + (n - 0.9) * 60, py + 10, 1.4);
+    }
+  },
   grove(g, px, py, ts, base, n) {
     g.fillStyle(shade(base, 0.72));
     g.fillCircle(px + 5 + n * 6, py + 6 + n * 4, 4);
@@ -28,6 +45,10 @@ const DECOR = {
     g.fillRect(px, py + 11, ts, 2);
   },
   wall(g, px, py, ts, base, n, x, y) {
+    g.fillStyle(shade(base, 1.3));
+    g.fillRect(px, py, ts, 2);
+    g.fillStyle(shade(base, 0.7));
+    g.fillRect(px, py + ts - 2, ts, 2);
     g.fillStyle(shade(base, 1.2));
     const off = y % 2 ? 0 : ts / 2;
     g.fillRect(px, py + ts / 2 - 1, ts, 1);

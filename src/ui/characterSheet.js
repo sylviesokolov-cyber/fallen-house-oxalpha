@@ -1,4 +1,5 @@
-import { dateOf } from '../sim/time.js';
+import { ageInYears, dateOf } from '../sim/time.js';
+import { appearance } from '../render/appearance.js';
 import { humanAge } from '../sim/human.js';
 import { xpToNext } from '../sim/skills.js';
 import { bondValue, relationType } from '../sim/bonds.js';
@@ -32,6 +33,8 @@ const ACTION_LABELS = {
   train: 'Training',
   study: 'Studying in the Library',
   toPortal: 'Answering the call to the portal',
+  recover: 'Resting in the Infirmary',
+  arcane: 'Practising magic in the Mage Tower',
   atPortal: 'Waiting at the portal',
   drink: 'Having a drink at the Tavern',
 };
@@ -85,6 +88,23 @@ export function createCharacterSheet(ctx, { toast, select }) {
     ]);
     const isLeader = alive && sim.settlement.leaderId === who.id;
     $('insp-leader').textContent = isLeader ? `${leaderTitle(sim, data, who)} of ${sim.settlement.name}` : '';
+    const stage = alive ? lifeStage(who, sim, data) : 'adult';
+    const look = appearance(who, stage === 'elder');
+    renderKeyed($('insp-portrait'), `${who.id}|${look.tunic}|${look.hair}|${stage}|${alive}`, () => [portrait(look, who, stage, alive, data)]);
+  }
+
+  // The newest chapters first, each with the age they were then.
+  function renderStory(who) {
+    const { data } = ctx;
+    const story = who.story ?? [];
+    renderKeyed($('insp-story'), `${who.id}:${story.length}:${story.at(-1)?.tick}`, () => {
+      if (!story.length) return [el('li', 'empty', 'Their story has yet to be written.')];
+      return story.slice().reverse().map((e) => {
+        const li = el('li');
+        li.append(el('span', 'story-age', `Age ${Math.max(0, ageInYears(who.birthDay, e.tick, data.config.time))}`), el('span', null, e.text));
+        return li;
+      });
+    });
   }
 
   function renderEmotion(h) {
@@ -190,6 +210,7 @@ export function createCharacterSheet(ctx, { toast, select }) {
     if (!h && !dead) return false;
     const who = h ?? dead;
     renderHeader(who, !!h);
+    renderStory(who);
     renderChips('insp-traits', who.traits, data.traitsById, 'chip');
     renderChips('insp-knows', who.knows ?? [], data.techsById, 'chip tech');
     $('insp-alive').classList.toggle('hidden', !h);
@@ -226,4 +247,22 @@ export function createCharacterSheet(ctx, { toast, select }) {
   }
 
   return { render };
+}
+
+// A little portrait matching the map sprite: hair, face and tunic, framed in
+// the colour of their grade.
+function portrait(look, who, stage, alive, data) {
+  const frame = el('div', `portrait-frame${alive ? '' : ' dead'}${stage === 'child' ? ' child' : ''}`);
+  const grade = gradeOf(data, who.grade).color;
+  frame.style.borderColor = grade === '#1b1b1b' ? '#5c6878' : grade;
+  const body = el('div', 'p-body');
+  body.style.background = look.tunic;
+  const back = el('div', `p-hair-back${look.longHair ? '' : ' hidden'}`);
+  back.style.background = look.hair;
+  const head = el('div', 'p-head');
+  head.style.background = look.skin;
+  const hair = el('div', 'p-hair');
+  hair.style.background = look.hair;
+  frame.append(body, back, head, hair);
+  return frame;
 }

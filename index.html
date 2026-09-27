@@ -39,7 +39,8 @@
 
   <section id="inspect" class="panel hidden">
     <div class="panel-head">
-      <div>
+      <div id="insp-portrait" class="portrait"></div>
+      <div class="head-text">
         <h2 id="insp-name"></h2>
         <div id="insp-hero" class="hero-line"></div>
         <div id="insp-leader" class="leader-line"></div>
@@ -67,6 +68,8 @@
     </div>
     <h3>Knows</h3>
     <div id="insp-knows" class="chips"></div>
+    <h3>Life story</h3>
+    <ol id="insp-story" class="story"></ol>
   </section>
 
   <section id="log" class="panel hidden">
@@ -125,6 +128,7 @@
     <button id="btn-load" class="wide">Load saved game</button>
   </section>
 
+  <div id="news"></div>
   <div id="toast"></div>
 
   <script type="module" src="src/main.js"></script>

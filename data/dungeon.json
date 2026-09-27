@@ -9,8 +9,8 @@
   "fleeBelow": 0.25,
   "monsterCrit": 0.08,
   "overkill": 0.5,
-  "carryOutBase": 0.45,
-  "carryOutPerAlly": 0.08,
+  "carryOutBase": 0.55,
+  "carryOutPerAlly": 0.1,
   "carriedOutHealth": 5,
   "xpPerAttack": 3,
   "xpPerHitTaken": 2,
@@ -35,7 +35,8 @@
           "weight": 2
         }
       ],
-      "boss": "giant_rat"
+      "boss": "giant_rat",
+      "power": 40
     },
     {
       "id": 2,
@@ -60,7 +61,8 @@
           "weight": 2
         }
       ],
-      "boss": "goblin_chief"
+      "boss": "goblin_chief",
+      "power": 70
     },
     {
       "id": 3,
@@ -81,7 +83,8 @@
           "weight": 2
         }
       ],
-      "boss": "bone_knight"
+      "boss": "bone_knight",
+      "power": 110
     },
     {
       "id": 4,
@@ -102,8 +105,13 @@
           "weight": 2
         }
       ],
-      "boss": "deep_wyrm"
+      "boss": "deep_wyrm",
+      "power": 150
     }
   ],
-  "bondPerRoom": 2
+  "bondPerRoom": 2,
+  "remedySave": 0.35,
+  "remedyHeal": 30,
+  "remedyBelow": 0.4,
+  "healFromMagic": 4
 }

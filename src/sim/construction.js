@@ -12,20 +12,26 @@ import { buildingEffect, sleepCapacity } from './buildings.js';
 const knowsTech = (h, tech) => !tech || h.knows.includes(tech);
 const affordable = (stockpile, cost) => Object.entries(cost).every(([k, v]) => (stockpile[k] ?? 0) >= v);
 
-function plotsOf(data, def) {
-  return def.plot === 'home' ? data.sanctuary.homePlots : data.sanctuary.plots;
+// Plot kinds: 'plot' (6x5), 'small' (4x5, for a storehouse or shrine) and
+// 'home' (4x3, family houses). A building's `plot` field names its kind.
+const PLOT_LISTS = { plot: 'plots', small: 'smallPlots', home: 'homePlots' };
+export const PLOT_KINDS = Object.keys(PLOT_LISTS);
+
+export function plotList(data, kind) {
+  return data.sanctuary[PLOT_LISTS[kind]] ?? [];
 }
 
 // Plot keys look like "plot:3" or "home:0".
 function freePlot(state, data, def) {
   const kind = def.plot ?? 'plot';
   const used = new Set(state.buildings.map((b) => b.plot));
-  const i = plotsOf(data, def).findIndex((_, n) => !used.has(`${kind}:${n}`));
-  return i < 0 ? null : { key: `${kind}:${i}`, rect: plotsOf(data, def)[i] };
+  const list = plotList(data, kind);
+  const i = list.findIndex((_, n) => !used.has(`${kind}:${n}`));
+  return i < 0 ? null : { key: `${kind}:${i}`, rect: list[i] };
 }
 
 export function freePlotCount(state, data, kind = 'plot') {
-  const list = kind === 'home' ? data.sanctuary.homePlots : data.sanctuary.plots;
+  const list = plotList(data, kind);
   const used = new Set(state.buildings.map((b) => b.plot));
   return list.filter((_, n) => !used.has(`${kind}:${n}`)).length;
 }

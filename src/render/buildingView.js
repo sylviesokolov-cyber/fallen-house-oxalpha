@@ -1,6 +1,6 @@
 import { TILE_SIZE, hexToInt } from './constants.js';
-import { buildingEffect, isBed } from '../sim/buildings.js';
-import { jobProgress, nextUpgrade } from '../sim/construction.js';
+import { buildingEffect, effectsOf, isBed } from '../sim/buildings.js';
+import { PLOT_KINDS, jobProgress, nextUpgrade, plotList } from '../sim/construction.js';
 import { activeExpedition } from '../sim/dungeon.js';
 
 // Buildings are rooms: a floor, an outline, a name label and a few
@@ -17,7 +17,10 @@ function beds(g, b, count) {
   for (let y = b.ry; y < b.ry + b.h; y++) {
     for (let x = b.rx; x < b.rx + b.w; x++) {
       if (n >= count || !isBed(b, x, y)) continue;
+      g.fillStyle(0xd9c7a3);
       g.fillRect(x * px + 2, y * px + 3, px - 4, px - 6);
+      g.fillStyle(0xf5f0e6);
+      g.fillRect(x * px + 3, y * px + 4, px - 6, 3);
       n++;
     }
   }
@@ -81,6 +84,45 @@ const FURNISH = {
     g.fillStyle(0x9a6a3a);
     g.fillCircle((b.rx + b.w - 0.5) * px, (b.ry + 0.5) * px, 5);
   },
+  blacksmith(g, b) {
+    // Forge glowing in the corner, an anvil in the middle.
+    g.fillStyle(0x3a3a40);
+    g.fillRect(b.rx * px + 2, b.ry * px + 2, px * 2 - 4, px * 2 - 4);
+    g.fillStyle(0xe8792a);
+    g.fillCircle((b.rx + 1) * px, (b.ry + 1) * px, 5);
+    g.fillStyle(0xffd35c);
+    g.fillCircle((b.rx + 1) * px, (b.ry + 1) * px, 2.5);
+    g.fillStyle(0x50535c);
+    const ax = (b.rx + 3.5) * px;
+    const ay = (b.ry + 2.5) * px;
+    g.fillRect(ax - 6, ay - 3, 12, 4);
+    g.fillRect(ax - 2, ay + 1, 4, 5);
+  },
+  infirmary(g, b, data) {
+    beds(g, b, 99);
+    g.fillStyle(0xd9534f);
+    const cx = (b.rx + b.w - 1) * px + px / 2;
+    const cy = (b.ry + b.h - 1) * px + px / 2;
+    g.fillRect(cx - 5, cy - 1.5, 10, 3);
+    g.fillRect(cx - 1.5, cy - 5, 3, 10);
+  },
+  mage_tower(g, b) {
+    // A rune circle around a floating crystal.
+    const cx = (b.rx + b.w / 2) * px;
+    const cy = (b.ry + b.h / 2) * px;
+    g.lineStyle(1.5, 0xb99cff, 0.9);
+    g.strokeCircle(cx, cy, px * 1.6);
+    g.strokeCircle(cx, cy, px * 1.1);
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2;
+      g.fillStyle(0xd9c9ff);
+      g.fillCircle(cx + Math.cos(a) * px * 1.35, cy + Math.sin(a) * px * 1.35, 1.5);
+    }
+    g.fillStyle(0x6d4bd1);
+    g.fillTriangle(cx, cy - 7, cx - 4, cy, cx + 4, cy);
+    g.fillStyle(0xb99cff);
+    g.fillTriangle(cx, cy + 7, cx - 4, cy, cx + 4, cy);
+  },
   shrine(g, b) {
     g.fillStyle(0xf5e6a8, 0.35);
     g.fillCircle(b.x * px + px / 2, b.y * px + px / 2, px * 1.4);
@@ -129,7 +171,7 @@ export class BuildingView {
     const g = this.g;
     const used = new Set(sim.buildings.map((b) => b.plot));
     g.lineStyle(1, 0xffffff, 0.35);
-    for (const [kind, list] of [['plot', data.sanctuary.plots], ['home', data.sanctuary.homePlots ?? []]]) {
+    for (const [kind, list] of PLOT_KINDS.map((k) => [k, plotList(data, k)])) {
       list.forEach((p, i) => {
         if (used.has(`${kind}:${i}`)) return;
         dashedRect(g, p.x * px + 1, p.y * px + 1, p.w * px - 2, p.h * px - 2);
@@ -154,13 +196,32 @@ export class BuildingView {
       this.labels.push(label(this.scene, cx, b.ry * px - 1, `${def.name} (building)`, '#ffe9a8'));
       return;
     }
+    const x = b.rx * px;
+    const y = b.ry * px;
+    const w = b.w * px;
+    const h = b.h * px;
+    // A soft shadow to the lower right, so rooms stand up off the grass.
+    g.fillStyle(0x000000, 0.22);
+    g.fillRect(x + w, y + 4, 4, h);
+    g.fillRect(x + 4, y + h, w, 4);
     if (b.plot) {
       g.fillStyle(FLOOR);
-      g.fillRect(b.rx * px, b.ry * px, b.w * px, b.h * px);
+      g.fillRect(x, y, w, h);
     }
     FURNISH[b.type]?.(g, b, data);
-    g.lineStyle(2, color);
-    g.strokeRect(b.rx * px, b.ry * px, b.w * px, b.h * px);
+    if (effectsOf(data, b).training) {
+      // An open yard: a low fence instead of walls.
+      g.lineStyle(2, color);
+      g.strokeRect(x, y, w, h);
+    } else {
+      g.lineStyle(3, shade(color, 0.6));
+      g.strokeRect(x, y, w, h);
+      g.lineStyle(1, shade(color, 1.35), 0.8);
+      g.strokeRect(x + 2, y + 2, w - 4, h - 4);
+      // A doorway in the bottom wall.
+      g.fillStyle(0x6b4a2b);
+      g.fillRect(x + w / 2 - 5, y + h - 2, 10, 4);
+    }
     let text = b.level > 1 ? `${def.name} Lv${b.level}` : def.name;
     if (b.upgrade) {
       text += ` → Lv${nextUpgrade(data, b).level}`;
@@ -189,6 +250,11 @@ function signature(sim, data) {
     const p = jobProgress(data, b);
     return `${b.id}:${b.built ? 1 : 0}:${b.level}:${p == null ? '' : Math.floor(p * 20)}`;
   }).join('|') + `|${activeExpedition(sim)?.phase ?? ''}`;
+}
+
+function shade(color, f) {
+  const c = (v) => Math.min(255, Math.round(v * f));
+  return (c((color >> 16) & 255) << 16) | (c((color >> 8) & 255) << 8) | c(color & 255);
 }
 
 function label(scene, x, y, text, color) {

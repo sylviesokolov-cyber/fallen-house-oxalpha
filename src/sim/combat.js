@@ -1,20 +1,30 @@
 import { next } from './rng.js';
 import { skillLevel } from './skills.js';
-import { toolEffect } from './items.js';
+import { toolEffect, toolSum } from './items.js';
 
 // Turn-based fights between a party and a group of monsters. Everyone acts
 // once a round, fastest first (with a little luck). Heroes fight with
-// whichever style suits them best: the sword (STR) or the bow (AGI, strikes
-// first, stays out of reach more). Defense skill and VIT soak damage, and
-// good defenders draw the monsters' attention. Every line of the fight goes
-// into a battle report.
+// whichever style suits them best: the sword (STR), the bow (AGI, strikes
+// first, stays out of reach more) or, for those who know the Arcane Arts,
+// magic (INT: ignores armour, and a practised mage mends the wounded).
+// Defense skill, VIT and armour soak damage, and good defenders draw the
+// monsters' attention. Every line of the fight goes into a battle report.
 
-const HERO_VERB = { swordsmanship: 'strikes', archery: 'shoots' };
+const HERO_VERB = { swordsmanship: 'strikes', archery: 'shoots', magic: 'blasts' };
+
+function styleAttack(h, data) {
+  const sk = (s) => skillLevel(h, s);
+  const out = {
+    swordsmanship: (3 + h.stats.str * 0.8 + sk('swordsmanship') * 1.2) * toolEffect(h, data, 'swordsmanship', 'attack'),
+    archery: (3 + h.stats.agi * 0.8 + sk('archery') * 1.2) * toolEffect(h, data, 'archery', 'attack'),
+  };
+  if (h.knows.includes('arcana') && sk('magic') >= 1) out.magic = (3 + h.stats.int * 0.9 + sk('magic') * 1.4) * toolEffect(h, data, 'magic', 'attack');
+  return out;
+}
 
 export function heroFighter(h, data) {
-  const sword = (3 + h.stats.str * 0.8 + skillLevel(h, 'swordsmanship') * 1.2) * toolEffect(h, data, 'swordsmanship', 'attack');
-  const bow = 3 + h.stats.agi * 0.8 + skillLevel(h, 'archery') * 1.2;
-  const style = bow > sword ? 'archery' : 'swordsmanship';
+  const styles = styleAttack(h, data);
+  const style = Object.keys(styles).reduce((a, b) => (styles[b] > styles[a] ? b : a));
   const maxHp = maxHpOf(h);
   return {
     hero: true,
@@ -23,10 +33,12 @@ export function heroFighter(h, data) {
     style,
     maxHp,
     hp: (h.health / 100) * maxHp,
-    atk: Math.max(sword, bow),
-    def: h.stats.vit * 0.4 + skillLevel(h, 'defense'),
+    atk: styles[style],
+    def: h.stats.vit * 0.4 + skillLevel(h, 'defense') + toolSum(h, data, 'armor'),
     agi: h.stats.agi + (style === 'archery' ? 3 : 0),
-    aggro: (style === 'archery' ? 0.6 : 1) + skillLevel(h, 'defense') * 0.3,
+    aggro: (style === 'swordsmanship' ? 1 : 0.6) + skillLevel(h, 'defense') * 0.3,
+    heal: style === 'magic' && skillLevel(h, 'magic') >= data.dungeon.healFromMagic
+      ? 4 + h.stats.int * 0.8 + skillLevel(h, 'magic') * 1.2 : 0,
     attacks: 0,
     hitsTaken: 0,
     kills: [],
@@ -85,7 +97,9 @@ export function fight(state, data, heroes, monsters, lines) {
       if (a.hp <= 0) continue;
       const foes = standing(a.hero ? monsters : heroes);
       if (!foes.length) break;
-      attack(state, data, a, a.hero ? weakest(foes) : pickByAggro(state, foes), lines);
+      const hurt = a.heal && weakest(standing(heroes));
+      if (hurt && hurt.hp < hurt.maxHp * 0.4) mend(state, a, hurt, lines);
+      else attack(state, data, a, a.hero ? weakest(foes) : pickByAggro(state, foes), lines);
     }
     if (standing(heroes).length && standing(monsters).length && mustFlee(data, heroes)) {
       lines.push('The party turns and flees!');
@@ -116,6 +130,13 @@ function pickByAggro(state, heroes) {
   return heroes[0];
 }
 
+function mend(state, a, t, lines) {
+  const amount = Math.round(Math.min(t.maxHp - t.hp, a.heal * (0.8 + next(state.rng) * 0.4)));
+  t.hp += amount;
+  a.attacks++;
+  lines.push(`${a.name} mends ${t.name}'s wounds (+${amount}).`);
+}
+
 function attack(state, data, a, t, lines) {
   const hit = Math.max(0.4, Math.min(0.95, 0.75 + (a.agi - t.agi) * 0.015));
   if (a.hero) a.attacks++;
@@ -124,7 +145,8 @@ function attack(state, data, a, t, lines) {
     return;
   }
   const crit = next(state.rng) < (a.hero ? 0.05 + a.agi * 0.004 : data.dungeon.monsterCrit);
-  const dmg = Math.max(1, Math.round(a.atk * (0.8 + next(state.rng) * 0.4) * (crit ? 1.8 : 1) - t.def * 0.5));
+  const armour = a.style === 'magic' ? 0 : t.def * 0.5;
+  const dmg = Math.max(1, Math.round(a.atk * (0.8 + next(state.rng) * 0.4) * (crit ? 1.8 : 1) - armour));
   t.hp -= dmg;
   if (t.hero) t.hitsTaken++;
   const verb = a.hero ? HERO_VERB[a.style] : a.verb;

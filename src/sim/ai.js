@@ -29,17 +29,20 @@ import { addFeeling } from './mood.js';
 // training (or play) at the Training Ground, work in the grove and the field,
 // and building up the sanctuary on its plots.
 
-const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray', 'train', 'study', 'drink']);
+const INTERRUPTIBLE = new Set(['wander', 'idle', 'socialize', 'chat', 'pray', 'train', 'study', 'drink', 'recover', 'arcane']);
 // Work in progress: only a critical hunger cuts it short, so a job already
 // underway isn't abandoned lightly.
 const WORK = new Set(['gather', 'harvest', 'deposit', 'sleep', 'goSleep', 'craft', 'build']);
 
-// Called to the portal: everything else waits.
+// Called to the portal: everything else waits, except a meal when hungry.
 const CALLED = new Set(['toPortal', 'atPortal']);
+const EATING = new Set(['seekFood', 'eat']);
 
 export function updateHuman(state, data, h) {
-  if (h.called != null && !CALLED.has(h.action.type)) answerCall(state, data, h);
-  else if (shouldRethink(state, data, h)) chooseAction(state, data, h);
+  const hungry = h.needs.hunger < data.config.needs.hunger.seekBelow;
+  if (h.called != null && !CALLED.has(h.action.type) && !(hungry && EATING.has(h.action.type))) {
+    if (!(hungry && canSearchFood(state, h) && START.seekFood(state, data, h))) answerCall(state, data, h);
+  } else if (shouldRethink(state, data, h)) chooseAction(state, data, h);
   RUN[h.action.type](state, data, h);
 }
 
@@ -64,6 +67,7 @@ function shouldRethink(state, data, h) {
   const hungry = h.needs.hunger < n.hunger.seekBelow && canSearchFood(state, h);
   const tired = h.needs.energy < n.energy.sleepBelow;
   if (INTERRUPTIBLE.has(a.type)) return hungry || tired;
+  if (CALLED.has(a.type)) return h.needs.hunger < n.hunger.critical && canSearchFood(state, h);
   if (WORK.has(a.type)) return h.needs.hunger < n.hunger.critical && canSearchFood(state, h);
   return false;
 }
@@ -85,6 +89,11 @@ function chooseAction(state, data, h) {
   if (h.needs.social < n.social.seekBelow) {
     const urge = emotionEffect(h, data, 'socialize') * focusValue(state, data, 'socialize');
     options.push({ type: 'socialize', score: (100 - h.needs.social) * 0.8 * urge });
+  }
+  const infirmary = builtOfType(state, 'infirmary');
+  // Eat first: resting while starving only makes it worse.
+  if (infirmary && h.health < data.config.infirmary.seekBelow && h.needs.hunger >= n.hunger.seekBelow) {
+    options.push({ type: 'recover', score: data.config.infirmary.score + (100 - h.health) * 0.5 });
   }
   const tavern = builtOfType(state, 'tavern');
   if (tavern && state.stockpile.potato_ale > 0 && h.needs.social < data.config.tavern.socialBelow && stage !== 'child') {
@@ -108,7 +117,9 @@ function chooseAction(state, data, h) {
     if (craft) {
       // Cooks feel the pull of an empty meal store, as farmers do an empty larder.
       const wanted = state.humans.length * data.config.food.mealsPerPerson;
-      const urgency = craft.kind === 'meal' ? data.config.food.cookUrgency * (1 - mealsInStock(state, data) / wanted) : 0;
+      // Fighters waiting on gear, or an empty medicine chest, matter too.
+      const urgency = craft.kind === 'meal' ? data.config.food.cookUrgency * (1 - mealsInStock(state, data) / wanted)
+        : craft.tier || craft.kind === 'medicine' ? data.config.gearUrgency : 0;
       options.push({ type: 'craft', score: (14 + urgency + skillLevel(h, craft.skill) * 1.5 + next(state.rng) * 8) * work });
     }
     if (canSearchResource(state, h)) {
@@ -125,6 +136,11 @@ function chooseAction(state, data, h) {
       const score = (st.scoreBase + next(state.rng) * 8) * traitMod(h, data, 'studyWeight') * keen
         * focusValue(state, data, 'discovery');
       options.push({ type: 'study', score });
+    }
+    if (h.knows.includes('arcana') && builtOfType(state, 'mage_tower')) {
+      const ar = data.config.arcane;
+      const score = (ar.scoreBase + next(state.rng) * 8) * traitMod(h, data, 'studyWeight') * keen * focusValue(state, data, 'train');
+      options.push({ type: 'arcane', score });
     }
     if (h.knows.includes('fighting')) {
       const score = (train.scoreBase + next(state.rng) * 8) * traitMod(h, data, 'trainWeight') * keen * focusValue(state, data, 'train');
@@ -339,6 +355,23 @@ const START = {
     return true;
   },
 
+  // The wounded rest in an Infirmary bed until they're nearly whole.
+  recover(state, data, h) {
+    const inf = builtOfType(state, 'infirmary');
+    const route = inf && toRoom(state, data, h, inf, true);
+    if (!route) return false;
+    h.action = { type: 'recover', buildingId: inf.id, ...route };
+    return true;
+  },
+
+  arcane(state, data, h) {
+    const tower = builtOfType(state, 'mage_tower');
+    const route = tower && toRoom(state, data, h, tower);
+    if (!route) return false;
+    h.action = { type: 'arcane', buildingId: tower.id, ticks: data.config.arcane.ticks, ...route };
+    return true;
+  },
+
   drink(state, data, h) {
     const tavern = builtOfType(state, 'tavern');
     const route = tavern && toRoom(state, data, h, tavern);
@@ -548,6 +581,31 @@ const RUN = {
     const st = data.config.study;
     gainXp(state, data, h, 'research', data.skillsById.research.xpPerAction);
     tryDiscover(state, data, h, st.discoveryBoost * (1 + skillLevel(h, 'research') * 0.1), st.thresholdFactor);
+  },
+
+  recover(state, data, h) {
+    const a = h.action;
+    if (a.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    const inf = buildingById(state, a.buildingId);
+    const rate = (inf && buildingEffect(data, inf, 'healRate')) ?? 1;
+    h.health = Math.min(100, h.health + data.config.needs.health.regen * (rate - 1));
+    if (h.health >= data.config.infirmary.leaveAt) a.done = true;
+  },
+
+  // Practice at the Mage Tower builds Magic.
+  arcane(state, data, h) {
+    const a = h.action;
+    if (a.path.length) {
+      stepAlongPath(state, data, h);
+      return;
+    }
+    h.needs.energy = Math.max(0, h.needs.energy - 0.1);
+    if (--a.ticks > 0) return;
+    a.done = true;
+    gainXp(state, data, h, 'magic', data.skillsById.magic.xpPerAction);
   },
 
   // A mug of ale in company: a big lift to social needs, and a bond with

@@ -17,8 +17,22 @@ const SAVE_KEY = 'godsim.save';
 const REFRESH_MS = 200;
 const PANELS = ['inspect', 'log', 'tribe', 'menu', 'omen', 'portal'];
 
+const SEASON_ICON = { Spring: '🌱', Summer: '☀️', Autumn: '🍂', Winter: '❄️' };
+const NEWS = [
+  [/ had a /, '👶'],
+  [/died|starved|slain|struck down|fell to|never came back/, '🕯️'],
+  [/discovered/, '💡'],
+  [/was finished|was upgraded/, '🏠'],
+  [/slew|lies open/, '⚔️'],
+  [/came home from/, '🌀'],
+  [/became partners/, '💞'],
+  [/moved into/, '🏡'],
+  [/became Warden/, '👑'],
+];
+
 export function createHud(ctx) {
   let lastRefresh = 0;
+  let newsSeen = null;
   let logKey = null;
   let toastTimer = null;
 
@@ -76,7 +90,7 @@ export function createHud(ctx) {
         selectPower(turnOn ? p.id : null);
       });
       b.dataset.power = p.id;
-      b.append(el('span', null, p.label ?? p.name), el('span', 'cost', p.cost ? `${p.cost} faith` : 'dungeon'));
+      b.append(el('span', null, `${p.icon ?? ''} ${p.name}`.trim()), el('span', 'cost', p.cost ? `${p.cost} faith` : 'dungeon'));
       return b;
     }),
   );
@@ -148,12 +162,13 @@ export function createHud(ctx) {
   function renderTopBar() {
     const { sim, data } = ctx;
     const d = dateOf(sim.tick, data.config.time);
-    $('date').textContent = `Day ${d.day} · ${d.season}, Year ${d.year}`;
-    $('pop').textContent = `Faith ${Math.floor(sim.faith)} · Pop ${sim.humans.length}/${populationCap(sim, data)}`;
+    $('date').textContent = `${SEASON_ICON[d.season] ?? ''} Day ${d.day} · ${d.season}, Year ${d.year}`;
+    $('pop').textContent = `✨ ${Math.floor(sim.faith)} · 👥 ${sim.humans.length}/${populationCap(sim, data)}`;
     for (const b of $('power-buttons').children) b.classList.toggle('poor', sim.faith < data.powersById[b.dataset.power].cost);
     const s = sim.stockpile;
-    const ale = s.potato_ale ? ` · Ale ${s.potato_ale}` : '';
-    $('stock').textContent = `Wood ${s.wood} · Potatoes ${s.food} · Meals ${mealsInStock(sim, data)}${ale}`;
+    const extra = [['🍺', s.potato_ale], ['🍖', s.meat], ['⛏️', s.ore], ['💎', s.mana_crystal], ['🌿', s.herbal_remedy]]
+      .filter(([, n]) => n > 0).map(([icon, n]) => ` · ${icon} ${n}`).join('');
+    $('stock').textContent = `🪵 ${s.wood} · 🥔 ${s.food} · 🍲 ${mealsInStock(sim, data)}${extra}`;
   }
 
   function renderLog() {
@@ -164,8 +179,40 @@ export function createHud(ctx) {
     $('log-list').replaceChildren(...hist.slice().reverse().map((e) => el('li', null, formatEntry(e, ctx.data.config.time))));
   }
 
+  // Big moments in anyone's life pop up as a banner for a few seconds.
+  function renderNews() {
+    const hist = ctx.sim.history;
+    const last = hist.at(-1);
+    if (newsSeen == null || newsSeen.sim !== ctx.sim) {
+      newsSeen = { sim: ctx.sim, entry: last };
+      return;
+    }
+    if (last === newsSeen.entry) return;
+    const start = hist.lastIndexOf(newsSeen.entry) + 1;
+    newsSeen.entry = last;
+    const news = hist.slice(start).map((e) => [NEWS.find(([re]) => re.test(e.text)), e]).filter(([kind]) => kind);
+    for (const [kind, e] of news.slice(-2)) showNews(kind[1], e.text);
+  }
+
+  function showNews(icon, text) {
+    const box = $('news');
+    box.style.top = `${$('topbar').offsetHeight + 8}px`;
+    while (box.children.length >= 2) box.firstChild.remove();
+    const item = button('news-item', '', () => {
+      item.remove();
+      logKey = null;
+      showPanel('log');
+      refresh();
+    });
+    item.append(el('span', 'news-icon', icon), el('span', null, text));
+    box.append(item);
+    setTimeout(() => item.classList.add('fade'), 4500);
+    setTimeout(() => item.remove(), 5200);
+  }
+
   function refresh() {
     renderTopBar();
+    renderNews();
     if (isOpen('inspect') && !sheet.render()) showPanel(null);
     if (isOpen('log')) renderLog();
     if (isOpen('tribe')) tribe.render();

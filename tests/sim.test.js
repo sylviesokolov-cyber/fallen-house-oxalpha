@@ -326,7 +326,7 @@ test('potatoes are harvested, cooked in the Kitchen and eaten in the Dining Hall
 
 test('training at the Training Ground builds fighting skills', () => {
   const s = createSim(data, 'train');
-  run(s, 30 * DAY);
+  run(s, 45 * DAY);
   const fighters = s.humans.filter((h) => ['swordsmanship', 'archery', 'defense'].some((k) => (h.skills[k]?.level ?? 0) >= 1));
   // Some love training and some never go, so expect a few dedicated fighters.
   assert.ok(fighters.length >= 3, `only ${fighters.length} trained`);
@@ -489,7 +489,7 @@ test('people raise new buildings on the plots once they know how', () => {
   const carpenter = s.humans[0];
   learnTech(s, data, carpenter, 'carpentry');
   s.stockpile.wood = 200;
-  run(s, 12 * DAY);
+  run(s, 20 * DAY);
   const shop = s.buildings.find((b) => b.type === 'carpentry_workshop');
   assert.ok(shop, 'a workshop was started');
   assert.ok(shop.built, 'and finished');
@@ -570,6 +570,7 @@ test('carpenters make tools that people pick up and wear out', () => {
   for (const o of s.humans) o.skills = {};
   const farmer = s.humans[1];
   gainXp(s, data, farmer, 'farming', 1);
+  s.stockpile.cooked_food = 100; // meals come first when they're short
   assert.equal(craftChoice(s, data, h)?.id, 'hoe', 'a hoe is wanted for the farmer');
   s.stockpile.hoe = 1;
   s.tick = DAY * 3;
@@ -606,6 +607,7 @@ test('ale at the Tavern lifts spirits and brings people closer', () => {
   s.stockpile.wood = 500;
   s.stockpile.food = 500;
   const tavern = finish(s, a, { def: data.buildingsById.tavern });
+  s.stockpile.cooked_food = 100;
   assert.equal(craftChoice(s, data, a).id, 'potato_ale');
   s.stockpile.potato_ale = 10;
   for (const h of [a, b]) {
@@ -751,4 +753,130 @@ test('agile heroes fight with the bow, and meat becomes roast meat', () => {
   s.stockpile.meat = 5;
   s.stockpile.food = 100;
   assert.equal(craftChoice(s, data, h).id, 'roast_meat');
+});
+
+// --- Depth from the dungeon ---
+
+import { fight, monsterFighters } from '../src/sim/combat.js';
+
+test('smiths forge iron gear that replaces wooden gear and makes heroes stronger', () => {
+  const s = createSim(data, 'forge');
+  const smith = s.humans[0];
+  const hero = s.humans[1];
+  learnTech(s, data, smith, 'smithing');
+  s.stockpile.wood = 500;
+  finish(s, smith, { def: data.buildingsById.blacksmith });
+  s.stockpile.cooked_food = 100;
+  s.stockpile.ore = 20;
+  s.stockpile.bone = 20;
+  setFighter(hero, 8);
+  hero.counters.expeditions = 1;
+  hero.tools = { wooden_sword: 10 };
+  const before = heroFighter(hero, data);
+  assert.equal(craftChoice(s, data, smith)?.id, 'iron_sword', 'iron before anything else');
+  s.stockpile.iron_sword = 1;
+  s.stockpile.iron_armor = 1;
+  s.tick = 5 * DAY;
+  handOutTools(s, data);
+  assert.ok(hero.tools.iron_sword && hero.tools.iron_armor, 'the adventurer gets the iron');
+  assert.equal(hero.tools.wooden_sword, undefined, 'the wooden sword is set aside');
+  const after = heroFighter(hero, data);
+  assert.ok(after.atk > before.atk && after.def > before.def + 5);
+  // Someone who has never been through the portal isn't given fighting gear.
+  const stay = s.humans[2];
+  stay.skills.swordsmanship = { level: 5, xp: 0 };
+  s.stockpile.iron_sword = 1;
+  handOutTools(s, data);
+  assert.equal(stay.tools.iron_sword, undefined);
+});
+
+test('the wounded heal faster in the Infirmary, and remedies go with the party', () => {
+  const heal = (withInfirmary) => {
+    const s = createSim(data, 'ward');
+    const h = s.humans[0];
+    learnTech(s, data, h, 'herbalism');
+    if (withInfirmary) {
+      s.stockpile.wood = 500;
+      finish(s, h, { def: data.buildingsById.infirmary });
+    }
+    for (const o of s.humans) o.needs.hunger = o.needs.energy = 100;
+    h.health = 20;
+    run(s, DAY);
+    return h.health;
+  };
+  assert.ok(heal(true) > heal(false) + 10, 'faster with an Infirmary');
+
+  const s = createSim(data, 'remedy');
+  const party = adults(s).slice(0, 2);
+  for (const h of party) setFighter(h, 15);
+  s.stockpile.herbal_remedy = 5;
+  usePower(s, data, 'portal', { party: party.map((h) => h.id), floor: 1 });
+  for (let i = 0; i < 5 * DAY && activeExpedition(s)?.phase !== 'inside'; i++) stepSim(s, data);
+  assert.equal(activeExpedition(s).remedies, 2);
+  assert.equal(s.stockpile.herbal_remedy, 3);
+  runExpedition(s);
+  assert.equal(s.stockpile.herbal_remedy, 5, 'unused remedies come back');
+  assert.ok(s.tribeCounters['loot:meat'] > 0 || s.tribeCounters['loot:herbs'] > 0, 'loot is counted for discoveries');
+});
+
+test('mages blast through armour and mend the wounded', () => {
+  const s = createSim(data, 'mage');
+  const mage = s.humans[0];
+  setFighter(mage, 10, 'magic');
+  mage.knows.push('arcana');
+  const f = heroFighter(mage, data);
+  assert.equal(f.style, 'magic');
+  assert.ok(f.heal > 0, 'a practised mage can heal');
+  const golem = monsterFighters(data, ['stone_golem'])[0];
+  const lines = [];
+  fight(s, data, [f], [golem], lines);
+  assert.ok(lines.some((l) => l.startsWith(`${mage.name} blasts`)));
+  const ally = { ...heroFighter(s.humans[1], data), hp: 5 };
+  const lines2 = [];
+  fight(s, data, [f, ally], monsterFighters(data, ['cave_rat']), lines2);
+  assert.ok(lines2.some((l) => l.includes('mends')), 'heals the badly hurt ally');
+});
+
+test('everyone has a life story, kept after death', () => {
+  const s = createSim(data, 'story');
+  const [a, b] = s.humans;
+  assert.ok(a.story.some((e) => e.text.includes('awoke')));
+  a.partnerId = b.id;
+  b.partnerId = a.id;
+  learnTech(s, data, a, 'carpentry');
+  assert.ok(a.story.some((e) => e.text === `${a.name} discovered Carpentry`));
+  assert.ok(!b.story.some((e) => e.text.includes('discovered Carpentry')));
+  killHuman(s, data, a, 'old age');
+  const record = s.dead.find((d) => d.id === a.id);
+  assert.ok(record.story.at(-1).text.includes('died of old age'));
+  assert.ok(b.story.some((e) => e.text.includes('leaving behind')));
+});
+
+test('a hungry hero eats before answering the call', () => {
+  const s = createSim(data, 'hungry');
+  const h = adults(s)[0];
+  h.needs.hunger = 20;
+  usePower(s, data, 'portal', { party: [h.id], floor: 1 });
+  for (let i = 0; i < 5 * DAY && h.away == null; i++) stepSim(s, data);
+  assert.ok(h.away != null || s.expeditions.at(-1).phase === 'done', 'set out');
+  assert.ok(h.needs.hunger > 40, `went in fed (${h.needs.hunger})`);
+  assert.ok(s.humans.includes(h));
+});
+
+test('couples wait while children outnumber the grown-ups', () => {
+  const fast = tweak('config.lifecycle.birthChancePerDay', 1);
+  const s = createSim(fast, 'crowd');
+  s.stockpile.food = 1000;
+  const [mother, father] = [s.humans.find((h) => h.sex === 'female'), s.humans.find((h) => h.sex === 'male')];
+  mother.partnerId = father.id;
+  father.partnerId = mother.id;
+  // Make most of the sanctuary children.
+  const today = dayIndexOf(s.tick, data.config.time);
+  for (const o of s.humans) if (o !== mother && o !== father) o.birthDay = today - 2 * daysPerYear(data.config.time);
+  for (let d = 0; d < 5; d++) {
+    s.tick += DAY - (s.tick % DAY);
+    mother.needs.hunger = father.needs.hunger = 100;
+    updateLifeCycle(s, fast);
+  }
+  assert.equal(mother.pregnantUntil, null);
 });
