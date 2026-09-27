@@ -1,14 +1,22 @@
 # Game Design Document
 
+> **Direction change (Sept 2026).** The game started as an open-world
+> civilization sim (phases 1–6.5, see git history before this file changed).
+> It is now a **walled sanctuary** game in the spirit of *Pick Me Up,
+> Infinite Gacha*: a small, closed home where every person is a hero whose
+> life you follow closely, who grow by training, building and venturing
+> through a portal into dangerous dungeons. Most systems built so far carry
+> over (see "What carries over").
+
 ## Game Concept
 
-A 2D god-simulation / civilization sim for Android (portrait) and web.
+A 2D life-and-growth sim for Android (portrait) and web.
 
-The player is a god watching over a small tribe of ordinary humans. The player **cannot** directly control anyone. Humans are autonomous: they meet their own needs, learn skills by doing, form bonds, teach each other, make discoveries, and slowly build a civilization. The player influences the world indirectly through god powers.
+A small community lives inside an **enclosed, walled sanctuary**. They are autonomous: they eat, sleep, train, work, fall in love, raise children, discover new knowledge and slowly build their home up, building by building. For anything the sanctuary can't provide (meat, spices, ore, magic crystals) they must step through a **portal** into dungeons full of monsters, where death is real.
 
-The heart of the game is **emergent stories**: watching individuals grow, bond, discover, and die, recorded in a history log.
+The pace is **slow on purpose**: few people, long lives, so that **every life feels significant**. Each person has a grade, stats, a level, skills, traits, emotions, relationships and a history. Births and deaths are major events.
 
-Reference feel: WorldBox + RimWorld + Black & White.
+Reference feel: *Pick Me Up, Infinite Gacha* (heroes with grades, stats, levels, dungeon floors), RimWorld (autonomous colonists with needs and moods), Stardew Valley (a small home that grows).
 
 ## Tech Stack (fixed; do not change)
 
@@ -21,170 +29,114 @@ Reference feel: WorldBox + RimWorld + Black & White.
 
 ## Architecture Rules
 
-1. **Simulation is separate from rendering.**
-   - `/src/sim/` holds pure JS game logic. No Phaser imports allowed there.
-   - `/src/render/` and `/src/scenes/` hold Phaser code that *reads* sim state and draws it.
-   - The sim runs at a fixed tick rate (default 4 ticks/sec) with speed controls (pause, 1x, 2x, 4x).
-2. **Seeded random number generator.**
-   - All randomness in the sim goes through a seeded RNG (e.g. mulberry32).
-   - Never use `Math.random()` in `/src/sim/`.
-3. **Data-driven content.**
-   - Skills, techs, buildings, items, traits, and resources are defined in JSON files in `/data/`.
-   - Adding content should mean editing JSON, not code.
-4. **Save/load.**
-   - The whole sim state must be serializable to JSON (no functions or class instances that can't be rebuilt).
-5. **History log.**
-   - Every notable event is pushed to a history log with the in-game date,
-     e.g. "Year 3, Spring: Mara discovered Fire", "Year 5: Tomas and Lia became friends".
+1. **Simulation is separate from rendering.** `/src/sim/` is pure JS (no Phaser, DOM or `Math.random()`); `/src/render/`, `/src/scenes/` and `/src/ui/` read sim state and draw it. Fixed tick rate (4 ticks/sec) with pause/1x/2x/4x.
+2. **Seeded RNG** for all sim randomness.
+3. **Data-driven content** in `/data/*.json`: adding a building, recipe, monster or tech should mean editing JSON, not code.
+4. **Save/load:** the whole sim state is plain JSON.
+5. **History log:** every notable event is recorded with its in-game date.
 6. Keep files small and focused. Comment the non-obvious logic.
 
-### Suggested structure
+## The Sanctuary (the world)
 
-```
-/index.html
-/src/main.js
-/src/scenes/   (BootScene, WorldScene, UIScene)
-/src/render/   (map, humans, effects)
-/src/sim/      (world.js, human.js, needs.js, ai.js, skills.js, bonds.js, discovery.js,
-                godPowers.js, time.js, rng.js, history.js, save.js)
-/data/         (traits.json, skills.json, techs.json, buildings.json, items.json, resources.json)
-/assets/       (placeholder shapes for now)
-```
+A small enclosed map (roughly 40×40 tiles) surrounded by a **wall**. Nobody can leave except through the portal.
 
-## Simulation Design (full vision; build in phases)
+Zones:
+- **Core:** the starting buildings, and empty **building plots** where new buildings go.
+- **Tree grove:** a small wood of trees that regrow. The only source of wood.
+- **Farm field:** grows **potatoes only**, in every season but winter.
+- **Portal:** a gate at the edge of the sanctuary that leads to the dungeons.
 
-### World
+There is no stone, clay or ore inside the walls. Everything beyond wood and potatoes comes from the portal.
 
-- Tile grid (start 64x64). Tiles: grass, water, forest, stone, sand, and later fertile soil and ore.
-- Resources on tiles: berry bushes, trees (wood), stone, animals, clay near water.
-- Resources regrow over time.
-- Time: ticks -> days -> seasons -> years. Seasons affect food growth.
+**Inside the walls people heal on their own**, slowly and fully, from any wound. Only three things kill inside: old age, starvation, and a blow big enough to kill in one hit (which can only happen in the dungeon, so in practice: old age and starvation).
 
-### Humans (each is a unique individual)
+## Starting State
 
-- Name, age, sex, generated from simple name lists.
-- **Needs** (0-100): hunger, energy, safety, social. Unmet needs lower health and mood.
-- **Traits** (1-3 each, from `traits.json`): curious, brave, lazy, kind, clever, aggressive, patient, etc.
-  Traits modify decision weights and learning speed.
-- **Skills** (from `skills.json`), each with a level and XP:
-  Foraging, Hunting, Woodcutting, Crafting, Building, Cooking, Farming, Healing, Teaching, Research, and so on.
-  Skills are **learned by doing**: performing an action gives XP in the related skill. Nobody starts as a specialist.
-- **Knowledge**: a set of known techs. A human can only use a tech/building/item they know.
-- **Mood**: derived from needs, bonds, and events.
-- **Life cycle**: children -> adults -> elders -> death (old age, starvation, injury, disease).
-  Couples with strong bonds can have children. Children inherit some traits.
-- Knowledge that nobody else knows is **lost** when its holder dies (important for drama).
+A handful of adults (default 8) and these buildings, all already built:
 
-### AI / Decision Making
+| Building | Purpose |
+|---|---|
+| **Great Hall** | One large room where everyone sleeps. |
+| **Kitchen** | Where food is cooked. |
+| **Dining Hall** | Where people eat together (eating together is social and lifts mood). |
+| **Training Ground** | Where people train, raising stats and combat skills. |
 
-- Utility AI: each tick, an idle human scores possible actions (eat, sleep, gather, socialize, build, research, teach, explore, flee)
-  based on needs, traits, skills, and known techs, then picks the best (with a little randomness).
-- Actions take multiple ticks: move to target, perform, finish.
-- Simple pathfinding on the tile grid (A* or BFS; keep it cheap).
+**Starting knowledge** (everyone knows these): potato farming, woodcutting, simple cooking (boiled potatoes), basic construction, basic fighting. Everything else must be discovered.
 
-### Bonds / Relationships
+## People (heroes)
 
-- Each pair of humans has a relationship value (-100 to 100) and a type: stranger, acquaintance, friend, close friend, rival, partner, family.
-- Relationships change from spending time together, shared work, helping each other, conflicts, and trait compatibility.
-- **Teaching**: bonded humans can teach known techs and skill XP to each other.
-  Better bonds + Teaching skill = faster transfer. This is how knowledge spreads.
-- Notable relationship changes go to the history log.
+Kept from the current build, and deepened:
 
-### Discovery & Research
+- **Grade** ★1 Common to ★5 Legendary: potential. Higher grades start stronger and grow faster. Children take after their parents.
+- **Stats:** STR, AGI, INT, VIT, CHA. They grow on level-up, toward what the person actually does.
+- **Level:** all XP from work, training and combat counts toward it.
+- **Skills**, learned by doing: farming, woodcutting, cooking, building, carpentry, smithing, crafting, teaching, research, and the **combat skills** (swordsmanship, archery, defense, magic).
+- **Traits**, **emotions** and **thoughts**; **relationships** (friends, rivals, partners, family); **teaching**.
+- **HP** (health) matters now: combat damages it; inside the walls it slowly returns.
+- **Life cycle:** child → adult → elder → death by old age. **Births:** a man and a woman who become partners can conceive; pregnancy lasts a while; the child is born inside the sanctuary and grows up there.
+- Each person keeps a **personal history** (key events: born, first discovery, first dungeon, kills, injuries, children, deaths of loved ones) shown on their character sheet.
 
-- Techs in `techs.json` have: id, name, era, prerequisites, discovery conditions, and what they unlock (buildings, items, actions).
-- Early techs are discovered by **chance** when conditions are met, e.g.:
-  - **Fire**: human is curious, near a lightning-struck tree or dry forest, has high Woodcutting.
-  - **Stone Tools**: repeated gathering of stone, Crafting >= 2.
-  - **Shelter**: tribe experienced cold/rain, Building or Woodcutting >= 3.
-  - **Pottery**: knows Fire, has handled clay many times.
-  - **Farming**: repeated foraging of berries near fertile soil, patient or clever trait.
-- Chance increases with the curious/clever traits, relevant skill levels, and god inspiration.
-- Later (after Writing + a building like a hut of learning), deliberate **research** becomes possible: humans with high Research skill spend time studying and generate research points toward chosen techs.
-- Eras: Primitive -> Tribal -> Village -> Early Civilization (expand later).
+## Knowledge and Discovery
 
-Example tech JSON:
+People start with the basics above. Everything else is **discovered**, the way it works now: people who do things and are near the right things may discover something new. Traits (curious, clever), INT and the Inspire power help. Knowledge spreads by teaching and is **lost** if the last person who knows it dies.
 
-```json
-{
-  "id": "fire",
-  "name": "Fire",
-  "era": "primitive",
-  "prerequisites": [],
-  "discovery": {
-    "type": "chance",
-    "baseChance": 0.0005,
-    "conditions": [
-      { "type": "nearTileFeature", "feature": "burningTree", "radius": 3 },
-      { "type": "skillMin", "skill": "woodcutting", "level": 1 }
-    ],
-    "traitBonus": { "curious": 2.0, "clever": 1.5 }
-  },
-  "unlocks": { "buildings": ["campfire"], "actions": ["cook"] }
-}
-```
+Discoveries now unlock **buildings, building upgrades, recipes, gear and magic**, for example:
+- **Carpentry:** a Carpentry Workshop; wooden tools, furniture, bows.
+- **Smithing:** needs ore from the portal; a Blacksmith; metal tools, weapons, armour.
+- **Recipes:** found by cooks experimenting with ingredients (potato only at first; meat, herbs and spices from the dungeon open many more).
+- **Herbalism / medicine:** faster healing, remedies for dungeon injuries.
+- **Writing:** a Library; deliberate research.
+- **Magic:** needs mana crystals from the portal; a Mage Tower; spells for combat and daily life.
 
-### Buildings & Items
+## Building and Upgrading
 
-- Buildings (`buildings.json`): campfire, lean-to, hut, storage pit, shrine, farm plot, workshop, and more later.
-  They need known tech + resources + Building skill. Humans decide by themselves when to build.
-- Items (`items.json`): stone axe, spear, basket, pottery, cooked food, etc. They boost actions.
+- New buildings go on the **fixed building plots**.
+- **The people decide for themselves** what to build, when someone knows how and the materials exist (as now). The player can steer this with an Omen.
+- Buildings have **levels**. Upgrading needs materials and sometimes a discovery, and unlocks more (e.g. Kitchen Lv2: new recipes; Training Ground Lv2: faster training; Great Hall → private family houses).
 
-### God Powers (player's only way to act)
+Planned buildings (JSON, extendable): Carpentry Workshop, Storehouse, Blacksmith, Infirmary, Library, Family Houses, Mage Tower, Tavern.
 
-- Powers cost **faith**. Faith is generated when humans worship (mainly at a Shrine, and after witnessing miracles).
-- Starting powers: **Rain** (grows plants, puts out fire), **Lightning** (can start fires; dangerous),
-  **Spawn Food** (berries/animals), **Bless** (temporary boost to one human's mood and learning),
-  **Inspire** (a dream that raises one human's discovery chance for a while).
-- Later: Drought, Flood, Plague, Heal, Fertility, Omen (changes the tribe's beliefs).
-- The player selects a power from a bottom toolbar and taps a tile or human.
+## Food
 
-## UI (portrait, touch)
+- **Potatoes** from the field: eaten raw (poor), or cooked in the Kitchen and eaten in the Dining Hall.
+- **Recipes** turn ingredients into meals. Better meals fill more and lift mood (thoughts like "+8 Ate a hearty stew").
+- **Dungeon ingredients** (meat, herbs, spices, eggs…) unlock most recipes.
+- Food is stored in the Kitchen / a Storehouse and spoils slowly.
 
-- Main view: map with drag-to-pan and pinch-to-zoom.
-- Top bar: date, speed controls, Faith, population.
-- Bottom toolbar: god powers.
-- Tap a human -> inspect panel: name, age, traits, needs bars, skills, known techs, top relationships, current action.
-- History log panel (scrollable).
-- Tech panel showing what the tribe knows (discovered only; unknown techs hidden as "???").
+## The Portal and Dungeons
 
-## Phase Roadmap
+The portal leads to **dungeon floors** of rising difficulty.
 
-1. **World + wandering humans + basic needs** — done
-2. **Actions and resources (gather, eat, sleep, regrowth, death by starvation)** — done
-3. **Traits, skills learned by doing, inspect panel details** — done
-4. **Relationships, socializing, teaching, families, births** — done
-5. **Discovery system + first 10 techs + first buildings and items** — done
-6. **God powers + Faith + Shrine and worship** — done
-6.5. **Heroes, emotions, settlement tiers, Omens, Tribe tab** — done (see "Heroes and the road to a kingdom" below)
-7. Colonies: groups leave to found new settlements, which join into one kingdom; deliberate research and eras
-8. Multiple tribes, trade and conflict
-9. Polish, art, sound, save slots, Capacitor APK
+- A **party** (1–5 heroes) goes in, clears rooms of **monsters**, and comes back with **loot**: meat, ingredients, ore, monster parts, mana crystals, rare items.
+- **Combat** uses stats, combat skills, weapons and armour: STR/AGI for attacks, VIT for HP and defence, INT for magic. Each fight grows the fighters' combat skills and levels.
+- **Danger is real.** HP does not recover inside the dungeon. A hero at 0 HP is **dead**, unless someone carries them out in time. A strong enough blow kills in one hit. Parties can retreat.
+- Fights are shown as a **battle report**: a turn-by-turn log the player can open, in the style of the manhwa.
+- Each floor has a **boss**; clearing it opens the next floor and is a history event.
 
-## Heroes and the road to a kingdom
+## The Player's Role
 
-Inspired by hero-collection stories (e.g. *Pick Me Up, Infinite Gacha*): every person should matter as an individual.
+To be decided (see open questions). Current assumption: the player is an unseen **patron god**, as now:
+- **Faith** from worship and witnessed miracles.
+- Powers that fit a closed sanctuary: **Bless** (heal and inspire growth), **Inspire** (discovery), **Omen** (set the community's focus). Rain, Lightning and Food spawning are removed or reworked.
+- Possibly: choosing who goes through the portal (open question).
 
-- **Grade** (★1 Common to ★5 Legendary, `data/grades.json`): a person's potential. Higher grades start with bonus stats and gain more stat points per level. Children usually take after their parents, give or take a star.
-- **Stats** (`data/stats.json`): STR, AGI, INT, VIT, CHA. Each skill trains one stat (`skills.json` `stat`), and each stat speeds up the skills that use it. STR also raises carrying capacity, INT learning and discovery, VIT resistance to hunger, fatigue and starvation, and CHA friendship, teaching and leadership.
-- **Level**: all skill XP also counts as character XP. Each level-up gives stat points, weighted toward the stats the person actually uses, so a woodcutter grows strong and a teacher charismatic. Class/title comes from their best skill ("Master Woodcutter").
-- **Emotions** (`data/emotions.json`): Starving, Grieving, Angry, Lonely, Joyful, Happy, Content, Sad, Miserable, derived from needs, mood and feelings. They change how keen someone is to work, socialize or learn, and how quick they are to argue.
-- **Thoughts**: lasting feelings with a mood value (discovered something, argued, slept in the cold or a warm bed, ate a cooked meal, levelled up, made a friend or rival, grief, love, a new child, being blessed). Tuned in `config.feelings`.
-- **Settlement tiers** (`data/settlements.json`): Camp, Village, Town, City, Kingdom. Each needs a number of people, known techs and buildings (and later a Shrine and Hut, then high-level heroes), and raises the population cap. The settlement has a leader chosen by charisma and level, whose title grows with it (Chief, Elder, Lord/Lady, High Lord/Lady, King/Queen), and whose charisma makes everyone a little keener to work.
-- **Omens** (`data/focuses.json`): the player's way to steer the tribe without controlling anyone. An Omen sets the tribe's calling for 10 days: Build (more building, spare homes planned), Gather, Harvest (store food, more fields), Family (more chatting and births), Worship (more prayer and devotion) or Knowledge (easier discovery and teaching).
-- **Tribe tab**: Overview (leader, current omen, progress to the next tier, tribe statistics), People (every hero by level, with grade, class and emotion), Items (stockpile, tools, buildings) and Tech.
+## What Carries Over From the Current Build
 
-### Phase 1 scope
+Kept: people and needs, AI, grades/stats/levels, skills, traits, emotions and thoughts, relationships and teaching, families and births, old age, per-person knowledge, discovery and teaching of techs, history log, character sheet, Tribe tab, save/load, god powers (reworked).
 
-1. Project structure, `index.html` loading Phaser 3 from CDN, ES modules.
-2. Seeded RNG in `/src/sim/rng.js`.
-3. 64x64 tile world with grass, water, forest, and stone from simple noise; berry bushes on grass. Colored rectangles as placeholder art.
-4. Camera: drag to pan, pinch to zoom, clamped to world bounds. Works with touch and mouse.
-5. 10 humans with names, ages, and hunger and energy needs that slowly decrease.
-6. Behavior: wander randomly; when hungry, walk to the nearest berry bush and eat; when tired, sleep in place.
-7. Fixed-tick sim loop (4 ticks/sec) separate from rendering; humans move smoothly between tiles.
-8. Top bar with in-game day counter and pause / 1x / 2x / 4x buttons.
-9. Tap a human to open an inspect panel (name, age, needs, current action).
-10. History log: "Day X: [Name] was born into the world" at start, plus starvation deaths.
-11. Save and load to localStorage (top bar buttons).
-12. GitHub Pages deployment.
+Replaced: the open noise-generated world, berry bushes, stone and clay deposits, lightning-started fire, the camp → kingdom settlement tiers, campfire/lean-to/hut/storage-pit/farm-plot buildings placed anywhere, and the planned colonies.
+
+## Roadmap
+
+A. **The Sanctuary.** The walled map with zones and plots, the four starting buildings, potatoes and trees, eating in the Dining Hall, sleeping in the Great Hall, training at the Training Ground, auto-healing inside the walls, starting knowledge. Old world systems removed.
+B. **Building and upgrading.** Plots, building levels, the people deciding what to build; a new discovery tree for the sanctuary (carpentry, writing, recipes…); recipes from potatoes.
+C. **The Portal.** Parties, dungeon floors, monsters, combat and battle reports, loot, injuries and death, bosses.
+D. **Depth from the dungeon.** Smithing and gear, recipes with dungeon ingredients, herbalism, magic and the Mage Tower, family houses.
+E. **Polish.** Art, sound, save slots, Capacitor APK.
+
+## Open Questions
+
+1. **Who goes through the portal?** The player picks the party and floor (recommended, the most Pick Me Up–like), or the people volunteer on their own (brave, strong, bored).
+2. **The player's role:** stay an unseen god with Faith and powers, or become the sanctuary's master who gives orders (build here, train this person)?
+3. **Starting size:** 8 adults? Where do they come from (always there, or summoned into the sanctuary)?
+4. **Pace:** each year is 30 minutes of real time at 1x now. Slower still, or keep it?
