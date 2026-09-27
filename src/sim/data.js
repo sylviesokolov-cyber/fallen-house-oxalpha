@@ -12,5 +12,8 @@ export function prepareData(raw) {
     buildingsById: byId(raw.buildings),
     itemsById: byId(raw.items),
     powersById: byId(raw.powers),
+    statsById: byId(raw.stats),
+    emotionsById: byId(raw.emotions),
+    focusesById: byId(raw.focuses),
   };
 }

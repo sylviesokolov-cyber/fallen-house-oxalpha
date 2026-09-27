@@ -1,4 +1,5 @@
 import { traitMod } from './traits.js';
+import { statFactor } from './stats.js';
 
 const clamp = (v) => Math.max(0, Math.min(100, v));
 
@@ -10,13 +11,14 @@ export function updateNeeds(h, data, cold) {
   const cfg = data.config.needs;
   const sleeping = h.action.type === 'sleep';
   const seasonMult = cold ? cfg.hunger.winterMultiplier : 1;
-  const hungerDecay = cfg.hunger.decay * seasonMult * traitMod(h, data, 'hungerDecay');
+  const vit = statFactor(h, data, 'vit');
+  const hungerDecay = cfg.hunger.decay * seasonMult * traitMod(h, data, 'hungerDecay') / vit;
   h.needs.hunger = clamp(h.needs.hunger - hungerDecay * (sleeping ? cfg.hunger.sleepFactor : 1));
   if (!sleeping) {
-    h.needs.energy = clamp(h.needs.energy - cfg.energy.decay * traitMod(h, data, 'energyDecay'));
+    h.needs.energy = clamp(h.needs.energy - cfg.energy.decay * traitMod(h, data, 'energyDecay') / vit);
     h.needs.social = clamp(h.needs.social - cfg.social.decay * traitMod(h, data, 'socialDecay'));
   }
 
-  if (h.needs.hunger <= 0) h.health = clamp(h.health - cfg.health.starveDamage);
+  if (h.needs.hunger <= 0) h.health = clamp(h.health - cfg.health.starveDamage / vit);
   else if (h.needs.hunger > cfg.health.regenAboveHunger) h.health = clamp(h.health + cfg.health.regen);
 }

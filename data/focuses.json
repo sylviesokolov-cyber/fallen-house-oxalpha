@@ -1,0 +1,8 @@
+[
+  {"id": "build", "name": "Build", "description": "People build more, and plan extra homes ahead of need.", "effects": {"build": 1.8, "extraBeds": 4}},
+  {"id": "gather", "name": "Gather", "description": "People throw themselves into gathering wood, stone and clay.", "effects": {"gather": 1.6}},
+  {"id": "harvest", "name": "Harvest", "description": "People store food and plant more fields.", "effects": {"storeFood": 2, "farmPerPop": 0.6}},
+  {"id": "family", "name": "Family", "description": "Love is in the air: more chatting and many more births.", "effects": {"socialize": 1.5, "birth": 2.5}},
+  {"id": "worship", "name": "Worship", "description": "People pray more often and grow devout faster.", "effects": {"pray": 2, "devotion": 1.5}},
+  {"id": "knowledge", "name": "Knowledge", "description": "Discoveries come easier and teaching spreads faster.", "effects": {"discovery": 2, "teach": 2}}
+]

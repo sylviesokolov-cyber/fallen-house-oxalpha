@@ -2,6 +2,7 @@ import { bfs } from './pathfinding.js';
 import { tileIndex, addResource } from './world.js';
 import { gainXp, workTimeFactor } from './skills.js';
 import { logEvent } from './history.js';
+import { focusValue } from './status.js';
 
 // state.buildings holds construction sites and finished buildings:
 // { id, type, x, y, built, work }. Materials are taken from the stockpile when
@@ -48,9 +49,12 @@ export function wantedBuilding(state, data, h) {
   for (const def of data.buildings) {
     if (!knowsTech(h, def) || !affordable(state.stockpile, def.cost)) continue;
     const w = def.want;
-    const wanted = (w.perPop && count(def.id) < Math.ceil(pop / w.perPop))
+    // A Harvest omen means more fields per person; a Build omen, spare beds.
+    const perPop = w.perPop && w.perPop * (def.id === 'farm_plot' ? focusValue(state, data, 'farmPerPop') : 1);
+    const beds = pop + focusValue(state, data, 'extraBeds', 0);
+    const wanted = (perPop && count(def.id) < Math.ceil(pop / perPop))
       || (w.count && count(def.id) < w.count)
-      || (w.sleepCapacity && def === bestShelter && sleepCapacity(state, data) < pop);
+      || (w.sleepCapacity && def === bestShelter && sleepCapacity(state, data) < beds);
     if (wanted) return def;
   }
   return null;

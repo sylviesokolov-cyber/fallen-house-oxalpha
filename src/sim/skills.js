@@ -1,7 +1,8 @@
 import { traitMod } from './traits.js';
 import { logEvent } from './history.js';
-import { moodLearnFactor } from './mood.js';
 import { isBlessed } from './status.js';
+import { emotionEffect } from './emotions.js';
+import { gainCharacterXp, statFactor } from './stats.js';
 
 // Skills are learned by doing: each finished unit of work grants XP in the
 // related skill. h.skills only holds skills the person has started learning.
@@ -19,7 +20,9 @@ export function gainXp(state, data, h, skillId, baseXp) {
   const s = (h.skills[skillId] ??= { level: 0, xp: 0 });
   if (s.level >= cfg.maxLevel) return;
   const blessing = isBlessed(h, state) ? data.powersById.bless.learnMultiplier : 1;
-  s.xp += baseXp * traitMod(h, data, 'learnRate') * moodLearnFactor(h, data) * blessing;
+  const xp = baseXp * traitMod(h, data, 'learnRate') * statFactor(h, data, 'int') * emotionEffect(h, data, 'learn') * blessing;
+  s.xp += xp;
+  gainCharacterXp(state, data, h, xp, skillId);
   while (s.level < cfg.maxLevel && s.xp >= xpToNext(s.level, cfg)) {
     s.xp -= xpToNext(s.level, cfg);
     s.level++;
@@ -33,7 +36,8 @@ export function gainXp(state, data, h, skillId, baseXp) {
 export function workTimeFactor(h, data, skillId) {
   const def = data.skillsById[skillId];
   const bySkill = 1 - (def.speedPerLevel ?? 0) * skillLevel(h, skillId);
-  return Math.max(data.config.skills.minWorkTime, bySkill / traitMod(h, data, 'workSpeed'));
+  const speed = traitMod(h, data, 'workSpeed') * statFactor(h, data, def.stat);
+  return Math.max(data.config.skills.minWorkTime, bySkill / speed);
 }
 
 export function yieldFactor(h, data, skillId) {

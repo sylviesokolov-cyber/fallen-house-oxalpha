@@ -12,6 +12,7 @@ import { isWarm } from './buildings.js';
 import { spoilFood } from './items.js';
 import { updateWeather } from './weather.js';
 import { expireFeelings } from './mood.js';
+import { createSettlement, updateSettlement } from './settlement.js';
 
 // Entry point of the simulation. `state` is plain data (saved as-is);
 // `data` is the read-only JSON content from /data.
@@ -32,10 +33,13 @@ export function createSim(data, seed) {
     discoveries: {},
     tribeCounters: {},
     faith: data.config.faith.start,
+    settlement: null,
+    focus: null,
     dead: [],
     history: [],
   };
   state.world = generateWorld(state.rng, data);
+  state.settlement = createSettlement(state, data);
   spawnInitialHumans(state, data);
   return state;
 }
@@ -60,6 +64,7 @@ export function stepSim(state, data) {
   if (newDay) state.faith = Math.min(data.config.faith.max, state.faith + data.config.faith.regenPerDay);
   updateProximity(state, data);
   updateLifeCycle(state, data);
+  updateSettlement(state, data);
   updateDiscovery(state, data);
   spoilFood(state, data);
 }

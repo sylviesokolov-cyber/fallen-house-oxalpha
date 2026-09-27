@@ -27,6 +27,7 @@ export class WorldScene extends Phaser.Scene {
     this.effects = new Effects(this);
     this.buildViews();
     this.ctx.events.on('sim-replaced', () => this.buildViews());
+    this.ctx.events.on('power-used', ({ powerId, x, y }) => this.effects.play(powerId, x, y));
     this.ctx.events.on('focus-human', (id) => {
       const h = this.ctx.sim.humans.find((o) => o.id === id);
       if (h) this.cameras.main.pan((h.x + 0.5) * TILE_SIZE, (h.y + 0.5) * TILE_SIZE, 300);

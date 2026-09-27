@@ -3,7 +3,7 @@ import { TILE_SIZE } from './constants.js';
 // Short-lived visuals for god powers. Purely cosmetic, so plain Math.random is
 // fine here (it never touches the sim).
 
-const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400 };
+const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400, omen: 2000 };
 
 const DRAW = {
   rain(g, cx, cy, t, e) {
@@ -29,6 +29,14 @@ const DRAW = {
     for (const d of e.drops) g.fillCircle(cx + d.x * 12, cy + 6 - t * 30 * d.y - 4, 1.8);
     g.lineStyle(2, 0xffd35c, 1 - t);
     g.strokeCircle(cx, cy, 10 + t * 6);
+  },
+  omen(g, cx, cy, t) {
+    g.lineStyle(3, 0xffd35c, 1 - t);
+    g.strokeCircle(cx, cy - 60, 10 + t * 50);
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4 + t;
+      g.lineBetween(cx + Math.cos(a) * 14, cy - 60 + Math.sin(a) * 14, cx + Math.cos(a) * (30 + t * 60), cy - 60 + Math.sin(a) * (30 + t * 60));
+    }
   },
   inspire(g, cx, cy, t) {
     g.lineStyle(2, 0xb99cff, 1 - t);

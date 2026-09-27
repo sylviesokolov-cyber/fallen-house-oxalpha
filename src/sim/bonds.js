@@ -3,7 +3,9 @@ import { traitMod } from './traits.js';
 import { gainXp, skillLevel } from './skills.js';
 import { logEvent } from './history.js';
 import { teachTech, techEffect } from './techs.js';
-import { addFeeling, moodConflictFactor } from './mood.js';
+import { addFeeling, feel } from './mood.js';
+import { emotionEffect } from './emotions.js';
+import { statFactor } from './stats.js';
 
 // Relationships live in state.bonds, keyed "lowId-highId". Only pairs that
 // have interacted have an entry. `peak` is the highest friendship tier ever
@@ -47,10 +49,16 @@ export function changeBond(state, data, a, b, delta) {
     bond.peak = tier;
     const text = TIER_TEXT[TIER_ORDER[tier]];
     if (text) logEvent(state, `${a.name} and ${b.name} ${text}`);
+    if (TIER_ORDER[tier] === 'friend') {
+      feel(state, data, a, 'newFriend', `Befriended ${b.name}`);
+      feel(state, data, b, 'newFriend', `Befriended ${a.name}`);
+    }
   }
   if (!bond.rival && bond.value <= t.rival) {
     bond.rival = true;
     logEvent(state, `${a.name} and ${b.name} became rivals`);
+    feel(state, data, a, 'newRival', `Rivalry with ${b.name}`);
+    feel(state, data, b, 'newRival', `Rivalry with ${a.name}`);
   }
 }
 
@@ -70,12 +78,17 @@ function compatibility(a, b, data) {
 export function resolveChat(state, data, a, b, canPartner) {
   const s = data.config.social;
   const conflictOdds = s.conflictChance * traitMod(a, data, 'conflict') * traitMod(b, data, 'conflict')
-    * moodConflictFactor(a, data) * moodConflictFactor(b, data) * (bondValue(state, a, b) < 0 ? 2 : 1);
+    * emotionEffect(a, data, 'conflict') * emotionEffect(b, data, 'conflict') * (bondValue(state, a, b) < 0 ? 2 : 1);
   if (chance(state.rng, conflictOdds)) {
     changeBond(state, data, a, b, -s.conflictLoss);
+    feel(state, data, a, 'argued', `Argued with ${b.name}`, 'anger');
+    feel(state, data, b, 'argued', `Argued with ${a.name}`, 'anger');
   } else {
     const friendliness = (traitMod(a, data, 'friendliness') + traitMod(b, data, 'friendliness')) / 2;
-    changeBond(state, data, a, b, s.chatGain * friendliness * (0.5 + next(state.rng)) + compatibility(a, b, data));
+    const charm = (statFactor(a, data, 'cha') + statFactor(b, data, 'cha')) / 2;
+    changeBond(state, data, a, b, s.chatGain * friendliness * charm * (0.5 + next(state.rng)) + compatibility(a, b, data));
+    feel(state, data, a, 'niceChat', 'Had a good talk');
+    feel(state, data, b, 'niceChat', 'Had a good talk');
     teach(state, data, a, b);
     teach(state, data, b, a);
   }
@@ -94,7 +107,7 @@ export function teach(state, data, teacher, student) {
   const s = data.config.social;
   const bond = isFamily(teacher, student) ? Math.max(s.familyBond, bondValue(state, teacher, student)) : bondValue(state, teacher, student);
   if (bond < s.tiers.acquaintance) return;
-  const quality = (1 + skillLevel(teacher, 'teaching') * s.teachingBonusPerLevel) * (0.5 + bond / 100);
+  const quality = (1 + skillLevel(teacher, 'teaching') * s.teachingBonusPerLevel) * (0.5 + bond / 100) * statFactor(teacher, data, 'cha');
   const taughtTech = teachTech(state, data, teacher, student, quality);
   let best = null;
   let bestGap = s.teachGap - 1;

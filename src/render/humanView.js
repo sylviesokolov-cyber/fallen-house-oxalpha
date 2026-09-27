@@ -22,7 +22,9 @@ export class HumanView {
     const talk = this.scene.add.text(-5, -19, '…', { fontSize: '11px', fontStyle: 'bold', color: '#ffffff' })
       .setResolution(3)
       .setVisible(false);
-    const c = this.scene.add.container(0, 0, [body, zzz, carry, talk]).setDepth(3);
+    const crown = this.scene.add.triangle(0, -11, -4, 2, 4, 2, 0, -4, 0xffd35c).setVisible(false);
+    const c = this.scene.add.container(0, 0, [body, zzz, carry, talk, crown]).setDepth(3);
+    c.crown = crown;
     c.body = body;
     c.zzz = zzz;
     c.carry = carry;
@@ -46,8 +48,11 @@ export class HumanView {
       if (stage !== s.stage) {
         s.stage = stage;
         s.body.setScale(stage === 'child' ? 0.65 : 1);
-        s.body.setStrokeStyle(1.5, stage === 'elder' ? 0xdddddd : 0x1b1b1b);
+        // Outline shows grade: dark for common, then green, blue, purple, gold.
+        const grade = data.grades[h.grade - 1];
+        s.body.setStrokeStyle(h.grade >= 2 ? 2 : 1.5, hexToInt(grade.color));
       }
+      s.crown.setVisible(sim.settlement.leaderId === h.id && !h.carrying && h.action.type !== 'sleep');
       s.carry.setVisible(!!h.carrying);
       if (h.carrying) s.carry.setFillStyle(CARRY_COLORS[h.carrying.type]);
     }

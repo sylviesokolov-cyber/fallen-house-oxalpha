@@ -3,7 +3,9 @@ import { logEvent } from './history.js';
 import { skillLevel } from './skills.js';
 import { tileNear } from './world.js';
 import { builtNear } from './buildings.js';
-import { isInspired } from './status.js';
+import { focusValue, isInspired } from './status.js';
+import { statFactor } from './stats.js';
+import { feel } from './mood.js';
 
 // Knowledge belongs to people, not the tribe: h.knows lists the techs a person
 // knows. state.discoveries records what the tribe has ever found, and whether
@@ -29,6 +31,7 @@ export function learnTech(state, data, h, techId) {
   if (!isNew) return;
   const name = data.techsById[techId].name;
   logEvent(state, record ? `${h.name} rediscovered ${name}` : `${h.name} discovered ${name}`);
+  feel(state, data, h, 'discovered', `Discovered ${name}`);
   state.discoveries[techId] = { by: h.name, tick: state.tick, lost: false };
 }
 
@@ -74,7 +77,7 @@ export function updateDiscovery(state, data) {
       if (!canLearn(h, data, tech.id)) continue;
       const d = tech.discovery;
       if (!d.conditions.every((c) => CONDITIONS[c.type](c, h, state, data, f))) continue;
-      let p = d.baseChance * (inspired ? inspire.chanceMultiplier : 1);
+      let p = d.baseChance * (inspired ? inspire.chanceMultiplier : 1) * statFactor(h, data, 'int') * focusValue(state, data, 'discovery');
       for (const t of h.traits) p *= d.traitBonus?.[t] ?? 1;
       if (chance(state.rng, p)) learnTech(state, data, h, tech.id);
     }
@@ -86,7 +89,8 @@ export function updateDiscovery(state, data) {
 export function teachTech(state, data, teacher, student, quality) {
   const tech = data.techs.find((t) => knows(teacher, t.id) && canLearn(student, data, t.id));
   if (!tech) return false;
-  const p = data.config.discovery.teachTechChance * quality * techEffect(teacher, data, 'teachingMultiplier');
+  const p = data.config.discovery.teachTechChance * quality * techEffect(teacher, data, 'teachingMultiplier')
+    * focusValue(state, data, 'teach');
   if (!chance(state.rng, p)) return false;
   learnTech(state, data, student, tech.id);
   return true;

@@ -6,6 +6,10 @@ import { gainXp, skillLevel, workTimeFactor, yieldFactor } from './skills.js';
 import { bondValue, isFamily, resolveChat } from './bonds.js';
 import { lifeStage } from './lifecycle.js';
 import { dateOf } from './time.js';
+import { emotionEffect } from './emotions.js';
+import { leaderWorkBonus } from './settlement.js';
+import { focusValue } from './status.js';
+import { feel } from './mood.js';
 import {
   buildingById, freeShelter, isWarm, openSiteFor, placeSite, wantedBuilding, workOnSite,
 } from './buildings.js';
@@ -64,23 +68,29 @@ function chooseAction(state, data, h) {
     options.push({ type: 'sleep', score: 100 - h.needs.energy });
   }
   if (h.needs.social < n.social.seekBelow) {
-    options.push({ type: 'socialize', score: (100 - h.needs.social) * 0.8 });
+    const urge = emotionEffect(h, data, 'socialize') * focusValue(state, data, 'socialize');
+    options.push({ type: 'socialize', score: (100 - h.needs.social) * 0.8 * urge });
   }
   if (h.knows.includes('worship') && state.tick >= h.nextPrayer) {
     const p = data.config.prayer;
-    options.push({ type: 'pray', score: p.scoreBase + h.devotion * p.scorePerDevotion });
+    options.push({ type: 'pray', score: (p.scoreBase + h.devotion * p.scorePerDevotion) * focusValue(state, data, 'pray') });
   }
   const stage = lifeStage(h, state, data);
   if (h.carrying) {
     // Finish a haul that was interrupted (e.g. to eat) before anything else optional.
     options.push({ type: 'deposit', score: 40 });
   } else if (stage !== 'child') {
-    const work = traitMod(h, data, 'workWeight') * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1);
+    // Keenness to work: traits, age, emotion, and a charismatic leader.
+    const work = traitMod(h, data, 'workWeight') * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1)
+      * emotionEffect(h, data, 'work') * leaderWorkBonus(state, data);
     if (openSiteFor(state, data, h) || wantedBuilding(state, data, h)) {
-      options.push({ type: 'build', score: (data.config.building.workScore + next(state.rng) * 10) * work });
+      const score = (data.config.building.workScore + next(state.rng) * 10) * work * focusValue(state, data, 'build');
+      options.push({ type: 'build', score });
     }
     if (craftChoice(state, data, h)) options.push({ type: 'craft', score: (18 + next(state.rng) * 8) * work });
-    if (canSearchResource(state, h)) options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * work });
+    if (canSearchResource(state, h)) {
+      options.push({ type: 'gather', score: (15 + next(state.rng) * 10) * work * focusValue(state, data, 'gather') });
+    }
   }
   options.push({ type: 'wander', score: (10 + next(state.rng) * 10) * traitMod(h, data, 'wanderWeight') });
   options.sort((a, b) => b.score - a.score);
@@ -102,6 +112,11 @@ const START = {
   // Goes to the nearest food: a bush or field, or the stockpile if it has food
   // (cooked meals make the stockpile worth a slightly longer walk).
   seekFood(state, data, h) {
+    // Someone hauling food eats from their own load first.
+    if (h.carrying?.type === 'food') {
+      h.action = { type: 'eat', fromCarry: true, ticks: data.config.humans.eatTicks };
+      return true;
+    }
     const { world, stockpile } = state;
     const food = new Map();
     for (const r of world.resources) if (isFood(data, r)) food.set(tileIndex(world, r.x, r.y), r);
@@ -135,7 +150,10 @@ const START = {
       return true;
     }
     h.action = { type: 'sleep' };
-    if (dateOf(state.tick, data.config.time).season === 'Winter' && !isWarm(state, data, h)) bump(h, 'coldNights');
+    if (dateOf(state.tick, data.config.time).season === 'Winter' && !isWarm(state, data, h)) {
+      bump(h, 'coldNights');
+      feel(state, data, h, 'coldNight', 'Slept out in the cold');
+    }
     return true;
   },
 
@@ -268,7 +286,8 @@ const START = {
 
 // Storing food matters more the emptier the store is.
 function foodNeed(state, data) {
-  return data.config.food.storeScarcityBonus * (1 - foodInStock(state) / foodReserveWanted(state, data));
+  const short = 1 - foodInStock(state) / foodReserveWanted(state, data);
+  return data.config.food.storeScarcityBonus * short * focusValue(state, data, 'storeFood');
 }
 
 // How much the tribe wants more of a material: a bonus that grows the further
@@ -309,6 +328,11 @@ const RUN = {
   eat(state, data, h) {
     if (--h.action.ticks > 0) return;
     h.action.done = true;
+    if (h.action.fromCarry && h.carrying?.type === 'food') {
+      h.needs.hunger = Math.min(100, h.needs.hunger + data.config.food.rawValue);
+      if (--h.carrying.amount <= 0) h.carrying = null;
+      return;
+    }
     if (h.action.stock) {
       eatFromStock(state, data, h);
       return;
@@ -330,7 +354,10 @@ const RUN = {
       return;
     }
     if (h.action.path.length) stepAlongPath(state, data, h);
-    else h.action = { type: 'sleep', buildingId: shelter.id };
+    else {
+      h.action = { type: 'sleep', buildingId: shelter.id };
+      feel(state, data, h, 'warmBed', `Slept in a ${data.buildingsById[shelter.type].name.toLowerCase()}`);
+    }
   },
 
   sleep(state, data, h) {
@@ -425,7 +452,7 @@ const RUN = {
     const p = data.config.prayer;
     const gain = (a.atShrine ? p.shrineFaith : p.fieldFaith) * (0.5 + h.devotion / 100);
     state.faith = Math.min(data.config.faith.max, state.faith + gain);
-    h.devotion = Math.min(100, h.devotion + data.config.devotion.prayerGain);
+    h.devotion = Math.min(100, h.devotion + data.config.devotion.prayerGain * focusValue(state, data, 'devotion'));
     h.nextPrayer = state.tick + p.intervalDays * data.config.time.ticksPerDay;
     a.done = true;
   },

@@ -33,7 +33,6 @@
     "resourceSearchCooldown": 40,
     "traitsMin": 1,
     "traitsMax": 3,
-    "maxPopulation": 60,
     "attraction": {
       "opposite": 0.85,
       "same": 0.05,
@@ -186,5 +185,64 @@
     "lowLearn": 0.7,
     "highLearn": 1.2,
     "lowConflict": 1.5
+  },
+  "stats": {
+    "base": 5,
+    "rollMin": 2,
+    "rollMax": 7,
+    "minFactor": 0.5,
+    "maxFactor": 2,
+    "carryPerStr": 3,
+    "childInheritChance": 0.5,
+    "maxCarryBonus": 6
+  },
+  "level": {
+    "max": 50,
+    "xpBase": 60,
+    "xpGrowth": 1.14,
+    "logEvery": 5
+  },
+  "feelings": {
+    "argued": [
+      -10,
+      2
+    ],
+    "niceChat": [
+      4,
+      1
+    ],
+    "coldNight": [
+      -8,
+      1
+    ],
+    "warmBed": [
+      5,
+      1
+    ],
+    "cookedMeal": [
+      6,
+      1
+    ],
+    "discovered": [
+      20,
+      5
+    ],
+    "levelUp": [
+      10,
+      2
+    ],
+    "newFriend": [
+      8,
+      3
+    ],
+    "newRival": [
+      -8,
+      3
+    ]
+  },
+  "leader": {
+    "chaWeight": 3,
+    "levelWeight": 1,
+    "workBonusPerCha": 0.02
   }
 }

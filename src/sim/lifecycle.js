@@ -5,6 +5,9 @@ import { changeBond } from './bonds.js';
 import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
 import { addFeeling } from './mood.js';
+import { inheritGrade, gradeOf } from './stats.js';
+import { populationCap } from './settlement.js';
+import { focusValue } from './status.js';
 
 export function lifeStage(h, state, data) {
   const age = ageInYears(h.birthDay, state.tick, data.config.time);
@@ -30,7 +33,7 @@ export function updateLifeCycle(state, data) {
       logEvent(state, `${h.name} came of age`);
     }
     if (h.pregnantUntil != null && today >= h.pregnantUntil) giveBirth(state, data, h);
-    else if (canConceive(state, data, h) && chance(state.rng, l.birthChancePerDay)) {
+    else if (canConceive(state, data, h) && chance(state.rng, l.birthChancePerDay * focusValue(state, data, 'birth'))) {
       h.pregnantUntil = today + l.gestationDays;
     }
     if (age >= l.oldAgeStart && chance(state.rng, oldAgeRisk(age, l) / (cfg.time.daysPerSeason * cfg.time.seasons.length))) {
@@ -47,7 +50,7 @@ function oldAgeRisk(age, l) {
 function canConceive(state, data, h) {
   const l = data.config.lifecycle;
   if (h.sex !== 'female' || h.pregnantUntil != null || !h.partnerId) return false;
-  if (state.humans.length >= data.config.humans.maxPopulation) return false;
+  if (state.humans.length >= populationCap(state, data)) return false;
   const partner = findHuman(state, h.partnerId);
   if (!partner || partner.sex !== 'male') return false;
   const today = dayIndexOf(state.tick, data.config.time);
@@ -63,6 +66,7 @@ function giveBirth(state, data, mother) {
     ageYears: 0,
     parents: [mother.id, father?.id].filter((id) => id != null),
     traits: inheritTraits(state, data, mother, father),
+    grade: inheritGrade(state, data, [mother, father].filter(Boolean)),
   });
   state.humans.push(child);
   mother.pregnantUntil = null;
@@ -78,6 +82,9 @@ function giveBirth(state, data, mother) {
   logEvent(state, father
     ? `${mother.name} and ${father.name} had a ${word}, ${child.name}`
     : `${mother.name} had a ${word}, ${child.name}`);
+  if (child.grade >= 4) {
+    logEvent(state, `${child.name} was born with ${gradeOf(data, child.grade).name.toLowerCase()} promise (${'★'.repeat(child.grade)})`);
+  }
 }
 
 // Each parent trait has an even chance of passing on; a child always ends up

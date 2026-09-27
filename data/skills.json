@@ -1,13 +1,13 @@
 [
-  {"id": "foraging", "name": "Foraging", "noun": "forager", "xpPerAction": 3, "yieldPerLevel": 0.05},
-  {"id": "woodcutting", "name": "Woodcutting", "noun": "woodcutter", "xpPerAction": 4, "speedPerLevel": 0.06},
-  {"id": "mining", "name": "Mining", "noun": "miner", "xpPerAction": 4, "speedPerLevel": 0.06},
-  {"id": "hunting", "name": "Hunting", "noun": "hunter"},
-  {"id": "crafting", "name": "Crafting", "noun": "crafter", "xpPerAction": 5, "speedPerLevel": 0.06},
-  {"id": "building", "name": "Building", "noun": "builder", "xpPerAction": 0.5, "speedPerLevel": 0.06},
-  {"id": "cooking", "name": "Cooking", "noun": "cook", "xpPerAction": 4, "speedPerLevel": 0.06},
-  {"id": "farming", "name": "Farming", "noun": "farmer", "xpPerAction": 3, "yieldPerLevel": 0.05},
-  {"id": "healing", "name": "Healing", "noun": "healer"},
-  {"id": "teaching", "name": "Teaching", "noun": "teacher", "xpPerAction": 3},
-  {"id": "research", "name": "Research", "noun": "scholar"}
+  {"id": "foraging", "name": "Foraging", "noun": "forager", "xpPerAction": 3, "yieldPerLevel": 0.05, "stat": "agi"},
+  {"id": "woodcutting", "name": "Woodcutting", "noun": "woodcutter", "xpPerAction": 4, "speedPerLevel": 0.06, "stat": "str"},
+  {"id": "mining", "name": "Mining", "noun": "miner", "xpPerAction": 4, "speedPerLevel": 0.06, "stat": "str"},
+  {"id": "hunting", "name": "Hunting", "noun": "hunter", "stat": "agi"},
+  {"id": "crafting", "name": "Crafting", "noun": "crafter", "xpPerAction": 5, "speedPerLevel": 0.06, "stat": "agi"},
+  {"id": "building", "name": "Building", "noun": "builder", "xpPerAction": 0.5, "speedPerLevel": 0.06, "stat": "str"},
+  {"id": "cooking", "name": "Cooking", "noun": "cook", "xpPerAction": 4, "speedPerLevel": 0.06, "stat": "int"},
+  {"id": "farming", "name": "Farming", "noun": "farmer", "xpPerAction": 3, "yieldPerLevel": 0.05, "stat": "vit"},
+  {"id": "healing", "name": "Healing", "noun": "healer", "stat": "int"},
+  {"id": "teaching", "name": "Teaching", "noun": "teacher", "xpPerAction": 3, "stat": "cha"},
+  {"id": "research", "name": "Research", "noun": "scholar", "stat": "int"}
 ]

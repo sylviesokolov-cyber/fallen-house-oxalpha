@@ -6,6 +6,7 @@ import { logEvent } from './history.js';
 import { rollTraits } from './traits.js';
 import { forgetOnDeath } from './techs.js';
 import { addFeeling } from './mood.js';
+import { newHeroFields } from './stats.js';
 
 function uniqueName(state, data, sex) {
   const used = new Set(state.humans.map((h) => h.name));
@@ -55,6 +56,7 @@ export function createHuman(state, data, x, y, opts = {}) {
     nextResourceSearch: 0,
     needs: { hunger: randInt(rng, 55, 100), energy: randInt(rng, 50, 100), social: randInt(rng, 50, 100) },
     health: 100,
+    ...newHeroFields(state, data, opts.grade),
     traits: opts.traits ?? rollTraits(state, data),
     skills: {},
     knows: [],
@@ -112,6 +114,7 @@ export function killHuman(state, data, h, cause) {
   state.humans = state.humans.filter((o) => o.id !== h.id);
   state.dead.push({
     id: h.id, name: h.name, sex: h.sex, birthDay: h.birthDay, parents: h.parents, partnerId: h.partnerId,
+    grade: h.grade, level: h.level, stats: h.stats,
     traits: h.traits, skills: h.skills, knows: h.knows, deathTick: state.tick, cause,
   });
   const partner = state.humans.find((o) => o.id === h.partnerId);
@@ -125,6 +128,6 @@ export function killHuman(state, data, h, cause) {
   for (const o of state.humans) {
     const family = o.partnerId === h.id || o.parents.includes(h.id) || h.parents.includes(o.id)
       || o.parents.some((p) => h.parents.includes(p));
-    if (family || partner === o) addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays);
+    if (family || partner === o) addFeeling(state, data, o, `Grieving ${h.name}`, m.griefValue, m.griefDays, 'grief');
   }
 }

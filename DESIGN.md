@@ -156,8 +156,23 @@ Example tech JSON:
 4. **Relationships, socializing, teaching, families, births** — done
 5. **Discovery system + first 10 techs + first buildings and items** — done
 6. **God powers + Faith + Shrine and worship** — done
-7. Research, eras, villages, multiple tribes, trade/conflict
-8. Polish, art, sound, save slots, Capacitor APK
+6.5. **Heroes, emotions, settlement tiers, Omens, Tribe tab** — done (see "Heroes and the road to a kingdom" below)
+7. Colonies: groups leave to found new settlements, which join into one kingdom; deliberate research and eras
+8. Multiple tribes, trade and conflict
+9. Polish, art, sound, save slots, Capacitor APK
+
+## Heroes and the road to a kingdom
+
+Inspired by hero-collection stories (e.g. *Pick Me Up, Infinite Gacha*): every person should matter as an individual.
+
+- **Grade** (★1 Common to ★5 Legendary, `data/grades.json`): a person's potential. Higher grades start with bonus stats and gain more stat points per level. Children usually take after their parents, give or take a star.
+- **Stats** (`data/stats.json`): STR, AGI, INT, VIT, CHA. Each skill trains one stat (`skills.json` `stat`), and each stat speeds up the skills that use it. STR also raises carrying capacity, INT learning and discovery, VIT resistance to hunger, fatigue and starvation, and CHA friendship, teaching and leadership.
+- **Level**: all skill XP also counts as character XP. Each level-up gives stat points, weighted toward the stats the person actually uses, so a woodcutter grows strong and a teacher charismatic. Class/title comes from their best skill ("Master Woodcutter").
+- **Emotions** (`data/emotions.json`): Starving, Grieving, Angry, Lonely, Joyful, Happy, Content, Sad, Miserable, derived from needs, mood and feelings. They change how keen someone is to work, socialize or learn, and how quick they are to argue.
+- **Thoughts**: lasting feelings with a mood value (discovered something, argued, slept in the cold or a warm bed, ate a cooked meal, levelled up, made a friend or rival, grief, love, a new child, being blessed). Tuned in `config.feelings`.
+- **Settlement tiers** (`data/settlements.json`): Camp, Village, Town, City, Kingdom. Each needs a number of people, known techs and buildings (and later a Shrine and Hut, then high-level heroes), and raises the population cap. The settlement has a leader chosen by charisma and level, whose title grows with it (Chief, Elder, Lord/Lady, High Lord/Lady, King/Queen), and whose charisma makes everyone a little keener to work.
+- **Omens** (`data/focuses.json`): the player's way to steer the tribe without controlling anyone. An Omen sets the tribe's calling for 10 days: Build (more building, spare homes planned), Gather, Harvest (store food, more fields), Family (more chatting and births), Worship (more prayer and devotion) or Knowledge (easier discovery and teaching).
+- **Tribe tab**: Overview (leader, current omen, progress to the next tier, tribe statistics), People (every hero by level, with grade, class and emotion), Items (stockpile, tools, buildings) and Tech.
 
 ### Phase 1 scope
 

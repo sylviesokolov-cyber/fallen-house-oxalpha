@@ -1,6 +1,7 @@
 import { chance } from './rng.js';
 import { gainXp, skillLevel } from './skills.js';
 import { hasBuilt } from './buildings.js';
+import { feel } from './mood.js';
 
 // Tools are personal (h.tools: { itemId: usesLeft }) and wear out with use.
 // Goods (pottery, cooked food) live in the shared stockpile.
@@ -23,9 +24,11 @@ export function toolWorkFactor(h, data, skillId) {
 }
 
 export function carryCapacity(h, data) {
-  let cap = data.config.humans.carryCapacity;
+  const st = data.config.stats;
+  const strBonus = Math.min(st.maxCarryBonus, Math.floor((h.stats.str - st.base) / st.carryPerStr));
+  let cap = data.config.humans.carryCapacity + strBonus;
   for (const id of Object.keys(h.tools)) cap += data.itemsById[id].effects.carryBonus ?? 0;
-  return cap;
+  return Math.max(1, cap);
 }
 
 export function canStoreFood(h, data) {
@@ -77,6 +80,7 @@ export function eatFromStock(state, data, h) {
   if (s.cooked_food > 0) {
     s.cooked_food--;
     h.needs.hunger = Math.min(100, h.needs.hunger + data.itemsById.cooked_food.food);
+    feel(state, data, h, 'cookedMeal', 'Ate a hot cooked meal');
     return true;
   }
   if (s.food > 0) {

@@ -1,0 +1,7 @@
+[
+  {"id": "str", "name": "Strength", "description": "Carries more, and cuts wood and stone faster.", "perPoint": 0.03},
+  {"id": "agi", "name": "Agility", "description": "Does every kind of work faster.", "perPoint": 0.02},
+  {"id": "int", "name": "Intellect", "description": "Learns faster and is likelier to discover new things.", "perPoint": 0.04},
+  {"id": "vit", "name": "Vitality", "description": "Gets hungry and tired more slowly, and survives starvation longer.", "perPoint": 0.025},
+  {"id": "cha", "name": "Charisma", "description": "Makes friends easily, teaches well, and is likelier to lead.", "perPoint": 0.05}
+]

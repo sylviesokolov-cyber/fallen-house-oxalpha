@@ -15,9 +15,11 @@ export function usePower(state, data, powerId, target) {
   if (state.faith < power.cost) return { ok: false, error: `Not enough Faith (${power.cost} needed)` };
   const h = target.humanId != null ? state.humans.find((o) => o.id === target.humanId) : null;
   if (power.target === 'human' && !h) return { ok: false, error: 'Tap a person to use this power' };
-  const x = h ? h.x : target.x;
-  const y = h ? h.y : target.y;
-  const error = EFFECTS[powerId](state, data, power, { x, y, h });
+  if (power.target === 'focus' && !data.focusesById[target.focus]) return { ok: false, error: 'Choose what the omen calls for' };
+  // An omen is seen above the settlement.
+  const x = h ? h.x : target.x ?? state.stockpile.x;
+  const y = h ? h.y : target.y ?? state.stockpile.y;
+  const error = EFFECTS[powerId](state, data, power, { x, y, h, focus: target.focus });
   if (error) return { ok: false, error };
   state.faith -= power.cost;
   witness(state, data, x, y, power.awe);
@@ -93,6 +95,11 @@ const EFFECTS = {
     h.status.blessedUntil = state.tick + p.days * data.config.time.ticksPerDay;
     addFeeling(state, data, h, 'Blessed by the heavens', data.config.mood.blessValue, p.days);
     logEvent(state, `${h.name} was blessed by the heavens`);
+  },
+
+  omen(state, data, p, { focus }) {
+    state.focus = { id: focus, until: state.tick + p.days * data.config.time.ticksPerDay };
+    logEvent(state, `An omen blazed across the sky: the people feel called to ${data.focusesById[focus].name}`);
   },
 
   inspire(state, data, p, { h }) {
