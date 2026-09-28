@@ -140,6 +140,16 @@
     "decayPerDay": 1.5,
     "prayerGain": 4
   },
+  "fear": {
+    "decayPerDay": 1.5,
+    "workPerFear": 0.004,
+    "crimePerFear": 0.006,
+    "prayPerFear": 0.4,
+    "terrorMood": -8,
+    "terrorDays": 3,
+    "justiceMood": 4,
+    "wickedDread": 0.4
+  },
   "prayer": {
     "intervalDays": 2,
     "ticks": 15,

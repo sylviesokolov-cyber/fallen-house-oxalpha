@@ -66,6 +66,7 @@ export function createHuman(state, data, x, y, opts = {}) {
     tools: {},
     counters: {},
     devotion: randInt(rng, 0, data.config.devotion.startMax),
+    fear: 0,
     nextPrayer: 0,
     status: {},
     feelings: [],
@@ -111,6 +112,7 @@ export function humanAge(h, state, data) {
 }
 
 const DEATH_TEXT = {
+  smitten: (name, age) => `${name} was struck down by the wrath of the heavens, aged ${age}`,
   exile: (name, age, detail) => `${name} ${detail}`,
   starvation: (name, age) => `${name} starved to death, aged ${age}`,
   'old age': (name, age) => `${name} died of old age, aged ${age}`,

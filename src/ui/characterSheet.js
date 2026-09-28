@@ -293,6 +293,7 @@ export function createCharacterSheet(ctx, { toast, select }) {
     setNeed('bar-social', h.needs.social);
     setNeed('bar-mood', mood(h));
     $('bar-devotion').style.width = `${h.devotion}%`;
+    $('bar-fear').style.width = `${h.fear ?? 0}%`;
     renderThoughts(h);
     renderBonds(h);
     renderSkills(h);

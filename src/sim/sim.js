@@ -67,7 +67,10 @@ export function stepSim(state, data) {
   const newDay = state.tick % data.config.time.ticksPerDay === 0;
   for (const h of state.humans) {
     expireFeelings(state, h);
-    if (newDay) h.devotion = Math.max(0, h.devotion - data.config.devotion.decayPerDay);
+    if (newDay) {
+      h.devotion = Math.max(0, h.devotion - data.config.devotion.decayPerDay);
+      if (h.fear) h.fear = Math.max(0, h.fear - data.config.fear.decayPerDay);
+    }
     // In the dungeon, needs are on hold and the fight is resolved by updateDungeon.
     if (h.away != null) continue;
     updateNeeds(h, data, winter && !isWarm(state, data, h));

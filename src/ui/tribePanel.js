@@ -79,6 +79,18 @@ export function createTribePanel(ctx, { toast, select }) {
     const r = el('div', `kv times ${cls}`);
     r.append(el('span', null, 'Life in the sanctuary'), el('span', 'kind', sim.director?.crisis ? `${label} · a dark age` : label));
     const nodes = [section('The times'), r, bar(Math.min(1, t / (d.crisisAt * 2)), `times-bar ${cls}`)];
+    // How your people see you: love (devotion) against fear.
+    const n = Math.max(1, sim.humans.length);
+    const love = sim.humans.reduce((a, h) => a + h.devotion, 0) / n;
+    const fear = sim.humans.reduce((a, h) => a + (h.fear ?? 0), 0) / n;
+    const feeling = love < 10 && fear < 10 ? 'barely know you' : fear > love * 1.5 ? 'fear you' : love > fear * 1.5 ? 'love you' : 'love and fear you';
+    const w = el('div', 'kv worship');
+    w.append(el('span', null, 'Your people'), el('span', 'kind', feeling));
+    const bars = el('div', 'worship-bars');
+    const lb = bar(love / 100, 'love');
+    const fb = bar(fear / 100, 'fear');
+    bars.append(el('span', null, 'Love'), lb, el('span', null, 'Fear'), fb);
+    nodes.push(w, bars);
     for (const e of [...(sim.eras ?? [])].reverse().slice(0, 4)) {
       nodes.push(row(e.name, `Year ${dateOf(e.from, data.config.time).year}`, 'era-row'));
     }

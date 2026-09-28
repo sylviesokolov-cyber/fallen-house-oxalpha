@@ -101,7 +101,9 @@ export function createHud(ctx, sound) {
   // their own sheets.
   function selectPower(id) {
     ctx.selectedPower = id;
-    for (const b of $('power-buttons').children) b.classList.toggle('selected', b.dataset.power === id);
+    for (const b of [...$('power-buttons').children, ...$('wrath-row').children]) {
+      if (b.dataset.power !== 'wrath') b.classList.toggle('selected', b.dataset.power === id);
+    }
     const power = id && ctx.data.powersById[id];
     $('power-hint').classList.toggle('hidden', !power);
     if (power) $('power-hint').textContent = `${power.description} Tap ${power.target === 'human' ? 'a person' : 'the map'}.`;
@@ -118,23 +120,39 @@ export function createHud(ctx, sound) {
   throneOrb.append(icon('crown'));
   throneButton.append(throneOrb, el('span', 'power-name', 'Throne'), el('span', 'cost', 'decrees'));
 
+  function powerButton(p) {
+    const b = button(`power${p.wrath ? ' wrath' : ''}`, '', () => {
+      haptic();
+      if (p.target === 'focus') return togglePanel('omen');
+      if (p.target === 'party') return togglePanel('portal');
+      const turnOn = ctx.selectedPower !== p.id;
+      if (turnOn) showPanel(null);
+      selectPower(turnOn ? p.id : null);
+    });
+    b.dataset.power = p.id;
+    const orb = el('span', 'power-orb');
+    orb.append(icon(p.icon ?? p.id));
+    b.append(orb, el('span', 'power-name', p.name), el('span', 'cost', p.cost ? `${p.cost}` : 'free'));
+    if (p.cost) b.lastChild.prepend(icon('faith', 'cost-icon'));
+    return b;
+  }
+
+  // Wrath: one dock button opens a row of the god's darker powers.
+  const wrathButton = button('power wrath', '', () => {
+    haptic();
+    const open = $('wrath-row').classList.toggle('hidden') === false;
+    wrathButton.classList.toggle('selected', open);
+    if (!open && ctx.data.powersById[ctx.selectedPower]?.wrath) selectPower(null);
+  });
+  wrathButton.dataset.power = 'wrath';
+  const wrathOrb = el('span', 'power-orb');
+  wrathOrb.append(icon('wrath'));
+  wrathButton.append(wrathOrb, el('span', 'power-name', 'Wrath'), el('span', 'cost', 'fear'));
+  $('wrath-row').replaceChildren(...ctx.data.powers.filter((p) => p.wrath).map(powerButton));
+
   $('power-buttons').replaceChildren(
-    ...ctx.data.powers.filter((p) => p.dock).map((p) => {
-      const b = button('power', '', () => {
-        haptic();
-        if (p.target === 'focus') return togglePanel('omen');
-        if (p.target === 'party') return togglePanel('portal');
-        const turnOn = ctx.selectedPower !== p.id;
-        if (turnOn) showPanel(null);
-        selectPower(turnOn ? p.id : null);
-      });
-      b.dataset.power = p.id;
-      const orb = el('span', 'power-orb');
-      orb.append(icon(p.id));
-      b.append(orb, el('span', 'power-name', p.name), el('span', 'cost', p.cost ? `${p.cost}` : 'free'));
-      if (p.cost) b.lastChild.prepend(icon('faith', 'cost-icon'));
-      return b;
-    }),
+    ...ctx.data.powers.filter((p) => p.dock).map(powerButton),
+    wrathButton,
     throneButton,
   );
 
@@ -242,7 +260,7 @@ export function createHud(ctx, sound) {
 
   function refresh() {
     top.render();
-    for (const b of $('power-buttons').children) b.classList.toggle('poor', ctx.sim.faith < (ctx.data.powersById[b.dataset.power]?.cost ?? 0));
+    for (const b of [...$('power-buttons').children, ...$('wrath-row').children]) b.classList.toggle('poor', ctx.sim.faith < (ctx.data.powersById[b.dataset.power]?.cost ?? 0));
     renderNews();
     if (isOpen('inspect') && !sheet.render()) showPanel(null);
     if (isOpen('log')) renderLog();

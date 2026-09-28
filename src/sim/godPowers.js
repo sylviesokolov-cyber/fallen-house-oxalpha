@@ -5,6 +5,8 @@ import { learnTech } from './techs.js';
 import { decreeCost, issueDecree } from './decrees.js';
 import { leaderTitle } from './settlement.js';
 import { expand } from './tiers.js';
+import { killHuman } from './human.js';
+import { listNames } from './dungeon.js';
 
 // The player's only way to act. usePower is called by the UI with a power id
 // and a target ({ x, y } for tiles, { humanId } for people). It spends Faith,
@@ -29,7 +31,9 @@ export function usePower(state, data, powerId, target) {
   const error = EFFECTS[powerId](state, data, power, { x, y, h, focus: target.focus, skill: target.skill, tech: target.tech });
   if (error) return { ok: false, error };
   state.faith -= power.cost;
-  witness(state, data, x, y, power.awe);
+  // Striking down the wicked is seen as justice; anything else as terror.
+  const wicked = h && (h.crimes > 0 || h.outcastUntil > state.tick);
+  witness(state, data, x, y, power.awe, (power.dread ?? 0) * (wicked ? data.config.fear.wickedDread : 1), wicked);
   return { ok: true, x, y };
 }
 
@@ -54,15 +58,22 @@ function portal(state, data, target) {
 }
 
 // Everyone awake nearby sees it: their devotion grows, they remember it (enough
-// miracles lead to Worship), and their awe gives a little Faith back.
-function witness(state, data, x, y, awe) {
+// miracles lead to Worship), and their awe gives a little Faith back. Wrath
+// also puts the fear of the heavens in them (`dread`), unless it fell on
+// someone wicked, which they take as justice.
+function witness(state, data, x, y, awe, dread = 0, justice = false) {
   const f = data.config.faith;
+  const fr = data.config.fear;
   for (const o of state.humans) {
     if (o.action.type === 'sleep' || o.away != null) continue;
     if (Math.abs(o.x - x) > f.witnessRadius || Math.abs(o.y - y) > f.witnessRadius) continue;
     o.counters.miraclesSeen = (o.counters.miraclesSeen ?? 0) + 1;
     o.devotion = Math.min(100, o.devotion + awe);
     state.faith = Math.min(f.max, state.faith + f.perWitness);
+    if (!dread) continue;
+    o.fear = Math.min(100, (o.fear ?? 0) + dread);
+    if (justice) addFeeling(state, data, o, 'Saw the heavens punish the wicked', fr.justiceMood, fr.terrorDays);
+    else addFeeling(state, data, o, "Terrified by the heavens' wrath", fr.terrorMood, fr.terrorDays);
   }
 }
 
@@ -119,6 +130,41 @@ const EFFECTS = {
     h.devotion = 100;
     feel(state, data, h, 'heavenlyVoice', 'Hears the voice of the heavens');
     logEvent(state, `${h.name} began to hear the voice of the heavens`);
+    return null;
+  },
+
+  // Lightning: a terrible wound, or death.
+  smite(state, data, p, { h }) {
+    if (h.away != null) return `${h.name} is not here`;
+    h.health -= p.damage;
+    if (h.health <= 0) killHuman(state, data, h, 'smitten');
+    else logEvent(state, `${h.name} was struck by lightning from a clear sky, and lived`);
+    return null;
+  },
+
+  // Flattens crops and trees and hurts those caught in it.
+  storm(state, data, p, { x, y }) {
+    for (const r of state.world.resources) {
+      if (Math.abs(r.x - x) <= p.radius && Math.abs(r.y - y) <= p.radius) r.amount = 0;
+    }
+    const caught = state.humans.filter((o) => o.away == null && Math.abs(o.x - x) <= p.radius && Math.abs(o.y - y) <= p.radius);
+    for (const o of caught) o.health = Math.max(1, o.health - p.damage);
+    logEvent(state, caught.length
+      ? `A storm from nowhere tore through ${state.settlement.name}, catching ${listNames(caught.map((o) => o.name))}`
+      : `A storm from nowhere tore through the fields of ${state.settlement.name}`);
+    return null;
+  },
+
+  // Sickness on someone and the nearest few.
+  pestilence(state, data, p, { h }) {
+    if (h.away != null) return `${h.name} is not here`;
+    const near = state.humans
+      .filter((o) => o !== h && o.away == null && !o.sick && Math.abs(o.x - h.x) <= p.radius && Math.abs(o.y - h.y) <= p.radius)
+      .slice(0, p.victims - 1);
+    const sick = [h, ...near].filter((o) => !o.sick);
+    if (!sick.length) return `${h.name} is already sick`;
+    for (const o of sick) o.sick = state.tick + p.sickDays * data.config.time.ticksPerDay;
+    logEvent(state, `A pestilence fell upon ${listNames(sick.map((o) => o.name))}`);
     return null;
   },
 

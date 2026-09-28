@@ -3,7 +3,7 @@ import { TILE_SIZE } from './constants.js';
 // Short-lived visuals for god powers. Purely cosmetic, so plain Math.random is
 // fine here (it never touches the sim).
 
-const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400, omen: 2000, gift: 1500, eternity: 2200, puppet: 1800, decree: 1600 };
+const DURATION = { rain: 1600, lightning: 450, spawn_food: 900, bless: 1200, inspire: 1400, omen: 2000, gift: 1500, eternity: 2200, puppet: 1800, decree: 1600, smite: 700, storm: 2000, pestilence: 2200 };
 
 const DRAW = {
   rain(g, cx, cy, t, e) {
@@ -37,6 +37,34 @@ const DRAW = {
       const a = (k * Math.PI) / 4 + t;
       g.lineBetween(cx + Math.cos(a) * 14, cy - 60 + Math.sin(a) * 14, cx + Math.cos(a) * (30 + t * 60), cy - 60 + Math.sin(a) * (30 + t * 60));
     }
+  },
+  smite(g, cx, cy, t, e) {
+    DRAW.lightning(g, cx, cy, Math.min(1, t * 1.5), e);
+    g.fillStyle(0x2a1d14, 0.5 * (1 - t));
+    g.fillEllipse(cx, cy + 5, 18, 7);
+  },
+  // Rain lashing a wide circle, with bolts striking here and there.
+  storm(g, cx, cy, t, e) {
+    DRAW.rain(g, cx, cy, t, e);
+    g.fillStyle(0x0b1330, 0.25 * Math.sin(t * Math.PI));
+    g.fillCircle(cx, cy, e.radius * TILE_SIZE * 1.2);
+    const k = Math.floor(t * 5);
+    if ((t * 5) % 1 < 0.3) {
+      const bx = cx + (e.drops[k].x) * e.radius * TILE_SIZE;
+      const by = cy + (e.drops[k].y - 0.5) * e.radius * TILE_SIZE;
+      g.lineStyle(2, 0xfff3a0, 1);
+      g.lineBetween(bx + 10, by - 160, bx - 4, by - 60);
+      g.lineBetween(bx - 4, by - 60, bx + 3, by);
+    }
+  },
+  // A sickly green miasma spreading out and settling.
+  pestilence(g, cx, cy, t, e) {
+    e.drops.slice(0, 18).forEach((d, k) => {
+      const a = k * 2.1 + t * 1.5;
+      const r = (6 + d.y * 38) * Math.min(1, t * 2);
+      g.fillStyle(k % 3 ? 0x6fbf4a : 0x9fd86a, 0.35 * (1 - t));
+      g.fillCircle(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.6 - t * 10, 5 + d.x * 3);
+    });
   },
   // Sparkles spiralling up around the person.
   gift(g, cx, cy, t, e) {

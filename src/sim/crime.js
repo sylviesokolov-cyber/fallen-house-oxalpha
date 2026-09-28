@@ -38,6 +38,7 @@ export function temptation(state, data, h) {
   f *= c.rankFactor[Math.max(0, rankIndex(state, data, h))] ?? 1;
   for (const t of h.traits) f *= c.traits[t] ?? 1;
   f *= c.law[lawLevel(state, data)];
+  f *= Math.max(0.2, 1 - (h.fear ?? 0) * data.config.fear.crimePerFear);
   if (builtOfType(state, 'watch_house')) f *= c.watch;
   if (builtOfType(state, 'market')) f *= c.market;
   if (state.justice?.lastPunish != null && state.tick - state.justice.lastPunish < c.recentPunishDays * DAY(data)) f *= c.recentPunish;

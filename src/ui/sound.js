@@ -109,6 +109,15 @@ export function createSound() {
     },
     puppet: () => arp([55, 58, 62, 67], 0.14, { dur: 0.7, vol: 0.08, type: 'triangle' }),
     decree: () => arp([67, 67, 72, 79], 0.11, { dur: 0.4, vol: 0.09, type: 'square' }),
+    smite: () => {
+      noise({ dur: 0.5, freq: 300, q: 0.5, vol: 0.5, sweep: 0.3 });
+      tone(NOTE(36), { dur: 0.8, vol: 0.14, type: 'sawtooth', glide: 0.5 });
+    },
+    storm: () => {
+      noise({ dur: 1.8, freq: 600, q: 0.3, vol: 0.18 });
+      noise({ at: 0.5, dur: 0.6, freq: 250, q: 0.5, vol: 0.4 });
+    },
+    pestilence: () => arp([50, 49, 47, 46], 0.18, { dur: 0.8, vol: 0.07, type: 'triangle' }),
     hit: () => noise({ dur: 0.07, freq: 900, q: 1.5, vol: 0.25 }),
     crit: () => {
       noise({ dur: 0.12, freq: 1400, q: 1, vol: 0.35 });

@@ -224,6 +224,11 @@ K. **Society and expansion** — done.
 - **Justice:** the ruler's law (from his nature, or set by decree) decides the sentence: lenient (a fine and shame), fair (the stocks), harsh (flogging, the cells, and everyone lives in fear). Those who won't stop are exiled.
 - **Expansion:** only the god raises the walls, once there are enough people, buildings and milestones (and later, notables). Sanctuary → Town → City, each with more land, groves, fields, plots and homes, and new buildings: the Academy (faster study, school for children), the Watch House, the Market, the Cathedral. New techs (Law, Scholarship, Trade) are only found in a Town.
 
+L. **Storyteller, tour and wrath** — done.
+- A storyteller paces events by how hard life is (tension): trouble after long calm, relief during a crisis. Crises that pass are named ("The Hungry Winter of Year 5"). New events: fire, a bountiful harvest, a child prodigy, feuds, a wandering bard.
+- A guided tour for new worlds, replayable from How to play.
+- Wrath powers: Smite, Storm, Pestilence. People love you (devotion) or fear you; the fearful work harder, steal less and pray to appease you, but are unhappier. Smiting the wicked looks like justice.
+
 I. **Visual depth** — done.
 - People look like individuals: hair styles, beards, slim or broad builds by strength, a sash in their house colour, and the weapon they carry. They swing while working and breathe while standing. The ageless wear a halo and the sick turn pale.
 - Portraits are drawn faces that match the sprite, with a crown for the ruler and a tiara for the ruler's spouses and heir.

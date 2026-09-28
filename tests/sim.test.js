@@ -1288,3 +1288,27 @@ test('the storyteller paces trouble and names the hard times', () => {
   assert.equal(s.eras.length, 1);
   assert.ok(s.history.some((e) => e.text.startsWith('The hard times passed')));
 });
+
+test('wrath: the innocent smitten breed fear, the wicked smitten look like justice', () => {
+  const s = createSim(data, 'wrath');
+  s.faith = 1000;
+  const [victim, witness, thief] = s.humans;
+  for (const h of s.humans) Object.assign(h, { x: 20, y: 20, action: { type: 'idle', ticks: 9 } });
+  assert.ok(usePower(s, data, 'smite', { humanId: victim.id }).ok);
+  assert.ok(witness.fear > 0);
+  assert.ok(witness.feelings.some((f) => f.text.startsWith('Terrified')));
+  const calmFear = witness.fear;
+  thief.crimes = 2;
+  const before = temptation(s, data, witness);
+  assert.ok(usePower(s, data, 'smite', { humanId: thief.id }).ok);
+  assert.ok(witness.feelings.some((f) => f.text === 'Saw the heavens punish the wicked'));
+  assert.ok(witness.fear - calmFear < data.powersById.smite.dread, 'justice frightens less');
+  assert.ok(temptation(s, data, witness) <= before, 'the fearful are less tempted');
+  // Storms flatten what grows; pestilence sickens a few.
+  const r = s.world.resources.find((o) => o.amount > 0);
+  assert.ok(usePower(s, data, 'storm', { x: r.x, y: r.y }).ok);
+  assert.equal(r.amount, 0);
+  const alive = s.humans.find((h) => !h.sick);
+  assert.ok(usePower(s, data, 'pestilence', { humanId: alive.id }).ok);
+  assert.ok(alive.sick);
+});

@@ -126,7 +126,9 @@ function chooseAction(state, data, h) {
   }
   if (h.knows.includes('worship') && state.tick >= h.nextPrayer) {
     const p = data.config.prayer;
-    options.push({ type: 'pray', score: (p.scoreBase + h.devotion * p.scorePerDevotion) * focusValue(state, data, 'pray') });
+    // The devout pray out of love, the fearful to appease.
+    const want = h.devotion + (h.fear ?? 0) * data.config.fear.prayPerFear;
+    options.push({ type: 'pray', score: (p.scoreBase + want * p.scorePerDevotion) * focusValue(state, data, 'pray') });
   }
   const train = data.config.training;
   if (stage === 'child') {
@@ -139,6 +141,7 @@ function chooseAction(state, data, h) {
   } else {
     // Ambition to rise in rank makes people keener to work, train and study.
     const keen = emotionEffect(h, data, 'work') * leaderWorkBonus(state, data) * drive(state, data, h)
+      * (1 + (h.fear ?? 0) * data.config.fear.workPerFear)
       * (stage === 'elder' ? data.config.lifecycle.elderWorkWeight : 1);
     const work = traitMod(h, data, 'workWeight') * keen;
     // Those already good at a craft (e.g. the best cooks) are likelier to take it on.
