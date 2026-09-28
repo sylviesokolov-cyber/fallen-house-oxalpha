@@ -5,6 +5,7 @@ import { leaderOf, leaderTitle, populationCap } from '../sim/settlement.js';
 import { freePlotCount, jobProgress, nextUpgrade } from '../sim/construction.js';
 import { $, el, button, bar, stars, renderKeyed } from './dom.js';
 import { artIcon } from './itemArt.js';
+import { dateOf } from '../sim/time.js';
 import { icon } from './icons.js';
 import { usePower } from '../sim/godPowers.js';
 import { nextTier, tierDef, tierOf, tierRequirements } from '../sim/tiers.js';
@@ -68,6 +69,22 @@ export function createTribePanel(ctx, { toast, select }) {
     return [section('Expand the sanctuary'), card];
   }
 
+  // How hard life is right now (the storyteller's tension), and the hard
+  // times the sanctuary remembers by name.
+  function times() {
+    const { sim, data } = ctx;
+    const t = sim.director?.tension ?? 0;
+    const d = data.config.director;
+    const [label, cls] = t >= d.crisisAt ? ['Hard times', 'bad'] : t >= d.calmBelow ? ['Uneasy', 'mid'] : ['Peaceful', 'good'];
+    const r = el('div', `kv times ${cls}`);
+    r.append(el('span', null, 'The times'), el('span', 'kind', sim.director?.crisis ? `${label} · a dark age` : label));
+    const nodes = [section('The times'), r, bar(Math.min(1, t / (d.crisisAt * 2)), `times-bar ${cls}`)];
+    for (const e of [...(sim.eras ?? [])].reverse().slice(0, 4)) {
+      nodes.push(row(e.name, `Year ${dateOf(e.from, data.config.time).year}`, 'era-row'));
+    }
+    return nodes;
+  }
+
   // Ranks, the law, and crime.
   function society() {
     const { sim, data } = ctx;
@@ -95,7 +112,7 @@ export function createTribePanel(ctx, { toast, select }) {
 
   function overview() {
     const { sim, data } = ctx;
-    const nodes = [...expansion(), ...society()];
+    const nodes = [...times(), ...expansion(), ...society()];
     const leader = leaderOf(sim);
     if (leader) {
       const lb = button('bond', '', () => select(leader.id));

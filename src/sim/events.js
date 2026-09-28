@@ -1,8 +1,8 @@
 import { chance, randInt, next } from './rng.js';
 import { logEvent } from './history.js';
 import { dateOf } from './time.js';
-import { feel } from './mood.js';
-import { changeBond } from './bonds.js';
+import { addFeeling, feel } from './mood.js';
+import { bondValue, changeBond } from './bonds.js';
 import { gainXp } from './skills.js';
 import { lifeStage } from './lifecycle.js';
 import { populationCap } from './settlement.js';
@@ -10,10 +10,13 @@ import { builtOfType } from './buildings.js';
 import { castOf, combatPower, fight, heroFighter, monsterFighters } from './combat.js';
 import { portalYard, listNames } from './dungeon.js';
 import { createHuman, freshHouse, killHuman } from './human.js';
+import { eventWeight } from './director.js';
 
 // Things that happen to the sanctuary, from data/events.json, rolled once a
-// day: monsters bursting out of the portal, a harvest festival, a sickness,
-// a lost stranger wandering in. Each has its own chance and conditions.
+// day: monsters bursting out of the portal, festivals and good harvests,
+// sickness, fire, feuds, a prodigy, a wandering bard, a lost stranger. Each
+// has its own chance and conditions, scaled by the storyteller (director.js)
+// by whether it's `good` or `bad` news.
 
 const byId = (data, id) => data.events.find((e) => e.id === id);
 
@@ -23,8 +26,9 @@ export function updateEvents(state, data) {
   const date = dateOf(state.tick, data.config.time);
   for (const ev of data.events) {
     if (date.year < (ev.minYear ?? 0) || (ev.season && ev.season !== date.season)) continue;
+    if (ev.seasons && !ev.seasons.includes(date.season)) continue;
     if (ev.oncePerYear && state.eventYears?.[ev.id] === date.year) continue;
-    if (!chance(state.rng, ev.chancePerDay)) continue;
+    if (!chance(state.rng, ev.chancePerDay * eventWeight(state, data, ev.kind))) continue;
     if (RUN[ev.id](state, data, ev) && ev.oncePerYear) (state.eventYears ??= {})[ev.id] = date.year;
   }
 }
@@ -106,6 +110,87 @@ const RUN = {
       sick.push(h);
     }
     logEvent(state, `A sickness struck ${listNames(sick.map((h) => h.name))}`);
+    return true;
+  },
+
+  // A building catches fire: those nearby rush to put it out (and are
+  // honoured for it, if not burned), and some of the stores go up in smoke.
+  fire(state, data, ev) {
+    const built = state.buildings.filter((b) => b.built);
+    if (!built.length) return false;
+    const b = built[randInt(state.rng, 0, built.length - 1)];
+    const name = data.buildingsById[b.type].name;
+    const near = state.humans.filter((h) => h.away == null && !h.punished && lifeStage(h, state, data) !== 'child')
+      .sort((a, c) => (Math.abs(a.x - b.x) + Math.abs(a.y - b.y)) - (Math.abs(c.x - b.x) + Math.abs(c.y - b.y)))
+      .slice(0, ev.helpers);
+    state.stockpile.wood -= Math.floor(state.stockpile.wood * ev.woodLost);
+    state.stockpile.food -= Math.floor(state.stockpile.food * ev.foodLost);
+    const burned = [];
+    for (const h of near) {
+      h.renown = (h.renown ?? 0) + ev.renown;
+      if (chance(state.rng, ev.burnChance)) {
+        h.health = Math.max(5, h.health - randInt(state.rng, ev.burn[0], ev.burn[1]));
+        burned.push(h);
+      }
+      feel(state, data, h, 'dungeonVictory', 'Fought the fire');
+    }
+    const who = near.length ? `. ${listNames(near.map((h) => h.name))} fought the flames` : '';
+    const hurt = burned.length ? `, and ${listNames(burned.map((h) => h.name))} ${burned.length > 1 ? 'were' : 'was'} burned` : '';
+    logEvent(state, `Fire broke out in the ${name}!${who}${hurt}`);
+    return true;
+  },
+
+  // The fields give twice over.
+  bounty(state, data, ev) {
+    state.stockpile.food += state.humans.length * ev.foodPerPerson;
+    logEvent(state, `The fields of ${state.settlement.name} gave twice over: a bountiful harvest`);
+    return true;
+  },
+
+  // A child or youth shows a rare gift in whatever they're best at.
+  prodigy(state, data, ev) {
+    const young = state.humans.filter((h) => lifeStage(h, state, data) === 'child' && h.away == null);
+    if (!young.length) return false;
+    const h = young[randInt(state.rng, 0, young.length - 1)];
+    const skill = data.skills[randInt(state.rng, 0, data.skills.length - 1)];
+    const s = (h.skills[skill.id] ??= { level: 0, xp: 0 });
+    s.level = Math.min(data.config.skills.maxLevel, s.level + ev.levels);
+    logEvent(state, `${h.name}, still a child, showed a rare gift for ${skill.name.toLowerCase()}`);
+    return true;
+  },
+
+  // Two who already dislike each other fall out for good.
+  feud(state, data, ev) {
+    const adults = state.humans.filter((h) => h.away == null && lifeStage(h, state, data) !== 'child');
+    let pair = null;
+    let worst = ev.bondBelow;
+    for (let i = 0; i < adults.length; i++) {
+      for (let j = i + 1; j < adults.length; j++) {
+        const b = bondValue(state, adults[i], adults[j]);
+        if (b < worst) {
+          worst = b;
+          pair = [adults[i], adults[j]];
+        }
+      }
+    }
+    if (!pair) return false;
+    const [a, b] = pair;
+    changeBond(state, data, a, b, ev.bond);
+    addFeeling(state, data, a, `Feuding with ${b.name}`, ev.mood, ev.days);
+    addFeeling(state, data, b, `Feuding with ${a.name}`, ev.mood, ev.days);
+    logEvent(state, `A bitter feud broke out between ${a.name} and ${b.name}`);
+    return true;
+  },
+
+  // A bard passes through and sings of the ruler, or of the greatest hero.
+  bard(state, data, ev) {
+    const ruler = state.humans.find((h) => h.id === state.settlement.leaderId);
+    const hero = [...state.humans].sort((a, b) => (b.counters.bossKills ?? 0) - (a.counters.bossKills ?? 0) || b.level - a.level)[0];
+    const subject = hero && (hero.counters.bossKills ?? 0) > 0 ? hero : ruler ?? hero;
+    if (!subject) return false;
+    subject.renown = (subject.renown ?? 0) + ev.renown;
+    for (const h of state.humans) if (h.away == null) addFeeling(state, data, h, 'Heard the bard sing', ev.mood, ev.days);
+    logEvent(state, `A wandering bard came to ${state.settlement.name} and sang of ${subject.name}`);
     return true;
   },
 

@@ -16,6 +16,7 @@ import { newDynasty } from './dynasty.js';
 import { updateGoals } from './goals.js';
 import { updateEvents } from './events.js';
 import { updateRanks } from './rank.js';
+import { newDirector, updateDirector } from './director.js';
 import { updateCrime } from './crime.js';
 import { expireFeelings } from './mood.js';
 import { createSettlement, updateSettlement } from './settlement.js';
@@ -45,6 +46,8 @@ export function createSim(data, seed) {
     expeditions: [],
     dynasty: newDynasty(),
     goals: {},
+    director: newDirector(),
+    eras: [],
     dead: [],
     history: [],
   };
@@ -81,6 +84,7 @@ export function stepSim(state, data) {
   spoilFood(state, data);
   updateDungeon(state, data);
   updateGoals(state, data);
+  updateDirector(state, data);
   updateEvents(state, data);
   updateRanks(state, data);
   updateCrime(state, data);

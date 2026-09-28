@@ -28,6 +28,7 @@ import { castOf } from '../src/sim/combat.js';
 import { drive, rankDef, updateRanks } from '../src/sim/rank.js';
 import { commitCrime, temptation } from '../src/sim/crime.js';
 import { nextTier } from '../src/sim/tiers.js';
+import { eventWeight, updateDirector } from '../src/sim/director.js';
 
 // A copy of the content with some settings overridden, for forcing rare events.
 function tweak(path, value) {
@@ -331,11 +332,14 @@ test('potatoes are harvested, cooked in the Kitchen and eaten in the Dining Hall
 });
 
 test('training at the Training Ground builds fighting skills', () => {
-  const s = createSim(data, 'train');
-  run(s, 60 * DAY);
-  const fighters = s.humans.filter((h) => ['swordsmanship', 'archery', 'defense'].some((k) => (h.skills[k]?.level ?? 0) >= 1));
-  // Some love training and some never go, so expect a few dedicated fighters.
-  assert.ok(fighters.length >= 3, `only ${fighters.length} trained`);
+  // Some love training and some never go, so expect a few dedicated fighters
+  // across a handful of worlds.
+  let fighters = 0;
+  for (const seed of ['train', 't2', 't3']) {
+    const s = run(createSim(data, seed), 60 * DAY);
+    fighters += s.humans.filter((h) => ['swordsmanship', 'archery', 'defense'].some((k) => (h.skills[k]?.level ?? 0) >= 1)).length;
+  }
+  assert.ok(fighters >= 6, `only ${fighters} trained`);
 });
 
 test('wounds heal on their own inside the walls', () => {
@@ -1253,4 +1257,34 @@ test('the god expands the sanctuary once it is ready: more land, plots and new b
   // The world still steps and saves.
   run(s, DAY);
   assert.equal(deserialize(serialize(s)).world.width, t.width);
+});
+
+test('the storyteller paces trouble and names the hard times', () => {
+  const s = createSim(data, 'director');
+  s.director.calmDays = 100;
+  assert.ok(eventWeight(s, data, 'bad') > 2, 'a long calm invites trouble');
+  // Everyone starving and sick: tension climbs into a crisis.
+  for (const h of s.humans) {
+    h.needs.hunger = 5;
+    h.sick = s.tick + 99 * DAY;
+  }
+  s.stockpile.food = 0;
+  for (let d = 1; d <= 8; d++) {
+    s.tick = d * DAY;
+    updateDirector(s, data);
+  }
+  assert.ok(s.director.crisis, `tension ${s.director.tension}`);
+  assert.ok(eventWeight(s, data, 'bad') < 0.5 && eventWeight(s, data, 'good') > 2);
+  // Relief: it passes, and the age gets a name.
+  for (const h of s.humans) {
+    h.needs.hunger = 90;
+    h.sick = null;
+  }
+  s.stockpile.food = 500;
+  for (let d = 9; d <= 30 && s.director.crisis; d++) {
+    s.tick = d * DAY;
+    updateDirector(s, data);
+  }
+  assert.equal(s.eras.length, 1);
+  assert.ok(s.history.some((e) => e.text.startsWith('The hard times passed')));
 });

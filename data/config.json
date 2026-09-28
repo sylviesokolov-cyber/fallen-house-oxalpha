@@ -246,6 +246,25 @@
       10
     ]
   },
+  "director": {
+    "recentDays": 10,
+    "perDeath": 18,
+    "hunger": 45,
+    "emptyStores": 15,
+    "lowFoodPerPerson": 2,
+    "perSick": 7,
+    "perCrime": 5,
+    "misery": 35,
+    "smoothing": 0.3,
+    "calmBelow": 8,
+    "crisisAt": 18,
+    "recoveredBelow": 6,
+    "reliefAt": 14,
+    "boredomDays": 40,
+    "badWhenBored": 2.5,
+    "badInCrisis": 0.2,
+    "goodInCrisis": 2.5
+  },
   "crime": {
     "baseChancePerDay": 0.0028,
     "hungryBelow": 30,

@@ -1,6 +1,11 @@
 [
-  {"id": "raid", "name": "Monster raid", "chancePerDay": 0.012, "minYear": 2, "minDeepest": 2, "defenders": 4, "extraMonsters": 1},
-  {"id": "festival", "name": "Harvest festival", "chancePerDay": 0.12, "season": "Autumn", "oncePerYear": true, "foodPerPerson": 15, "mood": 10, "days": 4, "bond": 3},
-  {"id": "plague", "name": "Sickness", "chancePerDay": 0.004, "minYear": 3, "victims": [1, 3], "sickDays": 8, "startHealth": 60, "drainPerDay": 5, "drainWithInfirmary": 2},
-  {"id": "stranger", "name": "A stranger", "chancePerDay": 0.007, "minYear": 1}
+  {"id": "raid", "kind": "bad", "name": "Monster raid", "chancePerDay": 0.01, "minYear": 2, "minDeepest": 2, "defenders": 4, "extraMonsters": 1},
+  {"id": "festival", "kind": "good", "name": "Harvest festival", "chancePerDay": 0.12, "season": "Autumn", "oncePerYear": true, "foodPerPerson": 15, "mood": 10, "days": 4, "bond": 3},
+  {"id": "plague", "kind": "bad", "name": "Sickness", "chancePerDay": 0.0035, "minYear": 3, "victims": [1, 3], "sickDays": 8, "startHealth": 60, "drainPerDay": 5, "drainWithInfirmary": 2},
+  {"id": "stranger", "kind": "good", "name": "A stranger", "chancePerDay": 0.007, "minYear": 1},
+  {"id": "fire", "kind": "bad", "name": "Fire", "chancePerDay": 0.003, "minYear": 1, "woodLost": 0.2, "foodLost": 0.1, "helpers": 3, "burnChance": 0.3, "burn": [15, 30], "renown": 4},
+  {"id": "bounty", "kind": "good", "name": "Bountiful harvest", "chancePerDay": 0.02, "seasons": ["Summer", "Autumn"], "oncePerYear": true, "foodPerPerson": 6},
+  {"id": "prodigy", "kind": "good", "name": "A prodigy", "chancePerDay": 0.004, "minYear": 2, "levels": 2},
+  {"id": "feud", "kind": "bad", "name": "A feud", "chancePerDay": 0.004, "minYear": 1, "bondBelow": -5, "bond": -35, "mood": -6, "days": 8},
+  {"id": "bard", "kind": "good", "name": "A wandering bard", "chancePerDay": 0.004, "minYear": 2, "mood": 6, "days": 3, "renown": 10}
 ]

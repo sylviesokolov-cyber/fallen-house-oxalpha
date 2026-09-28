@@ -7,6 +7,7 @@ import { builtOfType } from './buildings.js';
 import { rankIndex } from './rank.js';
 import { killHuman } from './human.js';
 import { rulerTitle } from './dynasty.js';
+import { noteCrime } from './director.js';
 
 // Crime and justice. Once a day each grown person may be tempted: hunger,
 // misery, low rank, envy and their nature push them towards it; the law's
@@ -67,6 +68,7 @@ export function commitCrime(state, data, h, kind = null) {
   const crime = assault ? attack(state, data, h, rival) : steal(state, data, h);
   if (!crime) return null;
   state.tribeCounters.crimes = (state.tribeCounters.crimes ?? 0) + 1;
+  noteCrime(state, data);
   const witnesses = state.humans.filter((o) => o !== h && o.away == null && o.action.type !== 'sleep'
     && lifeStage(o, state, data) !== 'child' && Math.abs(o.x - h.x) <= c.witnessRadius && Math.abs(o.y - h.y) <= c.witnessRadius).length;
   let p = c.detectBase + witnesses * c.detectPerWitness;
