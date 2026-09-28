@@ -77,7 +77,7 @@ export function createTribePanel(ctx, { toast, select }) {
     const d = data.config.director;
     const [label, cls] = t >= d.crisisAt ? ['Hard times', 'bad'] : t >= d.calmBelow ? ['Uneasy', 'mid'] : ['Peaceful', 'good'];
     const r = el('div', `kv times ${cls}`);
-    r.append(el('span', null, 'The times'), el('span', 'kind', sim.director?.crisis ? `${label} · a dark age` : label));
+    r.append(el('span', null, 'Life in the sanctuary'), el('span', 'kind', sim.director?.crisis ? `${label} · a dark age` : label));
     const nodes = [section('The times'), r, bar(Math.min(1, t / (d.crisisAt * 2)), `times-bar ${cls}`)];
     for (const e of [...(sim.eras ?? [])].reverse().slice(0, 4)) {
       nodes.push(row(e.name, `Year ${dateOf(e.from, data.config.time).year}`, 'era-row'));

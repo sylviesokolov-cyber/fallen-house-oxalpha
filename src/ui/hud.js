@@ -11,6 +11,7 @@ import { createMenuPanel } from './menuPanel.js';
 import { createTopBar } from './topBar.js';
 import { createSheets, haptic } from './sheets.js';
 import { createTitleScreen } from './titleScreen.js';
+import { createTutorial } from './tutorial.js';
 import { createThronePanel } from './thronePanel.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
@@ -67,6 +68,7 @@ export function createHud(ctx, sound) {
 
   const sheets = createSheets(PANELS, {
     onChange(id) {
+      ctx.events.emit('panel', id);
       document.body.classList.toggle('sheet-open', !!id);
       if (id) selectPower(null);
       if (id !== 'inspect') ctx.selectedId = null;
@@ -249,10 +251,17 @@ export function createHud(ctx, sound) {
     if (isOpen('throne')) throne.render();
   }
 
+  const tutorial = createTutorial(ctx, { toast });
+  $('help-tour').addEventListener('click', () => {
+    showPanel(null);
+    tutorial.start();
+  });
   createTitleScreen(ctx, {
     start: () => {
       ctx.events.emit('game-start');
       top.setSpeed(1);
+      // A tour for a brand-new world, the first time.
+      if (ctx.sim.tick < ctx.data.config.time.ticksPerDay * 2) tutorial.maybeStart();
     },
     replaceSim,
     showHelp: () => showPanel('help'),

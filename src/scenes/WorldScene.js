@@ -46,6 +46,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.camControls.onPan(() => {
       this.followId = null;
+      this.ctx.events.emit('camera-moved');
     });
   }
 
