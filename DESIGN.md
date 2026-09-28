@@ -227,6 +227,7 @@ K. **Society and expansion** — done.
 L. **Storyteller, tour and wrath** — done.
 - A storyteller paces events by how hard life is (tension): trouble after long calm, relief during a crisis. Crises that pass are named ("The Hungry Winter of Year 5"). New events: fire, a bountiful harvest, a child prodigy, feuds, a wandering bard.
 - A guided tour for new worlds, replayable from How to play.
+- Family tree on everyone's sheet, the line of rulers on the Throne, and a shareable "Chronicle of <place>" image: its rulers, the ages it remembers and its great moments.
 - Wrath powers: Smite, Storm, Pestilence. People love you (devotion) or fear you; the fearful work harder, steal less and pray to appease you, but are unhappier. Smiting the wicked looks like justice.
 
 I. **Visual depth** — done.

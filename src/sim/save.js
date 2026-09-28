@@ -13,6 +13,7 @@ export function deserialize(json) {
   }
   state.goals ??= {};
   state.director ??= { tension: 0, calmDays: 0, crisis: null };
-  state.eras ??= []; // added without a version bump; older saves start with none reached
+  state.eras ??= [];
+  state.annals ??= []; // added without a version bump; older saves start with none reached
   return state;
 }

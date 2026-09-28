@@ -3,6 +3,8 @@ import { leaderOf, leaderTitle, rankOf } from '../sim/settlement.js';
 import { royalLine, successorOf, spousesOf, unwed } from '../sim/dynasty.js';
 import { decreeCost, puppetRuler } from '../sim/decrees.js';
 import { lawLevel } from '../sim/crime.js';
+import { rulerLine } from './familyTree.js';
+import { shareChronicle } from './chronicleCard.js';
 import { nextUpgrade } from '../sim/construction.js';
 import { isFamily } from '../sim/bonds.js';
 import { lifeStage } from '../sim/lifecycle.js';
@@ -175,14 +177,10 @@ export function createThronePanel(ctx, { toast, select }) {
       b.lastChild.prepend(icon('faith', 'cost-icon'));
       nodes.push(section('The god’s hand'), el('div', 'sub', 'A puppet ruler lets you arrange marriages, name the heir, order buildings and proclaim callings.'), b);
     }
-    nodes.push(section('Chronicle of rulers'));
-    for (const r of [...dy.rulers].reverse()) {
-      const from = dateOf(r.from, data.config.time).year;
-      const to = r.to == null ? 'now' : `Year ${dateOf(r.to, data.config.time).year}`;
-      const row = el('div', 'kv');
-      row.append(el('span', null, `${r.name} of ${r.house}`), el('span', 'kind', `Year ${from} – ${to}`));
-      nodes.push(row);
-    }
+    nodes.push(section('The line of rulers'), rulerLine(ctx, select));
+    const share = button('wide share-btn', '', () => shareChronicle(ctx, toast));
+    share.append(icon('log'), el('span', null, 'Share the chronicle'));
+    nodes.push(share);
     return nodes;
   }
 

@@ -26,14 +26,14 @@ function stresses(state, data) {
   const recent = (tick) => state.tick - tick < d.recentDays * DAY(data);
   const deaths = state.dead.filter((o) => o.cause !== 'exile' && recent(o.deathTick)).length;
   const hungry = state.humans.filter((h) => h.needs.hunger < 25).length / n;
-  const sick = state.humans.filter((h) => h.sick).length;
+  const sick = state.humans.filter((h) => h.sick).length / n;
   const crimes = (state.director.crimeLog ?? []).filter(recent).length;
   const unhappy = state.humans.filter((h) => mood(h) < 30).length / n;
   const empty = foodInStock(state, data) < n * d.lowFoodPerPerson ? 1 : 0;
   return {
     death: deaths * d.perDeath,
     hunger: (hungry * d.hunger) + empty * d.emptyStores,
-    sickness: sick * d.perSick,
+    sickness: sick * d.sickness,
     crime: crimes * d.perCrime,
     misery: unhappy * d.misery,
   };

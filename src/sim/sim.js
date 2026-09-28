@@ -48,6 +48,7 @@ export function createSim(data, seed) {
     goals: {},
     director: newDirector(),
     eras: [],
+    annals: [],
     dead: [],
     history: [],
   };

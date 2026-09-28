@@ -12,6 +12,7 @@ import { createTopBar } from './topBar.js';
 import { createSheets, haptic } from './sheets.js';
 import { createTitleScreen } from './titleScreen.js';
 import { createTutorial } from './tutorial.js';
+import { shareChronicle } from './chronicleCard.js';
 import { createThronePanel } from './thronePanel.js';
 
 // The UI is plain HTML over the canvas: native text, scrolling and buttons
@@ -270,6 +271,7 @@ export function createHud(ctx, sound) {
   }
 
   const tutorial = createTutorial(ctx, { toast });
+  $('log-share').addEventListener('click', () => shareChronicle(ctx, toast));
   $('help-tour').addEventListener('click', () => {
     showPanel(null);
     tutorial.start();

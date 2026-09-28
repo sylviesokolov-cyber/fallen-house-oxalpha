@@ -134,7 +134,7 @@ const RUN = {
       }
       feel(state, data, h, 'dungeonVictory', 'Fought the fire');
     }
-    const who = near.length ? `. ${listNames(near.map((h) => h.name))} fought the flames` : '';
+    const who = near.length ? ` ${listNames(near.map((h) => h.name))} fought the flames` : '';
     const hurt = burned.length ? `, and ${listNames(burned.map((h) => h.name))} ${burned.length > 1 ? 'were' : 'was'} burned` : '';
     logEvent(state, `Fire broke out in the ${name}!${who}${hurt}`);
     return true;

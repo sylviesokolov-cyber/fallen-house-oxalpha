@@ -15,6 +15,7 @@ import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait, royalMarks } from './portrait.js';
 import { artIcon } from './itemArt.js';
+import { familyTree } from './familyTree.js';
 import { rankIndex, standingOf } from '../sim/rank.js';
 
 // The inspect panel as a hero's character sheet: grade, level and class,
@@ -140,6 +141,15 @@ export function createCharacterSheet(ctx, { toast, select }) {
     });
   }
 
+  // Parents, spouses, siblings and children, living and dead.
+  function renderFamily(who) {
+    const { sim } = ctx;
+    const kin = [...sim.humans, ...sim.dead].filter((o) => o.id === who.id || who.parents?.includes(o.id) || o.parents?.includes(who.id)
+      || (who.parents?.length && o.parents?.some((p) => who.parents.includes(p))) || o.partnerId === who.id || who.partnerId === o.id);
+    const key = `${who.id}|${kin.map((o) => `${o.id}${sim.humans.includes(o) ? 'a' : 'd'}`).join()}`;
+    renderKeyed($('insp-family'), key, () => [familyTree(ctx, who, select)]);
+  }
+
   // The newest chapters first, each with the age they were then.
   function renderStory(who) {
     const { data } = ctx;
@@ -263,6 +273,7 @@ export function createCharacterSheet(ctx, { toast, select }) {
     const who = h ?? dead;
     renderHeader(who, !!h);
     renderStory(who);
+    renderFamily(who);
     renderChips('insp-traits', who.traits, data.traitsById, 'chip');
     renderChips('insp-knows', who.knows ?? [], data.techsById, 'chip tech');
     $('insp-alive').classList.toggle('hidden', !h);
