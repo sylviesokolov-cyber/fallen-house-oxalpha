@@ -750,7 +750,8 @@ button.power.wrath.selected .power-orb { box-shadow: 0 0 16px 3px rgba(255, 106,
 .sprite { position: absolute; pointer-events: none; }
 .sprite img { position: absolute; left: 0; top: 0; width: 100%; height: auto; user-select: none; }
 .sprite.face { width: 143%; left: -25%; top: -5%; aspect-ratio: 630 / 776; }
-.sprite.bust { position: relative; width: 100%; aspect-ratio: 630 / 776; }
+.sprite.face.male { left: -21%; }
+.sprite.bust { position: relative; width: 100%; }
 .portrait-frame.has-sprite { background: radial-gradient(circle at 50% 30%, #56709e, #1f2b44 75%); }
 .portrait-frame.dead .sprite { filter: grayscale(0.9) brightness(0.8); }
 .p-crown { position: absolute; left: 32%; top: -2%; width: 36%; z-index: 2; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }

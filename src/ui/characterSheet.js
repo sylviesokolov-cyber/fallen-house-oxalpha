@@ -15,7 +15,7 @@ import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait, royalMarks } from './portrait.js';
 import { artIcon } from './itemArt.js';
-import { spriteLayers, spriteNode } from './spriteArt.js';
+import { hasSprite, spriteLayers, spriteNode } from './spriteArt.js';
 import { familyTree } from './familyTree.js';
 import { rankIndex, standingOf } from '../sim/rank.js';
 
@@ -116,20 +116,20 @@ export function createCharacterSheet(ctx, { toast, select }) {
     const stage = alive ? lifeStage(who, sim, data) : 'adult';
     const look = appearance(who, stage === 'elder', data);
     const marks = alive ? royalMarks(sim, who, data) : {};
-    $('insp-portrait').classList.toggle('tappable', who.sex === 'female' && stage !== 'child');
+    $('insp-portrait').classList.toggle('tappable', hasSprite(who, stage));
     renderKeyed($('insp-portrait'), `${who.id}|${JSON.stringify(look)}|${stage}|${alive}|${JSON.stringify(marks)}|${who.eternal}`, () => [portrait(look, who, stage, alive, data, marks)]);
   }
 
-  // Tapping a woman's portrait shows her whole, visual-novel style.
+  // Tapping a grown person's portrait shows them whole, visual-novel style.
   $('insp-portrait').addEventListener('click', () => {
     const { sim, data, selectedId } = ctx;
     const who = sim.humans.find((o) => o.id === selectedId);
-    if (!who || who.sex !== 'female' || lifeStage(who, sim, data) === 'child') return;
+    if (!who || !hasSprite(who, lifeStage(who, sim, data))) return;
     const look = appearance(who, lifeStage(who, sim, data) === 'elder', data);
     const view = el('div', 'sprite-view');
     const cap = el('div', 'sv-name');
     cap.append(el('strong', null, who.name), el('span', null, `${rankOf(sim, data, who) ?? `House ${who.house}`} · ${emotionOf(who, data).name}`));
-    view.append(spriteNode(spriteLayers(look, royalMarks(sim, who, data).mood), 'bust'), cap);
+    view.append(spriteNode(who.sex, spriteLayers(who.sex, look, royalMarks(sim, who, data).mood), 'bust'), cap);
     view.addEventListener('click', () => view.remove());
     document.body.append(view);
   });

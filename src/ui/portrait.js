@@ -1,6 +1,6 @@
 import { gradeOf } from '../sim/stats.js';
 import { el } from './dom.js';
-import { spriteLayers, spriteNode } from './spriteArt.js';
+import { hasSprite, spriteLayers, spriteNode } from './spriteArt.js';
 import { emotionOf } from '../sim/emotions.js';
 import { rankIndex } from '../sim/rank.js';
 import { dateOf } from '../sim/time.js';
@@ -34,10 +34,10 @@ export function portrait(look, who, stage, alive, data, marks = {}) {
   const frame = el('div', `portrait-frame${alive ? '' : ' dead'}${stage === 'child' ? ' child' : ''}`);
   const grade = gradeOf(data, who.grade).color;
   frame.style.borderColor = grade === '#1b1b1b' ? '#5c6878' : grade;
-  // Grown women get the anime sprite; everyone else the drawn face below.
-  if (who.sex === 'female' && stage !== 'child') {
+  // Grown people get the anime sprite; children the drawn face below.
+  if (hasSprite(who, stage)) {
     frame.classList.add('has-sprite');
-    frame.append(spriteNode(spriteLayers(look, marks.mood ?? { id: who.id, looks: who.looks, traits: who.traits })));
+    frame.append(spriteNode(who.sex, spriteLayers(who.sex, look, marks.mood ?? { id: who.id, looks: who.looks, traits: who.traits })));
     if (marks.crown || marks.tiara) frame.insertAdjacentHTML('beforeend', marks.crown ? CROWN : TIARA);
     return frame;
   }
@@ -80,7 +80,7 @@ export function royalMarks(sim, h, data = null) {
   const marks = {};
   if (ruler && h.id === ruler.id) marks.crown = true;
   else if (ruler && (h.id === sim.dynasty.heirId || h.partnerId === ruler.id || ruler.partnerId === h.id)) marks.tiara = true;
-  if (data && h.sex === 'female') {
+  if (data) {
     marks.mood = {
       id: h.id,
       emotion: emotionOf(h, data).id,
