@@ -29,7 +29,7 @@ export function createThronePanel(ctx, { toast, select }) {
     const { sim, data } = ctx;
     const stage = lifeStage(h, sim, data);
     const b = button('person with-face', '', onTap ?? (() => select(h.id)));
-    const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h));
+    const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h, data));
     face.classList.add('mini');
     const info = el('div', 'person-info');
     const top = el('div', 'person-top');

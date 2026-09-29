@@ -51,7 +51,8 @@ export function appearance(h, elder = false, data = null) {
   const str = h.stats?.str ?? 8;
   return {
     skin: SKIN[k % SKIN.length],
-    hair: elder ? HAIR[7] : HAIR[(k >>> 4) % 7],
+    // A few young women have the sprite's pink or silver hair.
+    hair: elder ? HAIR[7] : !male && (k >>> 22) % 9 === 0 ? '#e89aa8' : !male && (k >>> 22) % 9 === 1 ? '#d8d8e0' : HAIR[(k >>> 4) % 7],
     tunic: TUNIC[bestSkill(h)] ?? NOVICE,
     longHair: ['long', 'braid'].includes(hairStyle),
     hairStyle,

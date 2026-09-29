@@ -210,7 +210,7 @@ export function createTribePanel(ctx, { toast, select }) {
     return sorted.map((h) => {
       const b = button('person with-face', '', () => select(h.id));
       const stage = lifeStage(h, sim, data);
-      const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h));
+      const face = portrait(appearance(h, stage === 'elder', data), h, stage, true, data, royalMarks(sim, h, data));
       face.classList.add('mini');
       const info = el('div', 'person-info');
       const top = el('div', 'person-top');

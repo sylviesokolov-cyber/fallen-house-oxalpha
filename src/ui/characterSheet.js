@@ -15,6 +15,7 @@ import { combatPower } from '../sim/combat.js';
 import { $, el, bar, button, stars, renderKeyed } from './dom.js';
 import { portrait, royalMarks } from './portrait.js';
 import { artIcon } from './itemArt.js';
+import { spriteLayers, spriteNode } from './spriteArt.js';
 import { familyTree } from './familyTree.js';
 import { rankIndex, standingOf } from '../sim/rank.js';
 
@@ -114,9 +115,24 @@ export function createCharacterSheet(ctx, { toast, select }) {
     renderRank(who, alive);
     const stage = alive ? lifeStage(who, sim, data) : 'adult';
     const look = appearance(who, stage === 'elder', data);
-    const marks = alive ? royalMarks(sim, who) : {};
+    const marks = alive ? royalMarks(sim, who, data) : {};
+    $('insp-portrait').classList.toggle('tappable', who.sex === 'female' && stage !== 'child');
     renderKeyed($('insp-portrait'), `${who.id}|${JSON.stringify(look)}|${stage}|${alive}|${JSON.stringify(marks)}|${who.eternal}`, () => [portrait(look, who, stage, alive, data, marks)]);
   }
+
+  // Tapping a woman's portrait shows her whole, visual-novel style.
+  $('insp-portrait').addEventListener('click', () => {
+    const { sim, data, selectedId } = ctx;
+    const who = sim.humans.find((o) => o.id === selectedId);
+    if (!who || who.sex !== 'female' || lifeStage(who, sim, data) === 'child') return;
+    const look = appearance(who, lifeStage(who, sim, data) === 'elder', data);
+    const view = el('div', 'sprite-view');
+    const cap = el('div', 'sv-name');
+    cap.append(el('strong', null, who.name), el('span', null, `${rankOf(sim, data, who) ?? `House ${who.house}`} · ${emotionOf(who, data).name}`));
+    view.append(spriteNode(spriteLayers(look, royalMarks(sim, who, data).mood), 'bust'), cap);
+    view.addEventListener('click', () => view.remove());
+    document.body.append(view);
+  });
 
   // Rank, standing and ambition; a sentence being served.
   function renderRank(who, alive) {

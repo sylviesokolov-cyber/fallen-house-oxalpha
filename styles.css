@@ -745,3 +745,28 @@ button.power.wrath.selected .power-orb { box-shadow: 0 0 16px 3px rgba(255, 106,
 .share-btn { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; background: linear-gradient(180deg, #f3e6c4, #d9bf85); color: #3a2614; font-weight: 900; }
 .share-btn svg { width: 20px; height: 20px; }
 .share-mini { margin-right: 8px; }
+
+/* Anime sprite portraits (layers stacked; see spriteArt.js). */
+.sprite { position: absolute; pointer-events: none; }
+.sprite img { position: absolute; left: 0; top: 0; width: 100%; height: auto; user-select: none; }
+.sprite.face { width: 143%; left: -25%; top: -5%; aspect-ratio: 630 / 776; }
+.sprite.bust { position: relative; width: 100%; aspect-ratio: 630 / 776; }
+.portrait-frame.has-sprite { background: radial-gradient(circle at 50% 30%, #56709e, #1f2b44 75%); }
+.portrait-frame.dead .sprite { filter: grayscale(0.9) brightness(0.8); }
+.p-crown { position: absolute; left: 32%; top: -2%; width: 36%; z-index: 2; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+.p-crown.tiara { top: 4%; }
+.sprite-view {
+  position: fixed; inset: 0; z-index: 65; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  background: radial-gradient(ellipse at 50% 40%, rgba(60, 80, 130, 0.9), rgba(8, 10, 20, 0.96)); animation: b-in 0.25s ease-out;
+}
+.sprite-view .sprite.bust { max-width: 520px; filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.6)); }
+.sprite-view .sv-name {
+  width: 100%; padding: 14px 20px calc(env(safe-area-inset-bottom) + 22px); background: linear-gradient(180deg, rgba(20, 26, 44, 0.85), #10141f);
+  border-top: 2px solid var(--gold); text-align: left;
+}
+.sprite-view .sv-name strong { font-family: Cinzel, serif; font-size: 26px; color: var(--gold); display: block; }
+.sprite-view .sv-name span { color: var(--muted); font-weight: 700; font-size: 14px; }
+#insp-portrait.tappable { cursor: pointer; }
+.portrait-frame svg.p-crown { inset: auto; left: 32%; top: -2%; width: 36%; height: auto; }
+.portrait-frame svg.p-crown.tiara { top: 3%; }
+.credits { font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 10px; }

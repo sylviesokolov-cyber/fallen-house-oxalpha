@@ -18,7 +18,7 @@ function face(ctx, h, onTap, sub = '') {
   const b = button(`kin${alive ? '' : ' gone'}`, '', onTap);
   let pic;
   try {
-    pic = portrait(appearance(h, stage === 'elder', data), h, stage, alive, data, alive ? royalMarks(sim, h) : {});
+    pic = portrait(appearance(h, stage === 'elder', data), h, stage, alive, data, alive ? royalMarks(sim, h, data) : {});
   } catch {
     pic = el('div', 'portrait-frame');
   }

@@ -1,5 +1,10 @@
 import { gradeOf } from '../sim/stats.js';
 import { el } from './dom.js';
+import { spriteLayers, spriteNode } from './spriteArt.js';
+import { emotionOf } from '../sim/emotions.js';
+import { rankIndex } from '../sim/rank.js';
+import { dateOf } from '../sim/time.js';
+import { skillLevel } from '../sim/skills.js';
 
 // A portrait matching the map sprite, drawn as SVG: shoulders in their tunic
 // with a sash in their house colour, face, hair style and beard, framed in
@@ -22,10 +27,20 @@ const HAIR_BACK = {
 };
 const SHOULDERS = { slim: 'M17 64c0-11 6-17 15-17s15 6 15 17z', normal: 'M13 64c0-12 8-18 19-18s19 6 19 18z', broad: 'M8 64c0-13 10-19 24-19s24 6 24 19z' };
 
+const CROWN = '<svg class="p-crown" viewBox="0 0 40 24"><path d="M3 22l3-17 8 8 6-11 6 11 8-8 3 17z" fill="#f2c14e" stroke="#8a5a10" stroke-width="1.5"/><circle cx="20" cy="15" r="2.6" fill="#e03a5a"/></svg>';
+const TIARA = '<svg class="p-crown tiara" viewBox="0 0 40 16"><path d="M4 14q16-14 32 0l-3 1q-13-9-26 0z" fill="#e8eef8" stroke="#8a93a6" stroke-width="1"/><circle cx="20" cy="6" r="2.4" fill="#6ab0ff"/></svg>';
+
 export function portrait(look, who, stage, alive, data, marks = {}) {
   const frame = el('div', `portrait-frame${alive ? '' : ' dead'}${stage === 'child' ? ' child' : ''}`);
   const grade = gradeOf(data, who.grade).color;
   frame.style.borderColor = grade === '#1b1b1b' ? '#5c6878' : grade;
+  // Grown women get the anime sprite; everyone else the drawn face below.
+  if (who.sex === 'female' && stage !== 'child') {
+    frame.classList.add('has-sprite');
+    frame.append(spriteNode(spriteLayers(look, marks.mood ?? { id: who.id, looks: who.looks, traits: who.traits })));
+    if (marks.crown || marks.tiara) frame.insertAdjacentHTML('beforeend', marks.crown ? CROWN : TIARA);
+    return frame;
+  }
   const child = stage === 'child';
   const style = look.hairStyle ?? (look.longHair ? 'long' : 'short');
   const beard = look.beard && !child;
@@ -58,11 +73,25 @@ export function portrait(look, who, stage, alive, data, marks = {}) {
   return frame;
 }
 
-// Crown for the ruler, tiara for their spouses and heir.
-export function royalMarks(sim, h) {
+// Crown for the ruler, tiara for their spouses and heir; and for the anime
+// sprites, what she's feeling and doing (`mood`). Pass `data` for the mood.
+export function royalMarks(sim, h, data = null) {
   const ruler = sim.humans.find((o) => o.id === sim.settlement.leaderId);
-  if (!ruler) return {};
-  if (h.id === ruler.id) return { crown: true };
-  if (h.id === sim.dynasty.heirId || h.partnerId === ruler.id || ruler.partnerId === h.id) return { tiara: true };
-  return {};
+  const marks = {};
+  if (ruler && h.id === ruler.id) marks.crown = true;
+  else if (ruler && (h.id === sim.dynasty.heirId || h.partnerId === ruler.id || ruler.partnerId === h.id)) marks.tiara = true;
+  if (data && h.sex === 'female') {
+    marks.mood = {
+      id: h.id,
+      emotion: emotionOf(h, data).id,
+      rank: rankIndex(sim, data, h),
+      royal: !!(marks.crown || marks.tiara),
+      action: h.action?.type === 'sleep' || h.action?.type === 'recover' ? 'sleep' : h.action?.type,
+      season: dateOf(sim.tick, data.config.time).season,
+      traits: h.traits,
+      research: skillLevel(h, 'research'),
+      looks: h.looks,
+    };
+  }
+  return marks;
 }
