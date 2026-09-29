@@ -236,6 +236,46 @@ I. **Visual depth** — done.
 - Buildings have roofs when seen from afar; zooming in lifts them away to show the rooms, and the roof over the selected person stays see-through.
 - Gift, Eternal youth, Puppet and Decrees each have their own effect and sound.
 
+M. **The Tower** — planned (next update). The portal stops being eight fixed floors and becomes a **tower to climb**, in the spirit of *Pick Me Up* (graded heroes, promotion, permadeath, the long climb), *Tower of God* (every floor a test with its own rules), *Second Life Ranker* / *Solo Leveling* (records, titles, system windows) and *Omniscient Reader* (a constellation sponsoring its incarnations). No rival kingdoms: the only enemy is the tower. Built in five steps, each shippable alone:
+
+**M1. The climb** (`dungeon.js` → `tower.js` + `towerGen.js`, `data/tower.json`)
+- **Strata:** floors come in strata of 10. The eight current floors become strata 1–8 (Mossy Burrows = floors 1–10, …, the Fallen Court = 71–80). Each stratum's current boss guards its x0 floor, and a new **gatekeeper** (mini-boss) its x5 floor. Floors between are generated from the stratum's monster table with the seeded RNG, their power interpolated between the old floor powers, so no hand-authoring of 80 floors.
+- **Beyond 80: the Endless Ascent.** Strata cycle with rising multipliers and a random **floor rule** each (below), so the climb never ends. The Fallen King is still "the dungeon conquered"; after him the record is the goal.
+- **Checkpoints:** a party may start at floor 1 or at any cleared x0/x5 floor. `state.dungeon` becomes `{ record, checkpoints, cleared, firstClears }`; the Portal panel shows a vertical tower strip (scrolls, current record glowing) instead of floor tabs.
+- **Room variety** (weights per stratum in data): fight, **elite** (one buffed monster, better loot), **treasure** (sometimes a mimic), **spring** (heals a little: the only healing inside), **trap** (AGI/INT check, hurts the careless), **god's altar** (pray: Faith, or a small blessing), **hidden door** (found by the sharp-eyed; leads to a bonus room or relic). Each room still makes one report entry, so the battle viewer and stories keep working.
+- **Floor rules (tests)** on some floors, from `data/tower.json` `rules`: *only two may enter*, *no magic works here*, *darkness: archers miss more*, *survive 8 rounds* (win by lasting, not killing), *the floor floods: leave within 3 rooms*, *a choice: the gold or the door*. Shown on the floor card before sending.
+- **First-clear rewards** (Faith, rare items, summon sigils, relics) and a **floor record** logged with names ("Mira and Tomas reached Floor 23, the highest anyone has climbed").
+- Save: bump `SAVE_VERSION`; migrate `deepest`/`cleared` onto the new floor numbers (old floor n cleared → floor 10n cleared).
+
+**M2. Heroes who fight like heroes** (`combat.js`, `data/abilities.json`, `data/classes.json`)
+- **Positions**, as in *Tower of God*: Vanguard (sword + defense, draws blows), Striker (sword, damage), Ranger (bow), Mage (magic), Healer (healing + magic), Scout (AGI: finds hidden doors, disarms traps). A person's position follows their best skills and traits, and can be changed from the character sheet.
+- **Formation:** front row and back row. The back row is hit far less while the front stands. The Portal panel lets you drag heroes between rows.
+- **Abilities** unlocked by skill level, used on a cooldown: Cleave, Taunt, Shield Wall, Volley, Aimed Shot, Firebolt, Frost Nova, Mend, Group Heal, Smoke Bomb. Each is data (targets, power, cooldown, stat); `fight` picks them with simple rules, and the battle viewer gets a new event kind `skill`.
+- **Bond combos:** two heroes with a strong bond who have climbed together may strike together (a named combo line in the report).
+- **Relics:** unique tower items with one passive each (e.g. "+20% damage to undead", "revive once per climb at 1 HP"). One relic slot per hero.
+
+**M3. Grades that climb too (the gacha)** (`grades.json`, `godPowers.js`, new `summon.js`)
+- **Level caps by grade** (e.g. ★1 20, ★2 30, ★3 40, ★4 55, ★5 70). At the cap a hero can **ascend** one star: it needs **ascension cores** (x0 bosses drop them) and a solo **ascension trial** floor. A ★1 who climbs to ★5 is the *Pick Me Up* dream, and is logged as a life event. Caps only bind new growth; nobody loses levels on load.
+- **Summoning:** a god power, **Summon**, spends Faith or **summon sigils** (tower rewards) to call a newcomer through the portal. Grade is rolled by `grades.json` `weight`, with **pity** (a guaranteed ★4+ after N summons without one, counter in state). Newcomers bring a fresh house, a random trait set and sometimes a technique the tribe has lost. Limited by free beds, so the sanctuary still has to grow. The random "stranger" event stays, rarer.
+- A **summon screen** in the style of the genre: the portal flares, a card flips, stars light up one by one (skippable, with a sound per star).
+
+**M4. The god in the tower** (`godPowers.js`, `portalPanel.js`, `ui/systemWindow.js`)
+- **Watch live:** while a party is inside, the Portal panel follows each room as it happens (the viewer already replays reports).
+- **Divine intervention** (Faith, once per room): heal the party, reveal the next room, or **snatch a fallen hero back** before they bleed out. Expensive, so death stays real.
+- **Sponsorship** (*Omniscient Reader*): choose one **champion**. They carry a **stigma** (one strong ability of your choosing, upgraded with Faith) and gain Faith for you when they win in your name. A champion who dies breaks the bond, and their loved ones may turn to fear.
+- **System windows:** floor clears, records, ascensions, titles and summons appear as a glowing "system" notice (the manhwa blue window) instead of a plain banner.
+- **Titles** (`data/titles.json`): *Rat Slayer*, *First Climber*, *Survivor of the Flood*, *Kingslayer*, *Solo Clearer*… Earned by deeds, shown on the sheet, each with one small bonus. Feeds standing (`rank.js`).
+- **Daily quests** (optional, from the god to the tribe): "clear 3 rooms", "train 5 people". Small Faith rewards, keeps short phone sessions rewarding.
+
+**M5. What the climb does to people** (`mood.js`, `traits.json`, `events.js`)
+- **Scars:** a near-death leaves a lasting trait (Fear of the dark, Hates the undead) that the person may overcome by winning on that kind of floor again.
+- **Awakening in crisis:** a rare roll when a hero is down and a loved one is in the party: they rise with a burst of power and a new ability (the classic manhwa moment), logged with both names.
+- **Grief and vengeance:** those who lose someone in the tower want to go back to the floor that took them, and fight harder there.
+- **Volunteers:** people ask to be sent (brave, ambitious, vengeful), shown as a badge in the party picker; refusing them costs a little mood, sending the timid costs more.
+- **The tower record** on each character sheet: highest floor, kills, bosses, titles, relics, near-deaths.
+
+Suggested order: M1 → M2 → M3 → M4 → M5. M1 is the foundation and can ship on its own; M3 (summoning) is the most "gacha" step and could go second if you want that first.
+
 ## Open Questions
 
 Answered: the player picks the portal party; the player stays an unseen god; 8 adults who have always lived there; keep the current pace.
@@ -244,3 +284,4 @@ Answered: the player picks the portal party; the player stays an unseen god; 8 a
 2. **The player's role:** stay an unseen god with Faith and powers, or become the sanctuary's master who gives orders (build here, train this person)?
 3. **Starting size:** 8 adults? Where do they come from (always there, or summoned into the sanctuary)?
 4. **Pace:** each year is 30 minutes of real time at 1x now. Slower still, or keep it?
+5. **The Tower (M):** level caps by grade (harsher, but makes ascension matter) or keep uncapped growth? Summon with Faith only, or also sigils from the tower? Should the Endless Ascent past floor 80 exist, or should floor 100 be a true ending?
